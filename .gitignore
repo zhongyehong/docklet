@@ -1,0 +1,7 @@
+__pycache__
+*.pyc
+*.swp
+__temp
+*~
+.DS_Store
+docklet.conf

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# $1 Container id
+# $2 Container name.
+# $3 Section (always 'lxc').
+# $4 The hook type (i.e. 'clone' or 'pre-mount').
+
+echo $HNAME > $LXC_ROOTFS_PATH/etc/hostname
