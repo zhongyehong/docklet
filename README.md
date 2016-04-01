@@ -72,9 +72,6 @@ src/
     ...
 web/
     web.py
-dep/
-    etcd-multi-nodes.sh
-    etcd-one-node.sh
 doc/
 tools/
     update-basefs.sh
@@ -131,9 +128,10 @@ file system.
 
 ### etcd ###
 
-For single host environment, start **dep/etcd-one-node.sh** . Some recent
+For single host environment, start **tools/etcd-one-node.sh** . Some recent
 Ubuntu releases have included **etcd** in the repository, just `apt-get
-install etcd`, and it need not to start etcd manually.
+install etcd`, and it need not to start etcd manually. For others, you 
+should install etcd manually.
 
 For multi hosts distributed environment, start
 **dep/etcd-multi-nodes.sh** in each etcd server hosts. This scripts
