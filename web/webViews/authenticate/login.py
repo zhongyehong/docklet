@@ -40,10 +40,12 @@ class loginView(normalView):
             #refreshInfo()
             return redirect(request.args.get('next',None) or '/dashboard/')
         if (env.getenv('EXTERNAL_LOGIN') == 'True'):
+            url = external_generate.external_login_url
             link = external_generate.external_login_link
         else:
             link = ''
-        return render_template(self.template_path, link = link)
+            url = ''
+        return render_template(self.template_path, link = link, url = url)
 
     @classmethod
     def post(self):
