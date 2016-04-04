@@ -1,5 +1,6 @@
 from flask import redirect, request
 from webViews.dockletrequest import dockletRequest
+from webViews.authenticate import login
 from webViews.view import normalView
 import json
 
@@ -15,4 +16,5 @@ class userinfoView(normalView):
     @classmethod
     def post(self):
         result =  json.dumps(dockletRequest.post('/user/selfModify/', request.form))
+        login.refreshInfo()
         return result
