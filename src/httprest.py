@@ -434,7 +434,7 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                 result = G_usermgr.groupList(cur_user = cur_user)
                 self.response(200, result)
             elif cmds[1] == 'groupQuery':
-                result = G_usermgr.groupQuery(ID = form.getvalue("ID", '3'), cur_user = cur_user)
+                result = G_usermgr.groupQuery(name = form.getvalue("name"), cur_user = cur_user)
                 if (result.get('success', None) == None or result.get('success', None) == "false"):
                     self.response(301,result)
                 else:
