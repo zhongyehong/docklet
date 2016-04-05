@@ -39,7 +39,7 @@ class loginView(normalView):
     @classmethod
     def get(self):
         if is_authenticated():
-            #refreshInfo()
+            refreshInfo()
             return redirect(request.args.get('next',None) or '/dashboard/')
         if (env.getenv('EXTERNAL_LOGIN') == 'True'):
             url = external_generate.external_login_url
