@@ -34,13 +34,14 @@
                          <table class="table table-bordered">
                              <thead>
                              <tr>
-				 <th>Node ID</th>
-				 <th>Node Name</th>
+				                 <th>Node ID</th>
+				                 <th>Node Name</th>
                                  <th>IP Address</th>
                                  <th>Status</th>
-				 <th>Cpu used</th>
-				 <th>Mem used</th>
-				 <th>Summary</th>
+				                 <th>Cpu used</th>
+				                 <th>Cpu quota</th>
+				                 <th>Mem used</th>
+				                <th>Summary</th>
                              </tr>
                              </thead>
                              <tbody>
@@ -56,6 +57,7 @@
                                  <td><div id='{{cluster}}_{{ loop.index }}_state' class="label label-primary">Running</div></td>
                                  {% endif %}
                                  <td id='{{cluster}}_{{ loop.index }}_cpu'>--</td>
+                                 <td id='{{cluster}}_{{ loop.index }}_cpuquota'>--</td>
                                  <td id='{{cluster}}_{{ loop.index }}_mem'>--</td>
 
                                  <td><a class="btn btn-info btn-xs" href='/vclusters/{{ cluster }}/{{ container['containername'] }}/'>Realtime</a></td>
@@ -97,21 +99,25 @@
 		    $("#"+index+"_pid").html('--');
 		    $("#"+index+"_ip").html('--');
 		    $("#"+index+"_cpu").html('--');
+		    $("#"+index+"_cpuquota").html('--');
 		    $("#"+index+"_mem").html('--');
 		    return;
        		}
 
        		$.post(url+"/cpu_use",{},function(data){
 		       	var usedp = data.monitor.cpu_use.usedp;
+                var quota = data.groupinfo.cpu;
+                quota = quota/100000.0;
 		       	$("#"+index+"_cpu").html((usedp/0.01).toFixed(2)+"%");
+                $("#"+index+"_cpuquota").html((quota*100).toFixed(2)+"% Cores");
 		       	},"json");
 
        		$.post(url+"/mem_use",{},function(data){
 		       	var usedp = data.monitor.mem_use.usedp;
 			var unit = data.monitor.mem_use.unit;
-			var quota = data.monitor.mem_use.quota;
+			var quota = data.groupinfo.memory;
 			var val = data.monitor.mem_use.val;
-			var out = "("+val+unit+"/"+quota+unit+")";
+			var out = "("+val+unit+"/"+quota+"MB)";
 		       	$("#"+index+"_mem").html((usedp/0.01).toFixed(2)+"%<br/>"+out);
 		       	},"json");
 
