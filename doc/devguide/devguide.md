@@ -14,12 +14,12 @@ Open https://github.com/unias/docklet in your browser and click **Fork** button 
 ##### Step 2 : clone & config
 * clone docklet from your github repository
 ```
-git clone https://github.com/YourName/docklet
+git clone https://github.com/YourName/docklet.git
 ```
 * config your local repository
 ```
 # add unias/docklet as your upstream
-git remote add upstream https://github.com/unias/docklet
+git remote add upstream https://github.com/unias/docklet.git
 # set push to upstream not work
 git remote set-url --push upstream no_push
 ```
