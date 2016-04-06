@@ -125,12 +125,8 @@ class userManager:
         '''
         try:
             User.query.all()
-            UserGroup.query.all()
         except:
             db.create_all()
-            root = UserGroup('root')
-            db.session.add(root)
-            db.session.commit()
             if password == None:
                 #set a random password
                 password = os.urandom(16)
@@ -148,11 +144,6 @@ class userManager:
             db.session.add(sys_admin)
             path = env.getenv('DOCKLET_LIB')
             subprocess.call([path+"/userinit.sh", username])
-            db.session.commit()
-            admin = UserGroup('admin')
-            primary = UserGroup('primary')
-            db.session.add(admin)
-            db.session.add(primary)
             db.session.commit()
         if not os.path.exists(fspath+"/global/group"):
             groupfile = open(fspath+"/global/group",'w')
@@ -365,7 +356,6 @@ class userManager:
         List informantion for oneself
         '''
         user = kwargs['cur_user']
-        #group = UserGroup.query.filter_by(name = user.user_group).first()
         groupfile = open(fspath+"/global/group",'r')
         groups = json.loads(groupfile.read())
         groupfile.close()
@@ -374,6 +364,11 @@ class userManager:
             if one_group['name'] == user.user_group:
                 group = one_group
                 break
+        else:
+            for one_group in groups:
+                if one_group['name'] == "primary":
+                    group = one_group
+                    break
         result = {
             "success": 'true',
             "data":{
@@ -466,7 +461,6 @@ class userManager:
         groupfile = open(fspath+"/global/group",'r')
         groups = json.loads(groupfile.read())
         groupfile.close()
-        #allgroup = UserGroup.query.all()
         result = {
             "success": 'true',
             "data":[]
@@ -482,17 +476,6 @@ class userManager:
             ]
             result["data"].append(groupinfo)
 
-        #for group in allgroup:
-        #    groupinfo = [
-        #            group.id,
-        #            group.name,
-        #            group.cpu,
-        #            group.memory,
-        #            group.imageQuantity,
-        #            group.lifeCycle,
-        #            '',
-        #    ]
-        #    result["data"].append(groupinfo)
         return result
 
     @administration_required
@@ -519,18 +502,6 @@ class userManager:
                 return result
         else:
             return {"success":False, "reason":"Group does not exist"}
-        #group = UserGroup.query.filter_by(id = kwargs['ID']).first()
-        #result = {
-        #    "success":'true',
-        #    "data":{
-        #        "name" : group.name ,
-        #        "cpu" : group.cpu ,
-        #        "memory" : group.memory,
-        #        "imageQuantity" : group.imageQuantity,
-        #        "lifeCycle" : group.lifeCycle,
-        #    }
-        #}
-        #return result
 
     @administration_required
     def groupListName(*args, **kwargs):
@@ -541,7 +512,6 @@ class userManager:
         groupfile = open(fspath+"/global/group",'r')
         groups = json.loads(groupfile.read())
         groupfile.close()
-        #groups = UserGroup.query.all()
         result = {
             "groups": [],
         }
@@ -554,7 +524,6 @@ class userManager:
         '''
         Usage: groupModify(newValue = dict_from_form, cur_user = token_from_auth)
         '''
-        #group_modify = UserGroup.query.filter_by(name = kwargs['newValue'].getvalue('groupname', None)).first()
         groupfile = open(fspath+"/global/group",'r')
         groups = json.loads(groupfile.read())
         groupfile.close()
@@ -571,15 +540,6 @@ class userManager:
                 return {"success":'true'}
         else:
             return {"success":'false', "reason":"UserGroup does not exist"}
-        #if (group_modify == None):
-        #    return {"success":'false', "reason":"UserGroup does not exist"}
-        #form = kwargs['newValue']
-        #group_modify.cpu = form.getvalue('cpu', '')
-        #group_modify.memory = form.getvalue('memory', '')
-        #group_modify.imageQuantity = form.getvalue('image', '')
-        #group_modify.lifeCycle = form.getvalue('lifecycle', '')
-        #db.session.commit()
-        #return {"success":'true'}
 
     @administration_required
     def modify(*args, **kwargs):
@@ -666,9 +626,6 @@ class userManager:
         form = kwargs.get('form')
         if (form.getvalue("name") == None):
             return {"success":'false', "reason": "Empty group name"}
-        #group_new = UserGroup(name)
-        #db.session.add(group_new)
-        #db.session.commit()
         groupfile = open(fspath+"/global/group",'r')
         groups = json.loads(groupfile.read())
         groupfile.close()

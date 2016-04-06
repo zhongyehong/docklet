@@ -96,10 +96,7 @@ class User(db.Model):
             self.register_date = date
         else:
             self.register_date = datetime.utcnow()
-        if (UserGroup.query.filter_by(name=usergroup).first() != None):
-            self.user_group = usergroup
-        else:
-            self.user_group = "primary"
+        self.user_group = usergroup
         self.auth_method = auth_method
 
     def __repr__(self):
