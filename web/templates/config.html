@@ -202,7 +202,7 @@
                                             <button type="button" class="btn-xs btn-default">enable</button>
                                             <a href="/deleteproxy/{{ clustername }}/"><button type="button" class="btn-xs btn-danger">disable</button></a></p>
                                         {% else %}
-                                        <p>ip:<input type="text" id="proxy_ip" name="proxy_ip" value={{ clusterinfo["containers"][0]["ip"][:clusterinfo["containers"][0]["ip"].index("/")] }} />port:<input type="text" id="proxy_port" name="proxy_port" value="8000"/>
+                                        <p>ip:<input type="text" id="proxy_ip" name="proxy_ip" value={{ clusterinfo["containers"][0]["ip"][:clusterinfo["containers"][0]["ip"].index("/")] }} />port:<input type="text" id="proxy_port" name="proxy_port" value="80"/>
                                             <button type="submit" class="btn-xs btn-success">enable</button>
                                             <button type="button" class="btn-xs btn-default">disable</button></p>
                                         {% endif %}
