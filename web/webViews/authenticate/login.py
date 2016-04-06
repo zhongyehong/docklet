@@ -1,7 +1,7 @@
 from webViews.view import normalView
 from webViews.authenticate.auth import is_authenticated
 from webViews.dockletrequest import dockletRequest
-from flask import redirect, request, render_template, session, make_response
+from flask import redirect, request, render_template, session, make_response, abort
 from webViews import cookie_tool
 
 import hashlib
@@ -20,16 +20,18 @@ if (env.getenv('EXTERNAL_LOGIN') == 'True'):
     import external_generate
 
 def refreshInfo():
-    '''not used now'''
-    result = dockletRequest.post('/login/', data)
+    data = {}
+    result = dockletRequest.post('/user/selfQuery/', data)
     ok = result and result.get('success', None)
-    session['username'] = request.form['username']
-    session['nickname'] = result['data']['nickname']
-    session['description'] = result['data']['description'][0:10]
-    session['avatar'] = '/static/avatar/'+ result['data']['avatar']
-    session['usergroup'] = result['data']['group']
-    session['status'] = result['data']['status']
-    session['token'] = result['data']['token']
+    if (ok and ok == "true"):
+        session['username'] = result['data']['username']
+        session['nickname'] = result['data']['nickname']
+        session['description'] = result['data']['description']
+        session['avatar'] = '/static/avatar/'+ result['data']['avatar']
+        session['usergroup'] = result['data']['group']
+        session['status'] = result['data']['status']
+    else:
+        abort(404)
 
 class loginView(normalView):
     template_path = "login.html"
@@ -37,13 +39,15 @@ class loginView(normalView):
     @classmethod
     def get(self):
         if is_authenticated():
-            #refreshInfo()
+            refreshInfo()
             return redirect(request.args.get('next',None) or '/dashboard/')
         if (env.getenv('EXTERNAL_LOGIN') == 'True'):
+            url = external_generate.external_login_url
             link = external_generate.external_login_link
         else:
             link = ''
-        return render_template(self.template_path, link = link)
+            url = ''
+        return render_template(self.template_path, link = link, url = url)
 
     @classmethod
     def post(self):
