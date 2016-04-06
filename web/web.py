@@ -20,7 +20,7 @@ from webViews.log import logger
 
 from flask import Flask, request, session, render_template, redirect, send_from_directory, make_response, url_for, abort
 from webViews.dashboard import dashboardView
-from webViews.user.userlist import userlistView, useraddView, usermodifyView, groupaddView, userdataView, userqueryView
+from webViews.user.userlist import userlistView, useraddView, usermodifyView, groupaddView, groupdelView, userdataView, userqueryView
 from webViews.user.userinfo import userinfoView
 from webViews.user.userActivate import userActivateView
 from webViews.user.grouplist import grouplistView, groupqueryView, groupdetailView, groupmodifyView
@@ -327,6 +327,12 @@ def usermodify():
 @administration_required
 def groupadd():
     return groupaddView.as_view()
+
+@app.route("/group/delete/<groupname>/", methods=['POST', 'GET'])
+@administration_required
+def groupdel(groupname):
+    groupdelView.groupname = groupname
+    return groupdelView.as_view()
 
 @app.route("/user/info/", methods=['GET', 'POST'])
 @login_required

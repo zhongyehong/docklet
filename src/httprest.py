@@ -422,7 +422,10 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                 result = G_usermgr.register(user = user, cur_user = cur_user)
                 self.response(200, result)
             elif cmds[1] == 'groupadd':
-                result = G_usermgr.groupadd(name = form.getvalue('name', None), cur_user = cur_user)
+                result = G_usermgr.groupadd(form = form, cur_user = cur_user)
+                self.response(200, result)
+            elif cmds[1] == 'groupdel':
+                result = G_usermgr.groupdel(name = form.getvalue('name', None), cur_user = cur_user)
                 self.response(200, result)
             elif cmds[1] == 'data':
                 logger.info("handle request: user/data")

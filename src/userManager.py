@@ -663,8 +663,8 @@ class userManager:
 
     @administration_required
     def groupadd(*args, **kwargs):
-        name = kwargs.get('name', None)
-        if (name == None):
+        form = kwargs.get('form')
+        if (form.getvalue("name") == None):
             return {"success":'false', "reason": "Empty group name"}
         #group_new = UserGroup(name)
         #db.session.add(group_new)
@@ -672,7 +672,24 @@ class userManager:
         groupfile = open(fspath+"/global/group",'r')
         groups = json.loads(groupfile.read())
         groupfile.close()
-        groups.append({'name':name, 'cpu':'100000', 'memory':'2000', 'imageQuantity':'10', 'lifeCycle':'24'})
+        groups.append({'name':form.getvalue("name"), 'cpu':form.getvalue("cpu"), 'memory':form.getvalue("memory"), 'imageQuantity':form.getvalue("image"), 'lifeCycle':form.getvalue("lifecycle")})
+        groupfile = open(fspath+"/global/group",'w')
+        groupfile.write(json.dumps(groups))
+        groupfile.close()
+        return {"success":'true'}
+    
+    @administration_required
+    def groupdel(*args, **kwargs):
+        name = kwargs.get('name', None)
+        if (name == None):
+            return {"success":'false', "reason": "Empty group name"}
+        groupfile = open(fspath+"/global/group",'r')
+        groups = json.loads(groupfile.read())
+        groupfile.close()
+        for group in groups:
+            if group['name'] == name:
+                groups.remove(group)
+                break
         groupfile = open(fspath+"/global/group",'w')
         groupfile.write(json.dumps(groups))
         groupfile.close()

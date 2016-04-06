@@ -52,6 +52,22 @@
                                 <label>Group Name</label>
                                 <input type = "text" placeholder="Enter GroupName" class="form-control" name="name" id="mymyname">
                               </div>
+                            <div class="form-group">
+                              <label>CPU Quota</label>
+                              <input type = "text" placeholder="Enter CPU Quota" class="form-control" name="cpu" id="myCpu" value="100000">
+                            </div>
+                            <div class="form-group">
+                              <label>Memory Quota</label>
+                              <input type="text" placeholder="Enter Memory Quota" class="form-control" name="memory" id="myMemory" value="2000">
+                            </div>
+                            <div class="form-group">
+                              <label>Image Quantity</label>
+                              <input type = "text" placeholder="Enter Image Quantity" class="form-control" name="image" id="myImage" value="10">
+                            </div>
+                            <div class="form-group">
+                              <label>Life Cycle</label>
+                              <input type = "text" placeholder="Enter Life Cycle" class="form-control" name="lifecycle" id="myLifecycle" value="24">
+                            </div>
 
                             </form>
 
@@ -140,7 +156,8 @@
       "columnDefs": [
             {
                 "render": function ( data, type, row ) {
-                    return '<a class="btn btn-info btn-sm" data-toggle="modal" data-target="#ModifyGroupModal" onClick="javascript:setFormGroup('+ "'" + row[0] + "'" + ');">' + 'Edit' + '</a>';
+                    return '<a class="btn btn-info btn-sm" data-toggle="modal" data-target="#ModifyGroupModal" onClick="javascript:setFormGroup('+ "'" + row[0] + "'" + ');">' + 'Edit' + '</a>'
+                        + '<a class="btn btn-danger btn-sm" href="/group/delete/'  + row[0]  +'">' + 'Delete' + '</a>';
                 },
                 "targets": 5 
             },
