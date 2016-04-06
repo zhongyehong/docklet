@@ -1,5 +1,4 @@
 import requests
-import json
 from flask import abort, session
 from webViews.log import logger
 
@@ -25,9 +24,7 @@ class dockletRequest():
 
     @classmethod
     def unauthorizedpost(self, url = '/', data = None):
-        data = dict(data)
-        data_log = {'user': data['user']}
-        logger.info("Docklet Unauthorized Request: data = %s, url = %s" % (data_log, url))
+        logger.info("Docklet Unauthorized Request: data = %s, url = %s" % (data, url))
         result = requests.post(endpoint + url, data = data).json()
         logger.info("Docklet Unauthorized Response: result = %s, url = %s"%(result, url))
         return result
