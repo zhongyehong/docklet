@@ -3,8 +3,8 @@
 import env,subprocess,os,time
 from log import logger
 
-def sys_run(command):
-    Ret = subprocess.run(command, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, shell=True, check=False)
+def sys_run(command,check=False):
+    Ret = subprocess.run(command, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, shell=True, check=check)
     return Ret
 
 def new_group(group_name, size = "5000", file_path = "/opt/docklet/local/docklet-storage"):
