@@ -54,3 +54,16 @@ class groupaddView(normalView):
     def post(self):
         dockletRequest.post('/user/groupadd', request.form)
         return redirect('/admin/')
+
+class groupdelView(normalView):
+    @classmethod
+    def post(self):
+        data = {
+                "name" : self.groupname,
+        }
+        dockletRequest.post('/user/groupdel', data)
+        return redirect('/admin/')
+    
+    @classmethod
+    def get(self):
+        return self.post()

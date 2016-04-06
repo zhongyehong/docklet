@@ -255,19 +255,5 @@
         $("#mDescription").val(result.description);
       });
     }
-    function setFormGroup(arg){
-      $.post("/group/query/",
-      {
-        ID: arg,
-      },
-      function(data,status){
-        var result = eval("("+data+")").data;
-        $("#mGroupname").val(result.name);
-        $("#mCpu").val(result.cpu);
-        $("#mMemory").val(result.memory);
-        $("#mImage").val(result.imageQuantity);
-        $("#mLifecycle").val(result.lifeCycle);
-      });
-    }
 </script>
 {% endblock %}

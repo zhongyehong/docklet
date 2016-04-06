@@ -19,10 +19,12 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
 from datetime import datetime
+import json
 
 email_from_address = env.getenv('EMAIL_FROM_ADDRESS')
 admin_email_address = env.getenv('ADMIN_EMAIL_ADDRESS')
 PAM = pam.pam()
+fspath = env.getenv('FS_PREFIX')
 
 if (env.getenv('EXTERNAL_LOGIN').lower() == 'true'):
     from plugin import external_receive
@@ -123,12 +125,8 @@ class userManager:
         '''
         try:
             User.query.all()
-            UserGroup.query.all()
         except:
             db.create_all()
-            root = UserGroup('root')
-            db.session.add(root)
-            db.session.commit()
             if password == None:
                 #set a random password
                 password = os.urandom(16)
@@ -147,11 +145,14 @@ class userManager:
             path = env.getenv('DOCKLET_LIB')
             subprocess.call([path+"/userinit.sh", username])
             db.session.commit()
-            admin = UserGroup('admin')
-            primary = UserGroup('primary')
-            db.session.add(admin)
-            db.session.add(primary)
-            db.session.commit()
+        if not os.path.exists(fspath+"/global/group"):
+            groupfile = open(fspath+"/global/group",'w')
+            groups = []
+            groups.append({'name':'root', 'cpu':'100000', 'memory':'2000', 'imageQuantity':'10', 'lifeCycle':'24'})
+            groups.append({'name':'admin', 'cpu':'100000', 'memory':'2000', 'imageQuantity':'10', 'lifeCycle':'24'})
+            groups.append({'name':'primary', 'cpu':'100000', 'memory':'2000', 'imageQuantity':'10', 'lifeCycle':'24'})
+            groupfile.write(json.dumps(groups))
+            groupfile.close()
 
     def auth_local(self, username, password):
         password = hashlib.sha512(password.encode('utf-8')).hexdigest()
@@ -355,7 +356,19 @@ class userManager:
         List informantion for oneself
         '''
         user = kwargs['cur_user']
-        group = UserGroup.query.filter_by(name = user.user_group).first()
+        groupfile = open(fspath+"/global/group",'r')
+        groups = json.loads(groupfile.read())
+        groupfile.close()
+        group = None
+        for one_group in groups:
+            if one_group['name'] == user.user_group:
+                group = one_group
+                break
+        else:
+            for one_group in groups:
+                if one_group['name'] == "primary":
+                    group = one_group
+                    break
         result = {
             "success": 'true',
             "data":{
@@ -373,10 +386,10 @@ class userManager:
                 "register_date" : "%s"%(user.register_date),
                 "group" : user.user_group,
                 "groupinfo": {
-                    "cpu": group.cpu,
-                    "memory": group.memory,
-                    "imageQuantity": group.imageQuantity,
-                    "lifeCycle":group.lifeCycle,
+                    "cpu": group['cpu'],
+                    "memory": group['memory'],
+                    "imageQuantity": group['imageQuantity'],
+                    "lifeCycle":group['lifeCycle'],
                     },
             },
         }
@@ -445,44 +458,50 @@ class userManager:
         Usage: list(cur_user = token_from_auth)
         List all groups for an administrator
         '''
-        allgroup = UserGroup.query.all()
+        groupfile = open(fspath+"/global/group",'r')
+        groups = json.loads(groupfile.read())
+        groupfile.close()
         result = {
             "success": 'true',
             "data":[]
         }
-        for group in allgroup:
+        for group in groups:
             groupinfo = [
-                    group.id,
-                    group.name,
-                    group.cpu,
-                    group.memory,
-                    group.imageQuantity,
-                    group.lifeCycle,
+                    group['name'],
+                    group['cpu'],
+                    group['memory'],
+                    group['imageQuantity'],
+                    group['lifeCycle'],
                     '',
             ]
             result["data"].append(groupinfo)
+
         return result
 
     @administration_required
     def groupQuery(*args, **kwargs):
         '''
-        Usage: groupQuery(id = XXX, cur_user = token_from_auth)
+        Usage: groupQuery(name = XXX, cur_user = token_from_auth)
         List a group for an administrator
         '''
-        group = UserGroup.query.filter_by(id = kwargs['ID']).first()
-        if (group == None):
+        groupfile = open(fspath+"/global/group",'r')
+        groups = json.loads(groupfile.read())
+        groupfile.close()
+        for group in groups:
+            if group['name'] == kwargs['name']:
+                result = {
+                    "success":'true',
+                    "data":{
+                        "name" : group['name'] ,
+                        "cpu" : group['cpu'] ,
+                        "memory" : group['memory'],
+                        "imageQuantity" : group['imageQuantity'],
+                        "lifeCycle" : group['lifeCycle'],
+                    }
+                }
+                return result
+        else:
             return {"success":False, "reason":"Group does not exist"}
-        result = {
-            "success":'true',
-            "data":{
-                "name" : group.name ,
-                "cpu" : group.cpu ,
-                "memory" : group.memory,
-                "imageQuantity" : group.imageQuantity,
-                "lifeCycle" : group.lifeCycle,
-            }
-        }
-        return result
 
     @administration_required
     def groupListName(*args, **kwargs):
@@ -490,12 +509,14 @@ class userManager:
         Usage: grouplist(cur_user = token_from_auth)
         List all group names for an administrator
         '''
-        groups = UserGroup.query.all()
+        groupfile = open(fspath+"/global/group",'r')
+        groups = json.loads(groupfile.read())
+        groupfile.close()
         result = {
             "groups": [],
         }
         for group in groups:
-            result["groups"].append(group.name)
+            result["groups"].append(group['name'])
         return result
 
     @administration_required
@@ -503,16 +524,22 @@ class userManager:
         '''
         Usage: groupModify(newValue = dict_from_form, cur_user = token_from_auth)
         '''
-        group_modify = UserGroup.query.filter_by(name = kwargs['newValue'].getvalue('groupname', None)).first()
-        if (group_modify == None):
+        groupfile = open(fspath+"/global/group",'r')
+        groups = json.loads(groupfile.read())
+        groupfile.close()
+        for group in groups:
+            if group['name'] == kwargs['newValue'].getvalue('groupname',None):
+                form = kwargs['newValue']
+                group['cpu'] = form.getvalue('cpu', '')
+                group['memory'] = form.getvalue('memory', '')
+                group['imageQuantity'] = form.getvalue('image', '')
+                group['lifeCycle'] = form.getvalue('lifecycle', '')
+                groupfile = open(fspath+"/global/group",'w')
+                groupfile.write(json.dumps(groups))
+                groupfile.close()
+                return {"success":'true'}
+        else:
             return {"success":'false', "reason":"UserGroup does not exist"}
-        form = kwargs['newValue']
-        group_modify.cpu = form.getvalue('cpu', '')
-        group_modify.memory = form.getvalue('memory', '')
-        group_modify.imageQuantity = form.getvalue('image', '')
-        group_modify.lifeCycle = form.getvalue('lifecycle', '')
-        db.session.commit()
-        return {"success":'true'}
 
     @administration_required
     def modify(*args, **kwargs):
@@ -596,12 +623,33 @@ class userManager:
 
     @administration_required
     def groupadd(*args, **kwargs):
+        form = kwargs.get('form')
+        if (form.getvalue("name") == None):
+            return {"success":'false', "reason": "Empty group name"}
+        groupfile = open(fspath+"/global/group",'r')
+        groups = json.loads(groupfile.read())
+        groupfile.close()
+        groups.append({'name':form.getvalue("name"), 'cpu':form.getvalue("cpu"), 'memory':form.getvalue("memory"), 'imageQuantity':form.getvalue("image"), 'lifeCycle':form.getvalue("lifecycle")})
+        groupfile = open(fspath+"/global/group",'w')
+        groupfile.write(json.dumps(groups))
+        groupfile.close()
+        return {"success":'true'}
+    
+    @administration_required
+    def groupdel(*args, **kwargs):
         name = kwargs.get('name', None)
         if (name == None):
             return {"success":'false', "reason": "Empty group name"}
-        group_new = UserGroup(name)
-        db.session.add(group_new)
-        db.session.commit()
+        groupfile = open(fspath+"/global/group",'r')
+        groups = json.loads(groupfile.read())
+        groupfile.close()
+        for group in groups:
+            if group['name'] == name:
+                groups.remove(group)
+                break
+        groupfile = open(fspath+"/global/group",'w')
+        groupfile.write(json.dumps(groups))
+        groupfile.close()
         return {"success":'true'}
 
     def queryForDisplay(*args, **kwargs):
