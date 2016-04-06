@@ -342,7 +342,8 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                     res['mem_use'] = fetcher.get_mem_use(cmds[2])
                 elif cmds[3] == 'basic_info':
                     res['basic_info'] = fetcher.get_basic_info(cmds[2])
-                self.response(200, {'success':'true', 'monitor':res})
+                user_info = G_usermgr.selfQuery(cur_user = cur_user)
+                self.response(200, {'success':'true', 'monitor':res, 'groupinfo':user_info['data']['groupinfo']})
             elif cmds[1] == 'user':
                 if not user == 'root':
                     self.response(400, {'success':'false', 'message':'Root Required'})

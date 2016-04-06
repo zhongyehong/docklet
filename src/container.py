@@ -255,7 +255,7 @@ IP=%s
     def container_status(self, lxc_name):
         if not self.is_container(lxc_name):
             return [False, "container not found"]
-        Ret = sys_run("lxc-info -n %s | grep RUNNING")
+        Ret = sys_run("lxc-info -n %s | grep RUNNING" % lxc_name)
         #status = subprocess.call([self.libpath+"/lxc_control.sh", "status", lxc_name])
         if Ret.returncode == 0:
             return [True, 'running']

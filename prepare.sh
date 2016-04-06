@@ -37,12 +37,12 @@ apt-get install -y etcd
 
 # check and install configurable-http-proxy
 which configurable-http-proxy &>/dev/null || npm install -g configurable-http-proxy
-which configurable-http-proxy &>/dev/null || { echo "Error : install configurable-http-proxy failed, you should try again" && exit 1; }
+which configurable-http-proxy &>/dev/null || { echo "Error: install configurable-http-proxy failed, you should try again" && exit 1; }
 
 [[ -f conf/docklet.conf ]] || { echo "Generating docklet.conf from template" && cp conf/docklet.conf.template conf/docklet.conf; }
 
 echo ""
-echo "All preparation installation is done."
+echo "All preparation installations are done."
 echo "****************************************"
 echo "* Please Read Lines Below Before Start *"
 echo "****************************************"
@@ -51,8 +51,8 @@ echo ""
 echo "Before staring : you need a basefs image. "
 echo "basefs images are provided at: "
 echo "  http://docklet.unias.org/download"
-echo "Please download it to FS_PREFIX/local and then extract it. (defalut FS_PRERIX is /opt/docklet)"
-echo "Probably you will get a dicectory structure like"
+echo "please download it to FS_PREFIX/local and then extract it. (defalut FS_PRERIX is /opt/docklet)"
+echo "you will get a dicectory structure like"
 echo "  /opt/docklet/local/basefs/etc "
 echo "  /opt/docklet/local/basefs/bin "
 echo "  /opt/docklet/local/basefs/..."
