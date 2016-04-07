@@ -84,7 +84,7 @@ class VclusterMgr(object):
             lxc_name = username + "-" + str(clusterid) + "-" + str(i)
             hostname = "host-"+str(i)
             logger.info ("create container with : name-%s, username-%s, clustername-%s, clusterid-%s, hostname-%s, ip-%s, gateway-%s, image-%s" % (lxc_name, username, clustername, str(clusterid), hostname, ips[i], gateway, image_json))
-            [success,message] = onework.create_container(lxc_name, username, user_info , clustername, str(clusterid), hostname, ips[i], gateway, str(vlanid), image_json)
+            [success,message] = onework.create_container(lxc_name, username, user_info , clustername, str(clusterid), str(i), hostname, ips[i], gateway, str(vlanid), image_json)
             if success is False:
                 logger.info("container create failed, so vcluster create failed")
                 return [False, message]
@@ -124,7 +124,7 @@ class VclusterMgr(object):
         onework = workers[random.randint(0, len(workers)-1)]
         lxc_name = username + "-" + str(clusterid) + "-" + str(cid)
         hostname = "host-" + str(cid)
-        [success, message] = onework.create_container(lxc_name, username, user_info, clustername, clusterid, hostname, ip, gateway, str(vlanid), image_json)
+        [success, message] = onework.create_container(lxc_name, username, user_info, clustername, clusterid, str(cid), hostname, ip, gateway, str(vlanid), image_json)
         if success is False:
             logger.info("create container failed, so scale out failed")
             return [False, message]
