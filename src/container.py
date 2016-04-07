@@ -4,7 +4,7 @@ import subprocess, os, json
 import imagemgr
 from log import logger
 import env
-from lvmtool import *
+from lvmtool import sys_run, check_volume
 
 class Container(object):
     def __init__(self, addr, etcdclient):
@@ -21,7 +21,7 @@ class Container(object):
         self.lxcpath = "/var/lib/lxc"
         self.imgmgr = imagemgr.ImageMgr()
 
-    def create_container(self, lxc_name, username, user_info, clustername, clusterid, hostname, ip, gateway, vlanid, image):
+    def create_container(self, lxc_name, username, user_info, clustername, clusterid, containerid, hostname, ip, gateway, vlanid, image):
         logger.info("create container %s of %s for %s" %(lxc_name, clustername, username))
         try:
             user_info = json.loads(user_info) 
@@ -65,6 +65,7 @@ class Container(object):
             conftext = conftext.replace("%LXCNAME%",lxc_name)
             conftext = conftext.replace("%VLANID%",str(vlanid))
             conftext = conftext.replace("%CLUSTERNAME%", clustername)
+            conftext = conftext.replace("%VETHPAIR%", str(clusterid)+'-'+str(containerid))
 
             conffile = open("/var/lib/lxc/%s/config" % lxc_name,"w")
             conffile.write(conftext)
