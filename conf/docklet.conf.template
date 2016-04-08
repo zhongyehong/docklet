@@ -47,16 +47,19 @@
 # CLUSTER_NET: cluster network ip address range, default is 172.16.0.1/16
 # CLUSTER_NET=172.16.0.1/16
 
+# Deprecated since v0.2.7. read from quota group set in web admin page
 # CONTAINER_CPU: CPU quota of container, default is 100000
 # A single CPU core has total=100000 (100ms), so the default 100000
 # mean a single container can occupy a whole core.
 # For a CPU with two cores, this can be set to 200000
 # CONTAINER_CPU=100000
 
+# Deprecated since v0.2.7. read from quota group set in web admin page
 # CONTAINER_DISK: disk quota of container image upper layer, count in MB,
 # default is 1000
 # CONTAINER_DISK=1000
 
+# Deprecated since v0.2.7. read from quota group set in web admin page
 # CONTAINER_MEMORY: memory quota of container, count in MB, default is 1000
 # CONTAINER_MEMORY=1000
 
