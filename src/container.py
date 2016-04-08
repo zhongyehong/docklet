@@ -4,7 +4,7 @@ import subprocess, os, json
 import imagemgr
 from log import logger
 import env
-from lvmtool import *
+from lvmtool import sys_run, check_volume
 
 class Container(object):
     def __init__(self, addr, etcdclient):
@@ -21,7 +21,7 @@ class Container(object):
         self.lxcpath = "/var/lib/lxc"
         self.imgmgr = imagemgr.ImageMgr()
 
-    def create_container(self, lxc_name, username, user_info, clustername, clusterid, hostname, ip, gateway, vlanid, image):
+    def create_container(self, lxc_name, username, user_info, clustername, clusterid, containerid, hostname, ip, gateway, vlanid, image):
         logger.info("create container %s of %s for %s" %(lxc_name, clustername, username))
         try:
             user_info = json.loads(user_info) 
@@ -45,30 +45,40 @@ class Container(object):
             sys_run("mkdir -p /var/lib/lxc/%s" % lxc_name)
             logger.info("generate config file for %s" % lxc_name)
             
-            if os.path.exists(self.confpath+"/lxc.custom.conf"):
-                conffile = open(self.confpath+"/lxc.custom.conf",'r')
-            else:
-                conffile = open(self.confpath+"/container.conf",'r')
+            def config_prepare(content):
+                content = content.replace("%ROOTFS%",rootfs)
+                content = content.replace("%HOSTNAME%",hostname)
+                content = content.replace("%IP%",ip)
+                content = content.replace("%GATEWAY%",gateway)
+                content = content.replace("%CONTAINER_MEMORY%",str(memory))
+                content = content.replace("%CONTAINER_CPU%",str(cpu))
+                content = content.replace("%FS_PREFIX%",self.fspath)
+                content = content.replace("%USERNAME%",username)
+                content = content.replace("%CLUSTERID%",str(clusterid))
+                content = content.replace("%LXCSCRIPT%",env.getenv("LXC_SCRIPT"))
+                content = content.replace("%LXCNAME%",lxc_name)
+                content = content.replace("%VLANID%",str(vlanid))
+                content = content.replace("%CLUSTERNAME%", clustername)
+                content = content.replace("%VETHPAIR%", str(clusterid)+'-'+str(containerid))
+                return content
 
+            conffile = open(self.confpath+"/container.conf", 'r')
             conftext = conffile.read()
             conffile.close()
-            conftext = conftext.replace("%ROOTFS%",rootfs)
-            conftext = conftext.replace("%HOSTNAME%",hostname)
-            conftext = conftext.replace("%IP%",ip)
-            conftext = conftext.replace("%GATEWAY%",gateway)
-            conftext = conftext.replace("%CONTAINER_MEMORY%",str(memory))
-            conftext = conftext.replace("%CONTAINER_CPU%",str(cpu))
-            conftext = conftext.replace("%FS_PREFIX%",self.fspath)
-            conftext = conftext.replace("%USERNAME%",username)
-            conftext = conftext.replace("%CLUSTERID%",str(clusterid))
-            conftext = conftext.replace("%LXCSCRIPT%",env.getenv("LXC_SCRIPT"))
-            conftext = conftext.replace("%LXCNAME%",lxc_name)
-            conftext = conftext.replace("%VLANID%",str(vlanid))
-            conftext = conftext.replace("%CLUSTERNAME%", clustername)
+            conftext = config_prepare(conftext)
 
             conffile = open("/var/lib/lxc/%s/config" % lxc_name,"w")
             conffile.write(conftext)
             conffile.close()
+
+            if os.path.isfile(self.confpath+"/lxc.custom.conf"):
+                conffile = open(self.confpath+"/lxc.custom.conf", 'r')
+                conftext = conffile.read()
+                conffile.close()
+                conftext = config_prepare(conftext)
+                conffile = open("/var/lib/lxc/%s/config" % lxc_name, 'a')
+                conffile.write(conftext)
+                conffile.close()
 
             #logger.debug(Ret.stdout.decode('utf-8'))
             logger.info("create container %s success" % lxc_name)
