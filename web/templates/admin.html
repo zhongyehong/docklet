@@ -6,7 +6,10 @@
 {% block panel_list %}
 <ol class="breadcrumb">
   <li>
-      <a href="/dashboard/">Home</a>
+      <a href="/dashboard/"><i class="fa fa-dashboard"></i>Home</a>
+  </li>
+  <li class="active">
+      <strong>Admin</strong>
   </li>
 </ol>
 {% endblock %}
@@ -156,8 +159,8 @@
       "columnDefs": [
             {
                 "render": function ( data, type, row ) {
-                    return '<a class="btn btn-info btn-sm" data-toggle="modal" data-target="#ModifyGroupModal" onClick="javascript:setFormGroup('+ "'" + row[0] + "'" + ');">' + 'Edit' + '</a>'
-                        + '<a class="btn btn-danger btn-sm" href="/group/delete/'  + row[0]  +'">' + 'Delete' + '</a>';
+                    return '<a class="btn btn-xs btn-info" data-toggle="modal" data-target="#ModifyGroupModal" onClick="javascript:setFormGroup('+ "'" + row[0] + "'" + ');">' + 'Edit' + '</a>'
+                        + '&nbsp;' +'<a class="btn btn-xs btn-danger" href="/group/delete/'  + row[0]  +'">' + 'Delete' + '</a>';
                 },
                 "targets": 5 
             },
