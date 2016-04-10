@@ -67,7 +67,7 @@ class ImageMgr():
             if os.path.exists(imgpath+image):
                 return [False,"target image is exists"]
         self.sys_call("mkdir -p %s" % imgpath+image)
-        self.sys_call("rsync -a --delete --exclude=lost+found/ --exclude=nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (self.dealpath(fspath),imgpath+image))
+        self.sys_call("rsync -a --delete --exclude=lost+found/ --exclude=root/nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (self.dealpath(fspath),imgpath+image))
         self.sys_call("rm -f %s" % (imgpath+"."+image+"_docklet_share"))
         self.updateinfo(imgpath,image,description)
         logger.info("image:%s from LXC:%s create success" % (image,lxc))
@@ -83,7 +83,7 @@ class ImageMgr():
             imgpath = self.imgpath + "private/" + user + "/"
         else:
             imgpath = self.imgpath + "public/" + imageowner + "/"
-        self.sys_call("rsync -a --delete --exclude=lost+found/ --exclude=nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (imgpath+imagename,self.dealpath(fspath)))
+        self.sys_call("rsync -a --delete --exclude=lost+found/ --exclude=root/nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (imgpath+imagename,self.dealpath(fspath)))
         #self.sys_call("rsync -a --delete --exclude=nfs/ %s/ %s/" % (imgpath+image,self.dealpath(fspath)))
         #self.updatetime(imgpath,image)
         return 
