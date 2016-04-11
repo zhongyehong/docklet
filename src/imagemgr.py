@@ -108,8 +108,13 @@ class ImageMgr():
         if Ret.returncode == 0:
             logger.info("%s not clean" % layer)
             sys_run("umount -l %s" % layer)
-        sys_run("rm -rf %s %s" % (rootfs, layer))
-        sys_run("mkdir -p %s %s" % (rootfs, layer))
+        
+        try:
+            sys_run("rm -rf %s %s" % (rootfs, layer))
+            sys_run("mkdir -p %s %s" % (rootfs, layer))
+        except Exception as e:
+            logger.error(e)
+
         
         #prepare volume
         if check_volume(vgname,lxc):
@@ -122,17 +127,11 @@ class ImageMgr():
         try:
             sys_run("mkfs.ext4 /dev/%s/%s" % (vgname,lxc),True)
             sys_run("mount /dev/%s/%s %s" %(vgname,lxc,layer),True)
-            #self.sys_call("mountpoint %s &>/dev/null && umount -l %s" % (rootfs,rootfs))
-            #self.sys_call("mountpoint %s &>/dev/null && umount -l %s" % (layer,layer))
-            #self.sys_call("rm -rf %s %s && mkdir -p %s %s" % (rootfs,layer,rootfs,layer))
-            #rv = self.sys_return(self.srcpath+"lvmtool.sh check volume %s %s" % (vgname,lxc))
-            #if rv == 1:
-            #    self.sys_call(self.srcpath+"lvmtool.sh newvolume %s %s %s %s" % (vgname,lxc,size,layer))
-            #else:
-            #   self.sys_call(self.srcpath+"lvmtool.sh mount volume %s %s %s" % (vgname,lxc,layer))
             #self.sys_call("mkdir -p %s/overlay %s/work" % (layer,layer))
             #self.sys_call("mount -t overlay overlay -olowerdir=%s/local/basefs,upperdir=%s/overlay,workdir=%s/work %s" % (self.NFS_PREFIX,layer,layer,rootfs))
             sys_run("mount -t aufs -o br=%s=rw:%s/local/basefs=ro+wh none %s/" % (layer,self.NFS_PREFIX,rootfs),True)
+            sys_run("mkdir -p %s/local/temp/%s" % (self.NFS_PREFIX,lxc))
+
         except Exception as e:
             logger.error(e)
 
@@ -156,7 +155,12 @@ class ImageMgr():
             sys_run("umount -l %s" % layer)
         if check_volume(vgname, lxc):
             delete_volume(vgname, lxc)
-        sys_run("rm -rf %s %s" % (layer,lxcpath))
+        try:
+            sys_run("rm -rf %s %s" % (layer,lxcpath))
+            sys_run("rm -rf %s/local/temp/%s" % (self.NFS_PREFIX,lxc))
+        except Exception as e:
+            logger.error(e)
+
         return True
     
     def checkFS(self, lxc, vgname="docklet-group"):
