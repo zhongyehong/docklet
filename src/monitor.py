@@ -67,6 +67,8 @@ class Container_Collector(threading.Thread):
                             self.cpu_quota[container_name] = self.cores_num
                         else:
                             self.cpu_quota[container_name] = tmp/100000.0
+                quota = {'cpu':self.cpu_quota[container_name],'memory':self.mem_quota[container_name]}
+                self.etcdser.setkey('/vnodes/%s/quota'%(container_name),quota)
             else:
                 logger.error("Cant't find config file %s"%(confpath))
                 return False
@@ -241,6 +243,11 @@ class Container_Fetcher:
         [ret, ans] = self.etcdser.getkey('/%s/cpu_use'%(container_name))
         if ret == True :
             res = dict(eval(ans))
+            [ret,quota] = self.etcdser.getkey('/%s/quota'%(container_name))
+            if ret == False:
+                res['quota'] = {'cpu':0}
+                logger.warning(quota)
+            res['quota'] = dict(eval(quota))
             return res
         else:
             logger.warning(ans)
@@ -251,6 +258,11 @@ class Container_Fetcher:
         [ret, ans] = self.etcdser.getkey('/%s/mem_use'%(container_name))
         if ret == True :
             res = dict(eval(ans))
+            [ret,quota] = self.etcdser.getkey('/%s/quota'%(container_name))
+            if ret == False:
+                res['quota'] = {'memory':0}
+                logger.warning(quota)
+            res['quota'] = dict(eval(quota))
             return res
         else:
             logger.warning(ans)
