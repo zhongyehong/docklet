@@ -37,9 +37,12 @@ def new_group(group_name, size = "5000", file_path = "/opt/docklet/local/docklet
             os.remove(file_path)
         if not os.path.isdir(file_path[:file_path.rindex("/")]):
             os.makedirs(file_path[:file_path.rindex("/")])
-        sys_run("dd if=/dev/zero of=%s bs=1M seek=%s count=0" % (file_path,size))
-        sys_run("losetup /dev/loop0 " + file_path)
-        sys_run("vgcreate %s /dev/loop0" % group_name)
+        try:
+            sys_run("dd if=/dev/zero of=%s bs=1M seek=%s count=0" % (file_path,size))
+            sys_run("losetup /dev/loop0 " + file_path)
+            sys_run("vgcreate %s /dev/loop0" % group_name)
+        except Exception as e:
+            logger.error(e)
         logger.info("initialize lvm group:%s with size %sM success" % (group_name,size))
         return True
          
@@ -55,7 +58,10 @@ def new_group(group_name, size = "5000", file_path = "/opt/docklet/local/docklet
             Ret = sys_run("vgremove -f " + group_name)
             if Ret.returncode != 0:
                 logger.error("delete VG %s failed:%s" % (group_name,Ret.stdout.decode('utf-8')))
-        sys_run("vgcreate %s %s" % (group_name,disk))
+        try:
+            sys_run("vgcreate %s %s" % (group_name,disk))
+        except Exception as e:
+            logger.error(e)
         logger.info("initialize lvm group:%s with size %sM success" % (group_name,size))
         return True 
     
