@@ -161,13 +161,6 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                 logger.info ("handle request : create cluster %s with image %s " % (clustername, image['name']))
                 [status, result] = G_vclustermgr.create_cluster(clustername, user, image, user_info)
                 if status:
-                    user_info = G_usermgr.selfQuery(cur_user = cur_user)
-                    quota = {}
-                    quota['cpu'] = float(user_info['data']['groupinfo']['cpu'])/100000.0
-                    quota['memory'] = float(user_info['data']['groupinfo']['memory'])*1000000/1024
-                    etcdser = etcdlib.Client(etcdaddr,"/%s/monitor" % (G_clustername))
-                    for con in result['containers']:
-                        etcdser.setkey('/vnodes/%s/quota'%(con['containername']), quota)
                     self.response(200, {'success':'true', 'action':'create cluster', 'message':result})
                 else:
                     self.response(200, {'success':'false', 'action':'create cluster', 'message':result})
@@ -184,13 +177,6 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                 user_info = json.dumps(user_info)
                 [status, result] = G_vclustermgr.scale_out_cluster(clustername, user, image, user_info)
                 if status:
-                    user_info = G_usermgr.selfQuery(cur_user = cur_user)
-                    quota = {}
-                    quota['cpu'] = float(user_info['data']['groupinfo']['cpu'])/100000.0
-                    quota['memory'] = float(user_info['data']['groupinfo']['memory'])*1000000/1024
-                    etcdser = etcdlib.Client(etcdaddr,"/%s/monitor" % (G_clustername))
-                    for con in result['containers']:
-                        etcdser.setkey('/vnodes/%s/quota'%(con['containername']), quota)
                     self.response(200, {'success':'true', 'action':'scale out', 'message':result})
                 else:
                     self.response(200, {'success':'false', 'action':'scale out', 'message':result})

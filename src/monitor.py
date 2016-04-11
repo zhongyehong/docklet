@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import subprocess,re,sys,etcdlib,psutil
+import subprocess,re,os,etcdlib,psutil
 import time,threading,json,traceback,platform
 
 from log import logger
@@ -12,13 +12,12 @@ class Container_Collector(threading.Thread):
         self.thread_stop = False
         self.host = host
         self.etcdser = etcdlib.Client(etcdaddr,"/%s/monitor" % (cluster_name))
-        #self.cpu_quota = float(cpu_quota)/100000.0
-        #self.mem_quota = float(mem_quota)*1000000/1024
         self.interval = 2
         self.test = test
         self.cpu_last = {}
         self.cpu_quota = {}
         self.mem_quota = {}
+        self.cores_num = int(subprocess.getoutput("grep processor /proc/cpuinfo | wc -l"))
         return
 
     def list_container(self):
@@ -52,17 +51,26 @@ class Container_Collector(threading.Thread):
         cpu_val = cpu_parts[0].strip()
         cpu_unit = cpu_parts[1].strip()
         if not container_name in self.cpu_last.keys():
-            [ret, ans] = self.etcdser.getkey('/vnodes/%s/quota'%(container_name))
-            if ret == True :
-                res = dict(eval(ans))
-                self.cpu_quota[container_name] = res['cpu']
-                self.mem_quota[container_name] = res['memory']
-                self.cpu_last[container_name] = 0 
+            confpath = "/var/lib/lxc/%s/config"%(container_name)
+            if os.path.exists(confpath):
+                confile = open(confpath,'r')
+                res = confile.read()
+                lines = re.split('\n',res)
+                for line in lines:
+                    words = re.split('=',line)
+                    key = words[0].strip()
+                    if key == "lxc.cgroup.memory.limit_in_bytes":
+                        self.mem_quota[container_name] = float(words[1].strip().strip("M"))*1000000/1024
+                    elif key == "lxc.cgroup.cpu.cfs_quota_us":
+                        tmp = int(words[1].strip())
+                        if tmp == -1:
+                            self.cpu_quota[container_name] = self.cores_num
+                        else:
+                            self.cpu_quota[container_name] = tmp/100000.0
             else:
-                logger.warning(ans)
-                self.cpu_quota[container_name] = 1
-                self.mem_quota[container_name] = 2000*1000000/1024
-                self.cpu_last[container_name] = 0 
+                logger.error("Cant't find config file %s"%(confpath))
+                return False
+            self.cpu_last[container_name] = 0 
         cpu_use = {}
         cpu_use['val'] = cpu_val
         cpu_use['unit'] = cpu_unit
