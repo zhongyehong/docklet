@@ -192,7 +192,7 @@ if __name__ == '__main__':
     logger.info ("using WORKER_PORT %s" % worker_port )
 
     con_collector = monitor.Container_Collector(etcdaddr, clustername,
-        ipaddr, cpu_quota, mem_quota)
+        ipaddr)
     con_collector.start()
     logger.info("CPU and Memory usage monitor started")
 
