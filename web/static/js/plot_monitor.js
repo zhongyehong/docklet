@@ -7,9 +7,9 @@ function processMemData(data)
 	mem_usedp = data.monitor.mem_use.usedp;
 	var usedp = data.monitor.mem_use.usedp;
 	var unit = data.monitor.mem_use.unit;
-	var quota = data.groupinfo.memory;
+	var quota = data.monitor.mem_use.quota.memory/1024.0;
 	var val = data.monitor.mem_use.val;
-	var out = "("+val+unit+"/"+quota+"MB)";
+	var out = "("+val+unit+"/"+quota.toFixed(2)+"MiB)";
 	$("#con_mem").html((usedp/0.01).toFixed(2)+"%<br/>"+out);
 }
 function getMemY()
@@ -21,10 +21,9 @@ function processCpuData(data)
 	cpu_usedp = data.monitor.cpu_use.usedp;
 	var val = data.monitor.cpu_use.val;
 	var unit = data.monitor.cpu_use.unit;
-    var quota = data.groupinfo.cpu;
-    quota = quota/1000.0;
+    var quota = data.monitor.cpu_use.quota.cpu;
 	$("#con_cpu").html(val +" "+ unit);
-    $("#con_cpuquota").html(quota.toFixed(2)+"% Cores");
+    $("#con_cpuquota").html(quota + " Cores");
 }
 function getCpuY()
 {

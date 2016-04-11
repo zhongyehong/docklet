@@ -106,18 +106,17 @@
 
        		$.post(url+"/cpu_use",{},function(data){
 		       	var usedp = data.monitor.cpu_use.usedp;
-                var quota = data.groupinfo.cpu;
-                quota = quota/100000.0;
+                var quota = data.monitor.cpu_use.quota.cpu;
 		       	$("#"+index+"_cpu").html((usedp/0.01).toFixed(2)+"%");
-                $("#"+index+"_cpuquota").html((quota*100).toFixed(2)+"% Cores");
+                $("#"+index+"_cpuquota").html(quota+" Cores");
 		       	},"json");
 
        		$.post(url+"/mem_use",{},function(data){
 		       	var usedp = data.monitor.mem_use.usedp;
 			var unit = data.monitor.mem_use.unit;
-			var quota = data.groupinfo.memory;
+			var quota = data.monitor.mem_use.quota.memory/1024.0;
 			var val = data.monitor.mem_use.val;
-			var out = "("+val+unit+"/"+quota+"MB)";
+			var out = "("+val+unit+"/"+quota.toFixed(2)+"MiB)";
 		       	$("#"+index+"_mem").html((usedp/0.01).toFixed(2)+"%<br/>"+out);
 		       	},"json");
 
