@@ -119,3 +119,8 @@ Host *
     UserKnownHostsFile=/dev/null
 EOF
 done
+
+echo "[*] Generating $BASEFS/home/spark/sbin/dl_{start|stop}_spark.sh for Spark"
+if [ -d $BASEFS/home/spark/sbin ] ; then
+    cp dl_*_spark.sh $BASEFS/home/spark/sbin
+fi
