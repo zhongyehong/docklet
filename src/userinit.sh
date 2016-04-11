@@ -22,3 +22,9 @@ SSH_DIR=$USER_DIR/ssh
 # maybe it should be delete
 ssh-keygen -t rsa -P '' -f $SSH_DIR/id_rsa &>/dev/null
 cp $SSH_DIR/id_rsa.pub $SSH_DIR/authorized_keys
+
+cat << EOF > $SSH_DIR/config
+Host *
+    StrictHostKeyChecking no
+    UserKnownHostsFile=/dev/null
+EOF
