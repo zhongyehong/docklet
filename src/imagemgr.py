@@ -68,7 +68,7 @@ class ImageMgr():
                 return [False,"target image is exists"]
         try:
             sys_run("mkdir -p %s" % imgpath+image,True)
-            sys_run("rsync -a --delete --exclude=lost+found/ --exclude=nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (self.dealpath(fspath),imgpath+image),True)
+            sys_run("rsync -a --delete --exclude=lost+found/ --exclude=root/nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (self.dealpath(fspath),imgpath+image),True)
             sys_run("rm -f %s" % (imgpath+"."+image+"_docklet_share"),True)
         except Exception as e:
             logger.error(e)
@@ -87,9 +87,8 @@ class ImageMgr():
             imgpath = self.imgpath + "private/" + user + "/"
         else:
             imgpath = self.imgpath + "public/" + imageowner + "/"
-        
         try:
-            sys_run("rsync -a --delete --exclude=lost+found/ --exclude=nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (imgpath+imagename,self.dealpath(fspath)),True)
+            sys_run("rsync -a --delete --exclude=lost+found/ --exclude=root/nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (imgpath+imagename,self.dealpath(fspath)),True)
         except Exception as e:
             logger.error(e)
 
