@@ -81,14 +81,14 @@
 								<tbody>
 									<tr>
 										<td>base</td>
-										<td><div class="label label-outline-success">public</div></td>
+										<td>public</td>
 										<td>docklet</td>
 										<td><input type="radio" name="image" value="base_base_base" checked="checked"></td>
 									</tr>
 									{% for image in images['private'] %}
 									<tr>
 										<td>{{image['name']}}</td>
-										<td><div class="label label-outline-warning">private</div></td>
+										<td>private</td>
 										<td>{{mysession['username']}}</td>
 										<td><input type="radio" name="image" value="{{image['name']}}_{{mysession['username']}}_private"></td>
 									</tr>
@@ -97,7 +97,7 @@
 										{% for image in p_images %}
 										<tr>
 											<td>{{image['name']}}</td>
-											<td><div class="label label-outline-success">public</div></td>
+											<td>public</td>
 											<td>{{p_user}}</td>
 											<td><input type="radio" name="image" value="{{image['name']}}_{{p_user}}_public"></td>
 										</tr>
@@ -247,7 +247,7 @@
 			 <tbody>
 			    <tr>
 				<td>base</td>
-				<td><div class="label label-outline-success">public</div></td>
+				<td>public</td>
 				<td>docklet</td>
 				<td>2015-01-01 00:00:00</td>
 				<td>A Base Image For You</td>
@@ -257,18 +257,18 @@
 			{% for image in images['private'] %}
 			 <tr>
 				<td>{{image['name']}}</td>
-				<td><div class="label label-outline-warning">{{"private"}}</div></td>
+				<td>private</td>
 				<td>{{mysession['username']}}</td>
 				<td>{{image['time']}}</td>
 				<td><a href="/image/description/{{image['name']}}_{{mysession['username']}}_private/" target="_blank">{{image['description']}}</a></td>
 				{% if image['isshared'] == 'false' %}
-					<td><div class="label label-outline-default">unshared</div></td>
+					<td>unshared</td>
 					<td>
 						<a href="/image/share/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-success">share</button></a>
 						<a href="/image/delete/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
 					</td>
 				{% else %}
-					<td><div class="label label-outline-default">shared</div></td>
+					<td>shared</td>
 					<td>
 						<a href="/image/unshare/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-warning">unshare</button></a>
 						<a href="/image/delete/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
@@ -280,7 +280,7 @@
 			    	{% for image in p_images %}
 			    	<tr>
 				<td>{{image['name']}}</td>
-				<td><div class="label label-outline-success">{{"public"}}</div></td>
+				<td>public</td>
 				<td>{{p_user}}</td>
 				<td>{{image['time']}}</td>
 				<td><a href="/image/description/{{image['name']}}_{{p_user}}_public/" target="_blank">{{image['description']}}</a></td>
