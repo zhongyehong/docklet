@@ -423,6 +423,9 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
             elif cmds[1] == 'groupadd':
                 result = G_usermgr.groupadd(form = form, cur_user = cur_user)
                 self.response(200, result)
+            elif cmds[1] == 'quotaadd':
+                result = G_usermgr.quotaadd(form = form, cur_user = cur_user)
+                self.response(200, result)
             elif cmds[1] == 'groupdel':
                 result = G_usermgr.groupdel(name = form.getvalue('name', None), cur_user = cur_user)
                 self.response(200, result)

@@ -27,8 +27,9 @@ class Container(object):
             user_info = json.loads(user_info) 
             cpu = user_info["data"]["groupinfo"]["cpu"]
             memory = user_info["data"]["groupinfo"]["memory"]
+            disk = user_info["data"]["groupinfo"]["disk"]
             image = json.loads(image) 
-            status = self.imgmgr.prepareFS(username,image,lxc_name)
+            status = self.imgmgr.prepareFS(username,image,lxc_name,disk)
             if not status:
                 return [False, "Create container failed when preparing filesystem, possibly insufficient space"]
             

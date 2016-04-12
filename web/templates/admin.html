@@ -51,27 +51,16 @@
                        <div class="modal-body">
 
                             <form action="/group/add/" method="POST" id="addGroupForm">
-                              <div class="form-group">
-                                <label>Group Name</label>
-                                <input type = "text" placeholder="Enter GroupName" class="form-control" name="name" id="mymyname">
-                              </div>
-                            <div class="form-group">
-                              <label>CPU Quota</label>
-                              <input type = "text" placeholder="Enter CPU Quota" class="form-control" name="cpu" id="myCpu" value="100000">
-                            </div>
-                            <div class="form-group">
-                              <label>Memory Quota</label>
-                              <input type="text" placeholder="Enter Memory Quota" class="form-control" name="memory" id="myMemory" value="2000">
-                            </div>
-                            <div class="form-group">
-                              <label>Image Quantity</label>
-                              <input type = "text" placeholder="Enter Image Quantity" class="form-control" name="image" id="myImage" value="10">
-                            </div>
-                            <div class="form-group">
-                              <label>Life Cycle</label>
-                              <input type = "text" placeholder="Enter Life Cycle" class="form-control" name="lifecycle" id="myLifecycle" value="24">
-                            </div>
-
+                                <div class="form-group">
+                                    <label>Name</label>
+                                    <input type="text" placeholder="Enter Name" class="form-control" name="name"/>
+                                </div>
+                                {% for quota in quotas %}
+                                <div class="form-group">
+                                    <label>{{ quota }}</label>
+                                    <input type="text" placeholder="Enter {{ quota }}" class="form-control" name={{ quota }} />
+                                </div>
+                                {% endfor %}
                             </form>
 
                        </div>
@@ -82,59 +71,93 @@
                    </div>
                </div>
            </div>
-         <table id="myGroupTable" class="table table-striped table-bordered">
-           <thead>
-               <tr>
-                   <th>Name</th>
-                   <th>CPU</th>
-                   <th>Memory</th>
-                   <th>ImageQuantity</th>
-                   <th>LifeCycle</th>
-                   <th>Command</th>
-               </tr>
-           </thead>
-           <tbody>
-           </tbody>
-           <div class="modal inmodal" id="ModifyGroupModal" tabindex="-1" role="dialog" aria-hidden="true">
+             <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#AddQuotaModal"><i class="fa fa-plus"></i> Add Quota</button>
+           <div class="modal inmodal" id="AddQuotaModal" tabindex="-1" role="dialog" aria-hidden="true">
                <div class="modal-dialog">
                <div class="modal-content animated fadeIn">
                        <div class="modal-header">
                            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
                            <i class="fa fa-laptop modal-icon"></i>
-                           <h4 class="modal-title">Modify Group</h4>
-                           <small class="font-bold">Modify a group in Docklet</small>
+                           <h4 class="modal-title">Add Quota</h4>
+                           <small class="font-bold">Add a quota to Docklet</small>
                        </div>
                        <div class="modal-body">
-                         <form action="/group/modify/" method="POST" id="modifyGroupForm">
-                            <div class="form-group">
-                              <label>Group Name</label>
-                              <input type = "text" placeholder="Enter Groupname" class="form-control" name="groupname" id="mGroupname" readonly="readonly">
-                            </div>
-                            <div class="form-group">
-                              <label>CPU Quota</label>
-                              <input type = "text" placeholder="Enter CPU Quota" class="form-control" name="cpu" id="mCpu">
-                            </div>
-                            <div class="form-group">
-                              <label>Memory Quota</label>
-                              <input type="text" placeholder="Enter Memory Quota" class="form-control" name="memory" id="mMemory">
-                            </div>
-                            <div class="form-group">
-                              <label>Image Quantity</label>
-                              <input type = "text" placeholder="Enter Image Quantity" class="form-control" name="image" id="mImage">
-                            </div>
-                            <div class="form-group">
-                              <label>Life Cycle</label>
-                              <input type = "text" placeholder="Enter Life Cycle" class="form-control" name="lifecycle" id="mLifecycle">
-                            </div>
-                          </form>
+
+                            <form action="/quota/add/" method="POST" id="addQuotaForm">
+                                <div class="form-group">
+                                    <label>Name</label>
+                                    <input type="text" placeholder="Enter Name" class="form-control" name="quotaname"/>
+                                </div>
+                                <div class="form-group">
+                                    <label>Default Value</label>
+                                    <input type="text" placeholder="Enter Default Value" class="form-control" name="default_value"/>
+                                </div>
+                            </form>
+
                        </div>
                        <div class="modal-footer">
                            <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
-                           <button type="button" class="btn btn-primary" onClick="javascript:sendModifyGroup();">Submit</button>
+                           <button type="button" class="btn btn-primary" onClick="javascript:sendAddQuota();">Submit</button>
                        </div>
-               </div>
+                   </div>
                </div>
            </div>
+         <table id="myGroupTable" class="table table-striped table-bordered">
+           <thead>
+               <tr>
+                   <th>Name</th>
+                   {% for quota in quotas %}
+                   <th> {{ quota }} </th>
+                   {% endfor %}
+                   <th>Command</th>
+               </tr>
+           </thead>
+           <tbody>
+               {% for group in groups %}
+               <tr>
+                   <th>{{ group['name'] }}</th>
+                    {% for quota in quotas %}
+                    <th> {{ group['quotas'][quota] }} </th>
+                    {% endfor %}
+                    <th><a class="btn btn-xs btn-info" data-toggle="modal" data-target="#ModifyGroupModal_{{ group['name'] }}">Edit</a>&nbsp;
+                    {% if group['name'] in [ "root", "primary", "admin", "fundamental" ] %}  
+                        <a class="btn btn-xs btn-default" href="javascript:void(0)">Delete</a></th>
+                    {% else %}
+                        <a class="btn btn-xs btn-danger" href="/group/delete/{{group['name']}}">Delete</a></th>
+                    {% endif %}
+                    <div class="modal inmodal" id="ModifyGroupModal_{{ group['name'] }}" tabindex="-1" role="dialog" aria-hidden="true">
+                        <div class="modal-dialog">
+                        <div class="modal-content animated fadeIn">
+                                <div class="modal-header">
+                                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                                    <i class="fa fa-laptop modal-icon"></i>
+                                    <h4 class="modal-title">Modify Group</h4>
+                                    <small class="font-bold">Modify a group in Docklet</small>
+                                </div>
+                                <form action="/group/modify/{{group['name']}}/" method="POST" >
+                                    <div class="modal-body">
+                                      <div class="form-group">
+                                          <label>Name</label>
+                                          <input type="text" placeholder="Enter Name" class="form-control" name="groupname" readonly="true" value={{ group['name'] }} />
+                                      </div>
+                                      {% for quota in quotas %}
+                                      <div class="form-group">
+                                          <label> {{ quota }}</label>
+                                          <input type="text" placeholder="Enter {{ quota }}" class="form-control" name={{ quota }} value={{ group['quotas'][quota] }} />
+                                      </div>
+                                      {% endfor %}
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-primary">Submit</button>
+                                    </div>
+                                </form>
+                        </div>
+                        </div>
+                    </div>
+               </tr>
+               {% endfor %}
+           </tbody>
          </table>
        </div>
      </div>
@@ -149,30 +172,11 @@
 
 
 <script type="text/javascript">
-    $(document).ready(function() {
-      var gTable = $('#myGroupTable').dataTable({
-        "ajax": {
-              "url": "/group/detail/",
-              "type": "POST"
-          },
-      //"scrollX": true,
-      "columnDefs": [
-            {
-                "render": function ( data, type, row ) {
-                    return '<a class="btn btn-xs btn-info" data-toggle="modal" data-target="#ModifyGroupModal" onClick="javascript:setFormGroup('+ "'" + row[0] + "'" + ');">' + 'Edit' + '</a>'
-                        + '&nbsp;' +'<a class="btn btn-xs btn-danger" href="/group/delete/'  + row[0]  +'">' + 'Delete' + '</a>';
-                },
-                "targets": 5 
-            },
-          ]
-
-      });
-    });
     function sendAddGroup(){
         document.getElementById("addGroupForm").submit();
     }
-    function sendModifyGroup(){
-        document.getElementById("modifyGroupForm").submit();
+    function sendAddQuota(){
+        document.getElementById("addQuotaForm").submit();
     }
     function setFormGroup(arg){
       $.post("/group/query/",
