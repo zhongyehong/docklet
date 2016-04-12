@@ -72,7 +72,9 @@ echo "[*] Masking dbus.service"
 chroot $BASEFS systemctl mask dbus.service
 
 echo "[*] Disabling apache2 service(if installed)"
+if [ -d $BASEFS/etc/apache2 ] ; then
 chroot $BASEFS update-rc.d apache2 disable
+fi
 
 echo "[*] Disabling ondemand service(if installed)"
 chroot $BASEFS update-rc.d ondemand disable
@@ -81,10 +83,14 @@ echo "[*] Disabling dbus service(if installed)"
 chroot $BASEFS update-rc.d dbus disable
 
 echo "[*] Disabling mysql service(if installed)"
+if [ -d $BASEFS/etc/mysql ] ; then
 chroot $BASEFS update-rc.d mysql disable
+fi
 
 echo "[*] Disabling nginx service(if installed)"
+if [ -d $BASEFS/etc/nginx ] ; then
 chroot $BASEFS update-rc.d nginx disable
+fi
 
 echo "[*] Setting worker_processes of nginx to 1(if installed)"
 [ -f $BASEFS/etc/nginx/nginx.conf ] && sed -i -- 's/worker_processes\ auto/worker_processes\ 1/g' $BASEFS/etc/nginx/nginx.conf 
@@ -104,3 +110,17 @@ cp npmrc $BASEFS/root/.npmrc
 
 echo "[*] Copying DOCKLET_NOTES.txt to $BASEFS/root/DOCKLET_NOTES.txt"
 cp DOCKLET_NOTES.txt $BASEFS/root/
+
+echo "[*] Updating USER/.ssh/config to disable StrictHostKeyChecking"
+for f in $FS_PREFIX/global/users/* ; do 
+    cat <<EOF > $f/ssh/config
+Host *
+    StrictHostKeyChecking no
+    UserKnownHostsFile=/dev/null
+EOF
+done
+
+echo "[*] Generating $BASEFS/home/spark/sbin/dl_{start|stop}_spark.sh for Spark"
+if [ -d $BASEFS/home/spark/sbin ] ; then
+    cp dl_*_spark.sh $BASEFS/home/spark/sbin
+fi
