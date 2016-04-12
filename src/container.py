@@ -328,8 +328,8 @@ IP=%s
                 onlyglobal.append(container)
         return [both, onlylocal, onlyglobal]
 
-    def create_image(self,username,imagename,containername,description="not thing",isforce = False):
-        return self.imgmgr.createImage(username,imagename,containername,description,isforce)
+    def create_image(self,username,imagename,containername,description="not thing",imagenum=10):
+        return self.imgmgr.createImage(username,imagename,containername,description,imagenum)
 
     def flush_container(self,username,imagename,containername):
         self.imgmgr.flush_one(username,imagename,containername)

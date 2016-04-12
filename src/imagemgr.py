@@ -58,14 +58,18 @@ class ImageMgr():
             return self.dealpath(fspath[:-1])
         else:
             return fspath
-    
-    def createImage(self,user,image,lxc,description="Not thing",isforce = False):
+   
+    def createImage(self,user,image,lxc,description="Not thing", imagenum=10):
         fspath = self.NFS_PREFIX + "/local/volume/" + lxc
         imgpath = self.imgpath + "private/" + user + "/"
-        if isforce is False:
-            logger.info("this save operation is not force")
-            if os.path.exists(imgpath+image):
-                return [False,"target image is exists"]
+
+        if not os.path.exists(imgpath+image):
+            cur_imagenum = 0
+            for filename in os.listdir(imgpath):
+                if os.path.isdir(imgpath+filename):
+                    cur_imagenum += 1
+            if cur_imagenum >= int(imagenum):
+                return [False,"image number limit exceeded"]
         try:
             sys_run("mkdir -p %s" % imgpath+image,True)
             sys_run("rsync -a --delete --exclude=lost+found/ --exclude=root/nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (self.dealpath(fspath),imgpath+image),True)

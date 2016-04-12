@@ -120,7 +120,7 @@
                     <th> {{ group['quotas'][quota] }} </th>
                     {% endfor %}
                     <th><a class="btn btn-xs btn-info" data-toggle="modal" data-target="#ModifyGroupModal_{{ group['name'] }}">Edit</a>&nbsp;
-                    {% if group['name'] in [ "root", "primary", "admin", "fundamental" ] %}  
+                    {% if group['name'] in [ "root", "primary", "admin", "fundation" ] %}  
                         <a class="btn btn-xs btn-default" href="javascript:void(0)">Delete</a></th>
                     {% else %}
                         <a class="btn btn-xs btn-danger" href="/group/delete/{{group['name']}}">Delete</a></th>
