@@ -234,17 +234,19 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                 description = form.getvalue("description")
                 containername = form.getvalue("containername")
                 isforce = form.getvalue("isforce")
-                if isforce == "true":
-                    isforce = True
-                else:
-                    isforce = False
-                [status,message] = G_vclustermgr.create_image(user,clustername,containername,imagename,description,isforce)
+                if not isforce == "true":
+                    [status,message] = G_vclustermgr.image_check(user,imagename)
+                    if not status:
+                        self.response(200, {'success':'false','reason':'exists', 'message':message})
+                        return [False, "image already exists"]
+                user_info = G_usermgr.selfQuery(cur_user = cur_user)
+                [status,message] = G_vclustermgr.create_image(user,clustername,containername,imagename,description,user_info["data"]["groupinfo"]["image"])
                 if status:
                     logger.info("image has been saved")
                     self.response(200, {'success':'true', 'action':'save'})
                 else:
                     logger.debug(message)
-                    self.response(400, {'success':'false', 'message':message})
+                    self.response(200, {'success':'false', 'reason':'exceed', 'message':message})
 
             else:
                 logger.warning ("request not supported ")
@@ -422,6 +424,9 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                 self.response(200, result)
             elif cmds[1] == 'groupadd':
                 result = G_usermgr.groupadd(form = form, cur_user = cur_user)
+                self.response(200, result)
+            elif cmds[1] == 'quotaadd':
+                result = G_usermgr.quotaadd(form = form, cur_user = cur_user)
                 self.response(200, result)
             elif cmds[1] == 'groupdel':
                 result = G_usermgr.groupdel(name = form.getvalue('name', None), cur_user = cur_user)

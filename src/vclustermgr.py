@@ -204,7 +204,14 @@ class VclusterMgr(object):
         logger.info("flush success")
 
 
-    def create_image(self,username,clustername,containername,imagename,description,isforce=False):
+    def image_check(self,username,imagename):
+        imagepath = self.fspath + "/global/images/private/" + username + "/" 
+        if os.path.exists(imagepath + imagename):
+            return [False, "image already exists"]
+        else:
+            return [True, "image not exists"]
+
+    def create_image(self,username,clustername,containername,imagename,description,imagenum=10):
         [status, info] = self.get_clusterinfo(clustername,username)
         if not status:
             return [False, "cluster not found"]
@@ -213,7 +220,7 @@ class VclusterMgr(object):
             if container['containername'] == containername:
                 logger.info("container: %s found" % containername)
                 onework = self.nodemgr.ip_to_rpc(container['host'])
-                res = onework.create_image(username,imagename,containername,description,isforce)
+                res = onework.create_image(username,imagename,containername,description,imagenum)
                 container['lastsave'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 container['image'] = imagename
                 break

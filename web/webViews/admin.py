@@ -1,14 +1,40 @@
-from flask import session
+from flask import session, render_template, redirect, request
 from webViews.view import normalView
 from webViews.dockletrequest import dockletRequest
 from webViews.dashboard import *
-import time, re
+import time, re, json
 
 class adminView(normalView):
     template_path = "admin.html"
 
     @classmethod
     def get(self):
-        groups = dockletRequest.post('/user/groupNameList/')["groups"]
-        return self.render(self.template_path, groups = groups)
+        result = dockletRequest.post('/user/groupList/')
+        groups = result["groups"]
+        quotas = result["quotas"]
+        return self.render(self.template_path, groups = groups, quotas = quotas)
 
+class groupaddView(normalView):
+    @classmethod
+    def post(self):
+        dockletRequest.post('/user/groupadd', request.form)
+        return redirect('/admin/')
+
+class quotaaddView(normalView):
+    @classmethod
+    def post(self):
+        dockletRequest.post('/user/quotaadd', request.form)
+        return redirect('/admin/')
+
+class groupdelView(normalView):
+    @classmethod
+    def post(self):
+        data = {
+                "name" : self.groupname,
+        }
+        dockletRequest.post('/user/groupdel', data)
+        return redirect('/admin/')
+    
+    @classmethod
+    def get(self):
+        return self.post()
