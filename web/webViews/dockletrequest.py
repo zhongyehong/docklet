@@ -24,7 +24,9 @@ class dockletRequest():
 
     @classmethod
     def unauthorizedpost(self, url = '/', data = None):
-        logger.info("Docklet Unauthorized Request: data = %s, url = %s" % (data, url))
+        data = dict(data)
+        data_log = {'user': data.get('user', 'external')}
+        logger.info("Docklet Unauthorized Request: data = %s, url = %s" % (data_log, url))
         result = requests.post(endpoint + url, data = data).json()
         logger.info("Docklet Unauthorized Response: result = %s, url = %s"%(result, url))
         return result
