@@ -59,12 +59,13 @@ class VclusterMgr(object):
         logger.info ("starting cluster %s with %d containers for %s" % (clustername, int(clustersize), username))
         workers = self.nodemgr.get_rpcs()
         image_json = json.dumps(image)
+        groupname = json.loads(user_info)["data"]["group"]
         if (len(workers) == 0):
             logger.warning ("no workers to start containers, start cluster failed")
             return [False, "no workers are running"]
         # check user IP pool status, should be moved to user init later
         if not self.networkmgr.has_user(username):
-            self.networkmgr.add_user(username, cidr=29)
+            self.networkmgr.add_user(username, cidr=29, isshared = True if str(groupname) == "fundation" else False)
         [status, result] = self.networkmgr.acquire_userips_cidr(username, clustersize)
         gateway = self.networkmgr.get_usergw(username)
         vlanid = self.networkmgr.get_uservlanid(username)

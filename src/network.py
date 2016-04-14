@@ -247,6 +247,7 @@ class NetworkMgr(object):
             self.users = {}
             self.vlanids = {}
             self.init_vlanids(4095, 60)
+            self.init_shared_vlanids()
             self.dump_center()
             self.dump_system()
         elif mode == 'recovery':
@@ -258,6 +259,7 @@ class NetworkMgr(object):
             self.load_center()
             self.load_system()
             self.load_vlanids()
+            self.load_shared_vlanids()
         else:
             logger.error("mode: %s not supported" % mode)
 
@@ -270,6 +272,17 @@ class NetworkMgr(object):
         self.vlanids['currentindex'] = i+1
         self.etcd.setkey("network/vlanids/"+str(i+1), json.dumps(self.vlanids['currentpool']))
         self.etcd.setkey("network/vlanids/current", str(i+1))
+    
+    def init_shared_vlanids(self, vlannum = 128, sharenum = 128):
+        self.shared_vlanids = []
+        for i in range(vlannum):
+            shared_vlanid = {}
+            [status, shared_vlanid['vlanid']] = self.acquire_vlanid()
+            shared_vlanid['sharenum'] = sharenum
+            self.shared_vlanids.append(shared_vlanid)
+        self.etcd.setkey("network/shared_vlanids", json.dumps(self.shared_vlanids))
+
+
 
     def load_vlanids(self):
         [status, info] = self.etcd.getkey("network/vlanids/info")
@@ -291,6 +304,13 @@ class NetworkMgr(object):
                 pass
         else:
             self.etcd.setkey("network/vlanids/"+str(self.vlanids['currentindex']), json.dumps(self.vlanids['currentpool']))
+    
+    def load_shared_vlanids(self):
+        [status, shared_vlanids] = self.etcd.getkey("network/shared_vlanids")
+        self.shared_vlanids = json.loads(shared_vlanids)
+
+    def dump_shared_vlanids(self):
+        self.etcd.setkey("network/shared_vlanids", json.dumps(self.shared_vlanids))
 
     def load_center(self):
         [status, centerdata] = self.etcd.getkey("network/center")
@@ -327,7 +347,18 @@ class NetworkMgr(object):
         print ("<vlanids>")
         print (str(self.vlanids['currentindex'])+":"+str(self.vlanids['currentpool']))
 
-    def acquire_vlanid(self):
+    def acquire_vlanid(self, isshared = False):
+        if isshared:
+            if self.shared_vlanids[0]['sharenum'] == 0:
+                self.shared_vlanids.append(self.shared_vlanids.pop(0))
+            if self.shared_vlanids[0]['sharenum'] == 0:
+                logger.info("shared vlanids not enough, add user to full vlanids")
+                for shared_vlanid in self.shared_vlanids:
+                    shared_vlanid['sharenum'] = 128
+            self.shared_vlanids[0]['sharenum'] -= 1
+            self.dump_shared_vlanids()
+            return [True, self.shared_vlanids[0]['vlanid']]
+
         if self.vlanids['currentpool'] == []:
             if self.vlanids['currentindex'] == 0:
                 return [False, "No VLAN IDs"]
@@ -350,7 +381,7 @@ class NetworkMgr(object):
             self.dump_vlanids()
         return [True, "Release VLAN ID success"]
 
-    def add_user(self, username, cidr):
+    def add_user(self, username, cidr, isshared = False):
         logger.info ("add user %s with cidr=%s" % (username, str(cidr)))
         if self.has_user(username):
             return [False, "user already exists in users set"]
@@ -358,7 +389,7 @@ class NetworkMgr(object):
         self.dump_center()
         if status == False:
             return [False, result]
-        [status, vlanid] = self.acquire_vlanid()
+        [status, vlanid] = self.acquire_vlanid(isshared)
         if status:
             vlanid = int(vlanid)
         else:
@@ -372,7 +403,7 @@ class NetworkMgr(object):
         del self.users[username]
         return [True, 'add user success']
 
-    def del_user(self, username):
+    def del_user(self, username, isshared = False):
         logger.info ("delete user %s with cidr=%s" % (username))
         if not self.has_user(username):
             return [False, username+" not in users set"]
@@ -380,7 +411,8 @@ class NetworkMgr(object):
         [addr, cidr] = self.users[username].info.split('/')
         self.center.free(addr, int(cidr))
         self.dump_center()
-        self.release_vlanid(self.users[username].vlanid)
+        if not isshared:
+            self.release_vlanid(self.users[username].vlanid)
         netcontrol.del_gw('docklet-br', username)
         self.etcd.deldir("network/users/"+username)
         del self.users[username]
