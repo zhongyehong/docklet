@@ -23,9 +23,11 @@ class Guest(object):
             subprocess.getoutput(self.libpath+"/userinit.sh guest")
         user_info = {}
         user_info["data"] = {}
+        user_info["data"]["group"] = "primary" 
         user_info["data"]["groupinfo"] = {}
-        user_info["data"]["groupinfo"]["cpu"] = 100000
+        user_info["data"]["groupinfo"]["cpu"] = 4
         user_info["data"]["groupinfo"]["memory"] = 2000
+        user_info["data"]["groupinfo"]["disk"] = 2000
         user_info = json.dumps(user_info)
         self.G_vclustermgr.create_cluster("guestspace", "guest", image, user_info)
         while True:

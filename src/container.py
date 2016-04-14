@@ -25,7 +25,7 @@ class Container(object):
         logger.info("create container %s of %s for %s" %(lxc_name, clustername, username))
         try:
             user_info = json.loads(user_info) 
-            cpu = user_info["data"]["groupinfo"]["cpu"]
+            cpu = int(user_info["data"]["groupinfo"]["cpu"]) * 100000
             memory = user_info["data"]["groupinfo"]["memory"]
             disk = user_info["data"]["groupinfo"]["disk"]
             image = json.loads(image) 
