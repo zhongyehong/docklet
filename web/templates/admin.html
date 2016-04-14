@@ -57,8 +57,8 @@
                                 </div>
                                 {% for quota in quotas %}
                                 <div class="form-group">
-                                    <label>{{ quota }}</label>
-                                    <input type="text" placeholder="Enter {{ quota }}" class="form-control" name={{ quota }} />
+                                    <label>{{ quota['name'] }}</label>
+                                    <input type="text" class="form-control" name={{ quota['name'] }} placeholder="{{quota['hint']}}" />
                                 </div>
                                 {% endfor %}
                             </form>
@@ -92,6 +92,10 @@
                                     <label>Default Value</label>
                                     <input type="text" placeholder="Enter Default Value" class="form-control" name="default_value"/>
                                 </div>
+                                <div class="form-group">
+                                    <label>Hint</label>
+                                    <input type="text" placeholder="Enter Hint" class="form-control" name="hint"/>
+                                </div>
                             </form>
 
                        </div>
@@ -107,7 +111,7 @@
                <tr>
                    <th>Name</th>
                    {% for quota in quotas %}
-                   <th> {{ quota }} </th>
+                   <th> {{ quota['name'] }} </th>
                    {% endfor %}
                    <th>Command</th>
                </tr>
@@ -117,7 +121,7 @@
                <tr>
                    <th>{{ group['name'] }}</th>
                     {% for quota in quotas %}
-                    <th> {{ group['quotas'][quota] }} </th>
+                    <th> {{ group['quotas'][quota['name']] }} </th>
                     {% endfor %}
                     <th><a class="btn btn-xs btn-info" data-toggle="modal" data-target="#ModifyGroupModal_{{ group['name'] }}">Edit</a>&nbsp;
                     {% if group['name'] in [ "root", "primary", "admin", "fundation" ] %}  
@@ -142,8 +146,8 @@
                                       </div>
                                       {% for quota in quotas %}
                                       <div class="form-group">
-                                          <label> {{ quota }}</label>
-                                          <input type="text" placeholder="Enter {{ quota }}" class="form-control" name={{ quota }} value={{ group['quotas'][quota] }} />
+                                          <label> {{ quota['name'] }}</label>
+                                          <input type="text" placeholder="{{ quota['hint'] }}" class="form-control" name={{ quota['name'] }} value={{ group['quotas'][quota['name']] }} />
                                       </div>
                                       {% endfor %}
                                     </div>
