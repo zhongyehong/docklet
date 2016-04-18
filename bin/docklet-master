@@ -3,8 +3,9 @@
 [ $(id -u) != '0' ] && echo "root is needed" && exit 1
 
 # get some path of docklet
-
+echo $0
 bindir=${0%/*}
+echo "bindir=$bindir"
 # $bindir maybe like /opt/docklet/src/../sbin
 # use command below to make $bindir in normal absolute path
 DOCKLET_BIN=$(cd $bindir; pwd)

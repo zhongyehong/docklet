@@ -6,6 +6,7 @@
 
 # must first init loadenv
 import tools, env
+# default CONFIG=/opt/docklet/local/docklet-running.conf
 config = env.getenv("CONFIG")
 tools.loadenv(config)
 
@@ -23,6 +24,7 @@ import userManager
 import monitor
 import guest_control, threading
 
+#default EXTERNAL_LOGIN=False
 external_login = env.getenv('EXTERNAL_LOGIN')
 if (external_login == 'TRUE'):
     from userDependence import external_auth
@@ -520,6 +522,7 @@ if __name__ == '__main__':
             etcdclient.clean()
         else:
             etcdclient.createdir("")
+        # token is saved at fs_path/golbal/token
         token = tools.gen_token()
         tokenfile = open(fs_path+"/global/token", 'w')
         tokenfile.write(token)
@@ -583,7 +586,7 @@ if __name__ == '__main__':
     masterport = env.getenv('MASTER_PORT')
     logger.info("using MASTER_PORT %d", int(masterport))
 
-#   server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
+    # server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
     server = ThreadingHttpServer((masterip, int(masterport)), DockletHttpHandler)
     logger.info("starting master server")
     server.serve_forever()
