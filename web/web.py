@@ -20,7 +20,7 @@ from webViews.log import logger
 
 from flask import Flask, request, session, render_template, redirect, send_from_directory, make_response, url_for, abort
 from webViews.dashboard import dashboardView
-from webViews.user.userlist import userlistView, useraddView, usermodifyView, userdataView, userqueryView 
+from webViews.user.userlist import userlistView, useraddView, usermodifyView, userdataView, userqueryView
 from webViews.user.userinfo import userinfoView
 from webViews.user.userActivate import userActivateView
 from webViews.user.grouplist import grouplistView, groupqueryView, groupdetailView, groupmodifyView
@@ -399,6 +399,11 @@ def jupyter_auth(cookie_name, cookie_content):
 @app.errorhandler(401)
 def not_authorized(error):
     if "username" in session:
+        if "401" in session:
+            reason = session['401']
+            session.pop('401', None)
+            if (reason == 'Token Expired'):
+                return redirect('/logout/')
         return render_template('error/401.html', mysession = session)
     else:
         return redirect('/login/')
@@ -406,7 +411,16 @@ def not_authorized(error):
 @app.errorhandler(500)
 def internal_server_error(error):
     if "username" in session:
-        return render_template('error/500.html', mysession = session)
+        if "500" in session and "500_title" in session:
+            reason = session['500']
+            title = session['500_title']
+            session.pop('500', None)
+            session.pop('500_title', None)
+        else:
+            reason = '''The server encountered something unexpected that didn't allow it to complete the request. We apologize.You can go back to
+<a href="/dashboard/">dashboard</a> or <a href="/logout">log out</a>'''
+            title = 'Internal Server Error'
+        return render_template('error/500.html', mysession = session, reason = reason, title = title)
     else:
         return redirect('/login/')
 if __name__ == '__main__':
