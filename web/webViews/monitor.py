@@ -15,7 +15,7 @@ class statusView(normalView):
         clusters = result.get('clusters')
         result = dockletRequest.post('/monitor/user/quotainfo/', data)
         quotainfo = result.get('quotainfo')
-        quotainfo['cpu'] = int(int(quotainfo['cpu'])/100000)
+        quotainfo['cpu'] = int(int(quotainfo['cpu']))
         print(quotainfo)
         if (result):
             containers = {}
