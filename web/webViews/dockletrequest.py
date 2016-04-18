@@ -15,7 +15,10 @@ class dockletRequest():
         logger.info ("Docklet Request: user = %s data = %s, url = %s"%(session['username'], data, url))
 
         result = requests.post(endpoint + url, data = data).json()
-        if (result.get('success', None) == "false" and (result.get('reason', None) == "Unauthorized Action" or result.get('Unauthorized', None) == 'True')):
+        if (result.get('success', None) == "false" and result.get('reason', None) == "Unauthorized Action"):
+            abort(401)
+        if (result.get('Unauthorized', None) == 'True'):
+            session['401'] = 'Token Expired'
             abort(401)
         logger.info ("Docklet Response: user = %s result = %s, url = %s"%(session['username'], result, url))
         return result
@@ -24,7 +27,9 @@ class dockletRequest():
 
     @classmethod
     def unauthorizedpost(self, url = '/', data = None):
-        logger.info("Docklet Unauthorized Request: data = %s, url = %s" % (data, url))
+        data = dict(data)
+        data_log = {'user': data.get('user', 'external')}
+        logger.info("Docklet Unauthorized Request: data = %s, url = %s" % (data_log, url))
         result = requests.post(endpoint + url, data = data).json()
         logger.info("Docklet Unauthorized Response: result = %s, url = %s"%(result, url))
         return result

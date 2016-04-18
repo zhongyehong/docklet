@@ -31,8 +31,7 @@ from base64 import b64encode, b64decode
 import os
 
 #this class from itsdangerous implements token<->user
-#from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from itsdangerous import JSONWebSignatureSerializer as Serializer
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from itsdangerous import SignatureExpired, BadSignature
 
 import env
@@ -40,7 +39,7 @@ import env
 fsdir = env.getenv('FS_PREFIX')
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'+fsdir+'/local/UserTable.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'+fsdir+'/global/sys/UserTable.db'
 try:
     secret_key_file = open(env.getenv('FS_PREFIX') + '/local/token_secret_key.txt')
     app.secret_key = secret_key_file.read()
@@ -103,9 +102,8 @@ class User(db.Model):
         return '<User %r>' % self.username
 
     #token will expire after 3600s
-    # replace token with no time expiration
     def generate_auth_token(self, expiration = 3600):
-        s = Serializer(app.config['SECRET_KEY'])
+        s = Serializer(app.config['SECRET_KEY'], expires_in = expiration)
         str = s.dumps({'id': self.id})
         return b64encode(str).decode('utf-8')
 

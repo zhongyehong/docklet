@@ -25,9 +25,9 @@ import env
 from lvmtool import *
 
 class ImageMgr():
-    def sys_call(self,command):
-        output = subprocess.getoutput(command).strip()
-        return None if output == '' else output
+    #def sys_call(self,command):
+    #    output = subprocess.getoutput(command).strip()
+    #    return None if output == '' else output
     
     def sys_return(self,command):
         return_value = subprocess.call(command,shell=True)
@@ -58,17 +58,25 @@ class ImageMgr():
             return self.dealpath(fspath[:-1])
         else:
             return fspath
-    
-    def createImage(self,user,image,lxc,description="Not thing",isforce = False):
+   
+    def createImage(self,user,image,lxc,description="Not thing", imagenum=10):
         fspath = self.NFS_PREFIX + "/local/volume/" + lxc
         imgpath = self.imgpath + "private/" + user + "/"
-        if isforce is False:
-            logger.info("this save operation is not force")
-            if os.path.exists(imgpath+image):
-                return [False,"target image is exists"]
-        self.sys_call("mkdir -p %s" % imgpath+image)
-        self.sys_call("rsync -a --delete --exclude=lost+found/ --exclude=nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (self.dealpath(fspath),imgpath+image))
-        self.sys_call("rm -f %s" % (imgpath+"."+image+"_docklet_share"))
+
+        if not os.path.exists(imgpath+image):
+            cur_imagenum = 0
+            for filename in os.listdir(imgpath):
+                if os.path.isdir(imgpath+filename):
+                    cur_imagenum += 1
+            if cur_imagenum >= int(imagenum):
+                return [False,"image number limit exceeded"]
+        try:
+            sys_run("mkdir -p %s" % imgpath+image,True)
+            sys_run("rsync -a --delete --exclude=lost+found/ --exclude=root/nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (self.dealpath(fspath),imgpath+image),True)
+            sys_run("rm -f %s" % (imgpath+"."+image+"_docklet_share"),True)
+        except Exception as e:
+            logger.error(e)
+
         self.updateinfo(imgpath,image,description)
         logger.info("image:%s from LXC:%s create success" % (image,lxc))
         return [True, "create image success"]
@@ -83,7 +91,11 @@ class ImageMgr():
             imgpath = self.imgpath + "private/" + user + "/"
         else:
             imgpath = self.imgpath + "public/" + imageowner + "/"
-        self.sys_call("rsync -a --delete --exclude=lost+found/ --exclude=nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (imgpath+imagename,self.dealpath(fspath)))
+        try:
+            sys_run("rsync -a --delete --exclude=lost+found/ --exclude=root/nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (imgpath+imagename,self.dealpath(fspath)),True)
+        except Exception as e:
+            logger.error(e)
+
         #self.sys_call("rsync -a --delete --exclude=nfs/ %s/ %s/" % (imgpath+image,self.dealpath(fspath)))
         #self.updatetime(imgpath,image)
         return 
@@ -100,8 +112,13 @@ class ImageMgr():
         if Ret.returncode == 0:
             logger.info("%s not clean" % layer)
             sys_run("umount -l %s" % layer)
-        sys_run("rm -rf %s %s" % (rootfs, layer))
-        sys_run("mkdir -p %s %s" % (rootfs, layer))
+        
+        try:
+            sys_run("rm -rf %s %s" % (rootfs, layer))
+            sys_run("mkdir -p %s %s" % (rootfs, layer))
+        except Exception as e:
+            logger.error(e)
+
         
         #prepare volume
         if check_volume(vgname,lxc):
@@ -110,19 +127,18 @@ class ImageMgr():
         if not new_volume(vgname,lxc,size):
             logger.error("volume %s create failed" % lxc)
             return False
-        sys_run("mkfs.ext4 /dev/%s/%s" % (vgname,lxc))
-        sys_run("mount /dev/%s/%s %s" %(vgname,lxc,layer))
-        #self.sys_call("mountpoint %s &>/dev/null && umount -l %s" % (rootfs,rootfs))
-        #self.sys_call("mountpoint %s &>/dev/null && umount -l %s" % (layer,layer))
-        #self.sys_call("rm -rf %s %s && mkdir -p %s %s" % (rootfs,layer,rootfs,layer))
-        #rv = self.sys_return(self.srcpath+"lvmtool.sh check volume %s %s" % (vgname,lxc))
-        #if rv == 1:
-        #    self.sys_call(self.srcpath+"lvmtool.sh newvolume %s %s %s %s" % (vgname,lxc,size,layer))
-        #else:
-        #   self.sys_call(self.srcpath+"lvmtool.sh mount volume %s %s %s" % (vgname,lxc,layer))
-        #self.sys_call("mkdir -p %s/overlay %s/work" % (layer,layer))
-        #self.sys_call("mount -t overlay overlay -olowerdir=%s/local/basefs,upperdir=%s/overlay,workdir=%s/work %s" % (self.NFS_PREFIX,layer,layer,rootfs))
-        self.sys_call("mount -t aufs -o br=%s=rw:%s/local/basefs=ro+wh none %s/" % (layer,self.NFS_PREFIX,rootfs))
+        
+        try:
+            sys_run("mkfs.ext4 /dev/%s/%s" % (vgname,lxc),True)
+            sys_run("mount /dev/%s/%s %s" %(vgname,lxc,layer),True)
+            #self.sys_call("mkdir -p %s/overlay %s/work" % (layer,layer))
+            #self.sys_call("mount -t overlay overlay -olowerdir=%s/local/basefs,upperdir=%s/overlay,workdir=%s/work %s" % (self.NFS_PREFIX,layer,layer,rootfs))
+            sys_run("mount -t aufs -o br=%s=rw:%s/local/basefs=ro+wh none %s/" % (layer,self.NFS_PREFIX,rootfs),True)
+            sys_run("mkdir -p %s/local/temp/%s" % (self.NFS_PREFIX,lxc))
+
+        except Exception as e:
+            logger.error(e)
+
         logger.info("FS has been prepared for user:%s lxc:%s" % (user,lxc))
         #self.prepareImage(user,image,layer+"/overlay")
         self.prepareImage(user,image,layer)
@@ -143,7 +159,12 @@ class ImageMgr():
             sys_run("umount -l %s" % layer)
         if check_volume(vgname, lxc):
             delete_volume(vgname, lxc)
-        sys_run("rm -rf %s %s" % (layer,lxcpath))
+        try:
+            sys_run("rm -rf %s %s" % (layer,lxcpath))
+            sys_run("rm -rf %s/local/temp/%s" % (self.NFS_PREFIX,lxc))
+        except Exception as e:
+            logger.error(e)
+
         return True
     
     def checkFS(self, lxc, vgname="docklet-group"):
@@ -157,15 +178,18 @@ class ImageMgr():
             sys_run("mount /dev/%s/%s %s" % (vgname,lxc,layer))
         Ret = sys_run("mountpoint %s" % rootfs)
         if Ret.returncode != 0:
-            self.sys_call("mount -t aufs -o br=%s=rw:%s/local/basefs=ro+wh none %s/" % (layer,self.NFS_PREFIX,rootfs))
+            sys_run("mount -t aufs -o br=%s=rw:%s/local/basefs=ro+wh none %s/" % (layer,self.NFS_PREFIX,rootfs))
         return True
 
 
     def removeImage(self,user,image):
         imgpath = self.imgpath + "private/" + user + "/"
-        self.sys_call("rm -rf %s/" % imgpath+image)
-        self.sys_call("rm -f %s" % imgpath+"."+image+".info")
-        self.sys_call("rm -f %s" % (imgpath+"."+image+".description"))
+        try:
+            sys_run("rm -rf %s/" % imgpath+image, True)
+            sys_run("rm -f %s" % imgpath+"."+image+".info", True)
+            sys_run("rm -f %s" % (imgpath+"."+image+".description"), True)
+        except Exception as e:
+            logger.error(e)
 
     def shareImage(self,user,image):
         imgpath = self.imgpath + "private/" + user + "/"
@@ -177,10 +201,13 @@ class ImageMgr():
         image_info_file = open(imgpath+"."+image+".info", 'w')
         image_info_file.writelines([createtime, isshare])
         image_info_file.close()
-        self.sys_call("mkdir -p %s" % (share_imgpath + image))
-        self.sys_call("rsync -a --delete %s/ %s/" % (imgpath+image,share_imgpath+image))
-        self.sys_call("cp %s %s" % (imgpath+"."+image+".info",share_imgpath+"."+image+".info"))
-        self.sys_call("cp %s %s" % (imgpath+"."+image+".description",share_imgpath+"."+image+".description"))
+        try:
+            sys_run("mkdir -p %s" % (share_imgpath + image), True)
+            sys_run("rsync -a --delete %s/ %s/" % (imgpath+image,share_imgpath+image), True)
+            sys_run("cp %s %s" % (imgpath+"."+image+".info",share_imgpath+"."+image+".info"), True)
+            sys_run("cp %s %s" % (imgpath+"."+image+".description",share_imgpath+"."+image+".description"), True)
+        except Exception as e:
+            logger.error(e)
 
         
 
@@ -195,10 +222,12 @@ class ImageMgr():
             image_info_file = open(imgpath+"."+image+".info", 'w')  
             image_info_file.writelines([createtime, isshare])
             image_info_file.close()
-        self.sys_call("rm -rf %s/" % public_imgpath+image)
-        self.sys_call("rm -f %s" % public_imgpath+"."+image+".info")
-        self.sys_call("rm -f %s" % public_imgpath+"."+image+".description")
-        
+        try:
+            sys_run("rm -rf %s/" % public_imgpath+image, True)
+            sys_run("rm -f %s" % public_imgpath+"."+image+".info", True)
+            sys_run("rm -f %s" % public_imgpath+"."+image+".description", True)
+        except Exception as e:
+            logger.error(e)
 
     def get_image_info(self, user, image, imagetype):
         if imagetype == "private": 
@@ -230,9 +259,9 @@ class ImageMgr():
         images["private"] = []
         images["public"] = {}
         imgpath = self.imgpath + "private/" + user + "/"
-        private_images = self.sys_call("ls %s" % imgpath)
-        if private_images is not None and private_images[:3] != "ls:":
-            private_images = private_images.split("\n")
+        try:
+            Ret = sys_run("ls %s" % imgpath, True)
+            private_images = str(Ret.stdout,"utf-8").split()
             for image in private_images:
                 fimage={}
                 fimage["name"] = image
@@ -241,17 +270,18 @@ class ImageMgr():
                 fimage["time"] = time
                 fimage["description"] = description
                 images["private"].append(fimage)
-        else:
-            pass
+        except Exception as e:
+            logger.error(e)
+
         imgpath = self.imgpath + "public" + "/"
-        public_users = self.sys_call("ls %s" % imgpath)
-        if public_users is not None and public_users[:3] != "ls:":
-            public_users = public_users.split("\n")
+        try:
+            Ret = sys_run("ls %s" % imgpath, True)
+            public_users = str(Ret.stdout,"utf-8").split()
             for public_user in public_users:
                 imgpath = self.imgpath + "public/" + public_user + "/"
-                public_images = self.sys_call("ls %s" % imgpath)
-                if public_images is not None and public_images[:3] != "ls:":
-                    public_images = public_images.split("\n")
+                try:
+                    Ret = sys_run("ls %s" % imgpath, True)
+                    public_images = str(Ret.stdout,"utf-8").split()
                     images["public"][public_user] = []
                     for image in public_images:
                         fimage = {}
@@ -260,8 +290,11 @@ class ImageMgr():
                         fimage["time"] = time
                         fimage["description"] = description
                         images["public"][public_user].append(fimage)
-        else:
-            pass
+                except Exception as e:
+                    logger.error(e)
+        except Exception as e:
+            logger.error(e)
+
         return images
     
     def isshared(self,user,image):

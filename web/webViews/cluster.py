@@ -2,6 +2,7 @@ from flask import session
 from webViews.view import normalView
 from webViews.dockletrequest import dockletRequest
 from webViews.dashboard import *
+from webViews.checkname import checkname
 import time, re
 
 class addClusterView(normalView):
@@ -24,6 +25,7 @@ class createClusterView(normalView):
     def post(self):
         index1 = self.image.rindex("_")
         index2 = self.image[:index1].rindex("_")
+        checkname(self.clustername)
         data = {
             "clustername": self.clustername,
             'imagename': self.image[:index2],
@@ -182,6 +184,7 @@ class detailClusterView(normalView):
 class saveImageView(normalView):
     template_path = "saveconfirm.html"
     success_path = "opsuccess.html"
+    error_path = "error.html"
 
     @classmethod
     def post(self):
@@ -201,7 +204,10 @@ class saveImageView(normalView):
                 #res.clustername = self.clustername
                 #return res.as_view()
             else:
-                return self.render(self.template_path, containername = self.containername, clustername = self.clustername, image = self.imagename, user = session['username'], description = self.description)
+                if result.get('reason') == "exists":
+                    return self.render(self.template_path, containername = self.containername, clustername = self.clustername, image = self.imagename, user = session['username'], description = self.description)
+                else:
+                    return self.render(self.error_path, message = result.get('message'))
         else:
             self.error()
 

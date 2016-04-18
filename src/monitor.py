@@ -1,23 +1,23 @@
 #!/usr/bin/python3
 
-import subprocess,re,sys,etcdlib,psutil
+import subprocess,re,os,etcdlib,psutil
 import time,threading,json,traceback,platform
 
 from log import logger
 
 class Container_Collector(threading.Thread):
 
-    def __init__(self,etcdaddr,cluster_name,host,cpu_quota,mem_quota,test=False):
+    def __init__(self,etcdaddr,cluster_name,host,test=False):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.host = host
         self.etcdser = etcdlib.Client(etcdaddr,"/%s/monitor" % (cluster_name))
-        self.etcdser.setkey('/vnodes/cpu_quota', cpu_quota)
-        self.etcdser.setkey('/vnodes/mem_quota', mem_quota)
-        self.cpu_quota = float(cpu_quota)/100000.0
-        self.mem_quota = float(mem_quota)*1000000/1024
         self.interval = 2
         self.test = test
+        self.cpu_last = {}
+        self.cpu_quota = {}
+        self.mem_quota = {}
+        self.cores_num = int(subprocess.getoutput("grep processor /proc/cpuinfo | wc -l"))
         return
 
     def list_container(self):
@@ -46,22 +46,43 @@ class Container_Collector(threading.Thread):
         basic_info['PID'] = info['PID']
         basic_info['IP'] = info['IP']
         self.etcdser.setkey('/vnodes/%s/basic_info'%(container_name), basic_info)
+
         cpu_parts = re.split(' +',info['CPU use'])
         cpu_val = cpu_parts[0].strip()
         cpu_unit = cpu_parts[1].strip()
-        res = self.etcdser.getkey('/vnodes/%s/cpu_use'%(container_name))
-        cpu_last = 0
-        if res[0] == True:
-            last_use = dict(eval(res[1]))
-            cpu_last = float(last_use['val'])
+        if not container_name in self.cpu_last.keys():
+            confpath = "/var/lib/lxc/%s/config"%(container_name)
+            if os.path.exists(confpath):
+                confile = open(confpath,'r')
+                res = confile.read()
+                lines = re.split('\n',res)
+                for line in lines:
+                    words = re.split('=',line)
+                    key = words[0].strip()
+                    if key == "lxc.cgroup.memory.limit_in_bytes":
+                        self.mem_quota[container_name] = float(words[1].strip().strip("M"))*1000000/1024
+                    elif key == "lxc.cgroup.cpu.cfs_quota_us":
+                        tmp = int(words[1].strip())
+                        if tmp == -1:
+                            self.cpu_quota[container_name] = self.cores_num
+                        else:
+                            self.cpu_quota[container_name] = tmp/100000.0
+                quota = {'cpu':self.cpu_quota[container_name],'memory':self.mem_quota[container_name]}
+                self.etcdser.setkey('/vnodes/%s/quota'%(container_name),quota)
+            else:
+                logger.error("Cant't find config file %s"%(confpath))
+                return False
+            self.cpu_last[container_name] = 0 
         cpu_use = {}
         cpu_use['val'] = cpu_val
         cpu_use['unit'] = cpu_unit
-        cpu_usedp = (float(cpu_val)-float(cpu_last))/(self.cpu_quota*self.interval*1.3)
-        if(cpu_usedp > 1):
+        cpu_usedp = (float(cpu_val)-float(self.cpu_last[container_name]))/(self.cpu_quota[container_name]*self.interval*1.3)
+        if(cpu_usedp > 1 or cpu_usedp < 0):
             cpu_usedp = 1
         cpu_use['usedp'] = cpu_usedp
+        self.cpu_last[container_name] = cpu_val;
         self.etcdser.setkey('vnodes/%s/cpu_use'%(container_name), cpu_use)
+
         mem_parts = re.split(' +',info['Memory use'])
         mem_val = mem_parts[0].strip()
         mem_unit = mem_parts[1].strip()
@@ -70,7 +91,9 @@ class Container_Collector(threading.Thread):
         mem_use['unit'] = mem_unit
         if(mem_unit == "MiB"):
             mem_val = float(mem_val) * 1024
-        mem_usedp = float(mem_val) / self.mem_quota
+        elif (mem_unit == "GiB"):
+            mem_val = float(mem_val) * 1024 * 1024
+        mem_usedp = float(mem_val) / self.mem_quota[container_name]
         mem_use['usedp'] = mem_usedp
         self.etcdser.setkey('/vnodes/%s/mem_use'%(container_name), mem_use)
         #print(output)
@@ -220,7 +243,11 @@ class Container_Fetcher:
         [ret, ans] = self.etcdser.getkey('/%s/cpu_use'%(container_name))
         if ret == True :
             res = dict(eval(ans))
-            res['quota'] = self.etcdser.getkey('/cpu_quota')[1]
+            [ret,quota] = self.etcdser.getkey('/%s/quota'%(container_name))
+            if ret == False:
+                res['quota'] = {'cpu':0}
+                logger.warning(quota)
+            res['quota'] = dict(eval(quota))
             return res
         else:
             logger.warning(ans)
@@ -231,7 +258,11 @@ class Container_Fetcher:
         [ret, ans] = self.etcdser.getkey('/%s/mem_use'%(container_name))
         if ret == True :
             res = dict(eval(ans))
-            res['quota'] = self.etcdser.getkey('/mem_quota')[1]
+            [ret,quota] = self.etcdser.getkey('/%s/quota'%(container_name))
+            if ret == False:
+                res['quota'] = {'memory':0}
+                logger.warning(quota)
+            res['quota'] = dict(eval(quota))
             return res
         else:
             logger.warning(ans)

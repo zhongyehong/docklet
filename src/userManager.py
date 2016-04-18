@@ -20,6 +20,7 @@ from email.mime.multipart import MIMEMultipart
 from email.header import Header
 from datetime import datetime
 import json
+from log import logger
 
 email_from_address = env.getenv('EMAIL_FROM_ADDRESS')
 admin_email_address = env.getenv('ADMIN_EMAIL_ADDRESS')
@@ -145,14 +146,27 @@ class userManager:
             path = env.getenv('DOCKLET_LIB')
             subprocess.call([path+"/userinit.sh", username])
             db.session.commit()
-        if not os.path.exists(fspath+"/global/group"):
-            groupfile = open(fspath+"/global/group",'w')
+        if not os.path.exists(fspath+"/global/sys/quota"):
+            groupfile = open(fspath+"/global/sys/quota",'w')
             groups = []
-            groups.append({'name':'root', 'cpu':'100000', 'memory':'2000', 'imageQuantity':'10', 'lifeCycle':'24'})
-            groups.append({'name':'admin', 'cpu':'100000', 'memory':'2000', 'imageQuantity':'10', 'lifeCycle':'24'})
-            groups.append({'name':'primary', 'cpu':'100000', 'memory':'2000', 'imageQuantity':'10', 'lifeCycle':'24'})
+            groups.append({'name':'root', 'quotas':{ 'cpu':'4', 'disk':'2000', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8' }})
+            groups.append({'name':'admin', 'quotas':{'cpu':'4', 'disk':'2000', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
+            groups.append({'name':'primary', 'quotas':{'cpu':'4', 'disk':'2000', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
+            groups.append({'name':'fundation', 'quotas':{'cpu':'4', 'disk':'2000', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
             groupfile.write(json.dumps(groups))
             groupfile.close()
+        if not os.path.exists(fspath+"/global/sys/quotainfo"):
+            quotafile = open(fspath+"/global/sys/quotainfo",'w')
+            quotas = []
+            quotas.append({'name':'cpu', 'hint':'the cpu quota, number of cores, e.g. 4'})
+            quotas.append({'name':'memory', 'hint':'the memory quota, number of MB , e.g. 4000'})
+            quotas.append({'name':'disk', 'hint':'the disk quota, number of MB, e.g. 4000'})
+            quotas.append({'name':'image', 'hint':'how many images the user can save, e.g. 10'})
+            quotas.append({'name':'idletime', 'hint':'will stop cluster after idletime, number of hours, e.g. 24'})
+            quotas.append({'name':'vnode', 'hint':'how many containers the user can have, e.g. 8'})
+            quotafile.write(json.dumps(quotas))
+            quotafile.close()
+        
 
     def auth_local(self, username, password):
         password = hashlib.sha512(password.encode('utf-8')).hexdigest()
@@ -356,18 +370,18 @@ class userManager:
         List informantion for oneself
         '''
         user = kwargs['cur_user']
-        groupfile = open(fspath+"/global/group",'r')
+        groupfile = open(fspath+"/global/sys/quota",'r')
         groups = json.loads(groupfile.read())
         groupfile.close()
         group = None
         for one_group in groups:
             if one_group['name'] == user.user_group:
-                group = one_group
+                group = one_group['quotas']
                 break
         else:
             for one_group in groups:
                 if one_group['name'] == "primary":
-                    group = one_group
+                    group = one_group['quotas']
                     break
         result = {
             "success": 'true',
@@ -385,12 +399,7 @@ class userManager:
                 "tel" : user.tel,
                 "register_date" : "%s"%(user.register_date),
                 "group" : user.user_group,
-                "groupinfo": {
-                    "cpu": group['cpu'],
-                    "memory": group['memory'],
-                    "imageQuantity": group['imageQuantity'],
-                    "lifeCycle":group['lifeCycle'],
-                    },
+                "groupinfo": group, 
             },
         }
         return result
@@ -458,24 +467,17 @@ class userManager:
         Usage: list(cur_user = token_from_auth)
         List all groups for an administrator
         '''
-        groupfile = open(fspath+"/global/group",'r')
+        groupfile = open(fspath+"/global/sys/quota",'r')
         groups = json.loads(groupfile.read())
         groupfile.close()
+        quotafile = open(fspath+"/global/sys/quotainfo",'r')
+        quotas = json.loads(quotafile.read())
+        quotafile.close()
         result = {
             "success": 'true',
-            "data":[]
+            "groups": groups,
+            "quotas": quotas,
         }
-        for group in groups:
-            groupinfo = [
-                    group['name'],
-                    group['cpu'],
-                    group['memory'],
-                    group['imageQuantity'],
-                    group['lifeCycle'],
-                    '',
-            ]
-            result["data"].append(groupinfo)
-
         return result
 
     @administration_required
@@ -484,20 +486,14 @@ class userManager:
         Usage: groupQuery(name = XXX, cur_user = token_from_auth)
         List a group for an administrator
         '''
-        groupfile = open(fspath+"/global/group",'r')
+        groupfile = open(fspath+"/global/sys/quota",'r')
         groups = json.loads(groupfile.read())
         groupfile.close()
         for group in groups:
             if group['name'] == kwargs['name']:
                 result = {
                     "success":'true',
-                    "data":{
-                        "name" : group['name'] ,
-                        "cpu" : group['cpu'] ,
-                        "memory" : group['memory'],
-                        "imageQuantity" : group['imageQuantity'],
-                        "lifeCycle" : group['lifeCycle'],
-                    }
+                    "data": group,
                 }
                 return result
         else:
@@ -509,7 +505,7 @@ class userManager:
         Usage: grouplist(cur_user = token_from_auth)
         List all group names for an administrator
         '''
-        groupfile = open(fspath+"/global/group",'r')
+        groupfile = open(fspath+"/global/sys/quota",'r')
         groups = json.loads(groupfile.read())
         groupfile.close()
         result = {
@@ -524,17 +520,18 @@ class userManager:
         '''
         Usage: groupModify(newValue = dict_from_form, cur_user = token_from_auth)
         '''
-        groupfile = open(fspath+"/global/group",'r')
+        groupfile = open(fspath+"/global/sys/quota",'r')
         groups = json.loads(groupfile.read())
         groupfile.close()
         for group in groups:
             if group['name'] == kwargs['newValue'].getvalue('groupname',None):
                 form = kwargs['newValue']
-                group['cpu'] = form.getvalue('cpu', '')
-                group['memory'] = form.getvalue('memory', '')
-                group['imageQuantity'] = form.getvalue('image', '')
-                group['lifeCycle'] = form.getvalue('lifecycle', '')
-                groupfile = open(fspath+"/global/group",'w')
+                for key in form.keys():
+                    if key == "groupname" or key == "token":
+                        pass
+                    else:
+                        group['quotas'][key] = form.getvalue(key)
+                groupfile = open(fspath+"/global/sys/quota",'w')
                 groupfile.write(json.dumps(groups))
                 groupfile.close()
                 return {"success":'true'}
@@ -622,15 +619,52 @@ class userManager:
         return {"success":'true'}
 
     @administration_required
-    def groupadd(*args, **kwargs):
+    def quotaadd(*args, **kwargs):
         form = kwargs.get('form')
-        if (form.getvalue("name") == None):
-            return {"success":'false', "reason": "Empty group name"}
-        groupfile = open(fspath+"/global/group",'r')
+        quotaname = form.getvalue("quotaname")
+        default_value = form.getvalue("default_value")
+        hint = form.getvalue("hint")
+        if (quotaname == None):
+            return { "success":'false', "reason": "Empty quota name"}
+        if (default_value == None):
+            default_value = "--"
+        groupfile = open(fspath+"/global/sys/quota",'r')
         groups = json.loads(groupfile.read())
         groupfile.close()
-        groups.append({'name':form.getvalue("name"), 'cpu':form.getvalue("cpu"), 'memory':form.getvalue("memory"), 'imageQuantity':form.getvalue("image"), 'lifeCycle':form.getvalue("lifecycle")})
-        groupfile = open(fspath+"/global/group",'w')
+        for group in groups:
+            group['quotas'][quotaname] = default_value
+        groupfile = open(fspath+"/global/sys/quota",'w')
+        groupfile.write(json.dumps(groups))
+        groupfile.close()
+        quotafile = open(fspath+"/global/sys/quotainfo",'r')
+        quotas = json.loads(quotafile.read())
+        quotafile.close()
+        quotas.append({'name':quotaname, 'hint':hint})
+        quotafile = open(fspath+"/global/sys/quotainfo",'w')
+        quotafile.write(json.dumps(quotas))
+        quotafile.close()
+        return {"success":'true'}
+
+    @administration_required
+    def groupadd(*args, **kwargs):
+        form = kwargs.get('form')
+        groupname = form.getvalue("groupname")
+        if (groupname == None):
+            return {"success":'false', "reason": "Empty group name"}
+        groupfile = open(fspath+"/global/sys/quota",'r')
+        groups = json.loads(groupfile.read())
+        groupfile.close()
+        group = {
+            'name': groupname,
+            'quotas': {}
+        }
+        for key in form.keys():
+            if key == "groupname" or key == "token":
+                pass
+            else:
+                group['quotas'][key] = form.getvalue(key)
+        groups.append(group)
+        groupfile = open(fspath+"/global/sys/quota",'w')
         groupfile.write(json.dumps(groups))
         groupfile.close()
         return {"success":'true'}
@@ -640,14 +674,14 @@ class userManager:
         name = kwargs.get('name', None)
         if (name == None):
             return {"success":'false', "reason": "Empty group name"}
-        groupfile = open(fspath+"/global/group",'r')
+        groupfile = open(fspath+"/global/sys/quota",'r')
         groups = json.loads(groupfile.read())
         groupfile.close()
         for group in groups:
             if group['name'] == name:
                 groups.remove(group)
                 break
-        groupfile = open(fspath+"/global/group",'w')
+        groupfile = open(fspath+"/global/sys/quota",'w')
         groupfile.write(json.dumps(groups))
         groupfile.close()
         return {"success":'true'}

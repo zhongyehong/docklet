@@ -23,14 +23,18 @@ class Guest(object):
             subprocess.getoutput(self.libpath+"/userinit.sh guest")
         user_info = {}
         user_info["data"] = {}
+        user_info["data"]["group"] = "primary" 
         user_info["data"]["groupinfo"] = {}
-        user_info["data"]["groupinfo"]["cpu"] = 100000
+        user_info["data"]["groupinfo"]["cpu"] = 4
         user_info["data"]["groupinfo"]["memory"] = 2000
+        user_info["data"]["groupinfo"]["disk"] = 2000
         user_info = json.dumps(user_info)
         self.G_vclustermgr.create_cluster("guestspace", "guest", image, user_info)
         while True:
             self.G_vclustermgr.start_cluster("guestspace", "guest")
             time.sleep(3600)
             self.G_vclustermgr.stop_cluster("guestspace", "guest")
-            fspath = self.fspath + "/global/local/volume/guest-1-0/"
+            fspath = self.fspath + "/local/volume/guest-1-0/"
+            nfspath = self.fspath + "/global/users/guest/data/"
             subprocess.getoutput("(cd %s && rm -rf *)" % fspath)
+            subprocess.getoutput("(cd %s && rm -rf *)" % nfspath)

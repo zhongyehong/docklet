@@ -9,7 +9,7 @@
       <a href="/dashboard/"><i class="fa fa-dashboard"></i>Home</a>
   </li>
   <li class="active">
-      <a href='/dashboard/'>Dashboard</a>
+      <strong>Dashboard</strong>
   </li>
 </ol>
 {% endblock %}
@@ -56,7 +56,7 @@
 					 <a href="/go/{{ mysession['username'] }}/{{ cluster['name'] }}" target="_blank"><button type="button" class="btn btn-xs btn-success">&nbsp;&nbsp;&nbsp;Go&nbsp;&nbsp;&nbsp;</button></a>
 				</td>
 			     {% else %}
-			     <td><a href="/monitor/Node/"><div class="text-warning"><i class="fa fa-stop "></i> Stopped</div></a></td>
+			     <td><a href="/vclusters/"><div class="text-warning"><i class="fa fa-stop "></i> Stopped</div></a></td>
 			     <td>
 				     <a href="/workspace/start/{{ cluster['name'] }}/"><button type="button" class="btn btn-xs btn-success"> &nbsp;Start&nbsp;</button></a>
 				     <a href="/workspace/delete/{{ cluster['name'] }}/"><button type="button"  class="btn btn-xs btn-danger">Delete</button></a>

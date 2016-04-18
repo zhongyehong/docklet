@@ -59,12 +59,13 @@ class VclusterMgr(object):
         logger.info ("starting cluster %s with %d containers for %s" % (clustername, int(clustersize), username))
         workers = self.nodemgr.get_rpcs()
         image_json = json.dumps(image)
+        groupname = json.loads(user_info)["data"]["group"]
         if (len(workers) == 0):
             logger.warning ("no workers to start containers, start cluster failed")
             return [False, "no workers are running"]
         # check user IP pool status, should be moved to user init later
         if not self.networkmgr.has_user(username):
-            self.networkmgr.add_user(username, cidr=29)
+            self.networkmgr.add_user(username, cidr=29, isshared = True if str(groupname) == "fundation" else False)
         [status, result] = self.networkmgr.acquire_userips_cidr(username, clustersize)
         gateway = self.networkmgr.get_usergw(username)
         vlanid = self.networkmgr.get_uservlanid(username)
@@ -204,7 +205,14 @@ class VclusterMgr(object):
         logger.info("flush success")
 
 
-    def create_image(self,username,clustername,containername,imagename,description,isforce=False):
+    def image_check(self,username,imagename):
+        imagepath = self.fspath + "/global/images/private/" + username + "/" 
+        if os.path.exists(imagepath + imagename):
+            return [False, "image already exists"]
+        else:
+            return [True, "image not exists"]
+
+    def create_image(self,username,clustername,containername,imagename,description,imagenum=10):
         [status, info] = self.get_clusterinfo(clustername,username)
         if not status:
             return [False, "cluster not found"]
@@ -213,7 +221,7 @@ class VclusterMgr(object):
             if container['containername'] == containername:
                 logger.info("container: %s found" % containername)
                 onework = self.nodemgr.ip_to_rpc(container['host'])
-                res = onework.create_image(username,imagename,containername,description,isforce)
+                res = onework.create_image(username,imagename,containername,description,imagenum)
                 container['lastsave'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 container['image'] = imagename
                 break

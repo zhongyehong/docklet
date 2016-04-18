@@ -25,10 +25,11 @@ class Container(object):
         logger.info("create container %s of %s for %s" %(lxc_name, clustername, username))
         try:
             user_info = json.loads(user_info) 
-            cpu = user_info["data"]["groupinfo"]["cpu"]
+            cpu = int(user_info["data"]["groupinfo"]["cpu"]) * 100000
             memory = user_info["data"]["groupinfo"]["memory"]
+            disk = user_info["data"]["groupinfo"]["disk"]
             image = json.loads(image) 
-            status = self.imgmgr.prepareFS(username,image,lxc_name)
+            status = self.imgmgr.prepareFS(username,image,lxc_name,disk)
             if not status:
                 return [False, "Create container failed when preparing filesystem, possibly insufficient space"]
             
@@ -327,8 +328,8 @@ IP=%s
                 onlyglobal.append(container)
         return [both, onlylocal, onlyglobal]
 
-    def create_image(self,username,imagename,containername,description="not thing",isforce = False):
-        return self.imgmgr.createImage(username,imagename,containername,description,isforce)
+    def create_image(self,username,imagename,containername,description="not thing",imagenum=10):
+        return self.imgmgr.createImage(username,imagename,containername,description,imagenum)
 
     def flush_container(self,username,imagename,containername):
         self.imgmgr.flush_one(username,imagename,containername)

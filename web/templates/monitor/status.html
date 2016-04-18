@@ -16,6 +16,50 @@
 {% endblock %}
 
 {% block content %}
+<div class="row">
+	<div class="col-md-12">
+         <div class="box box-info">
+              <div class="box-header with-border">
+                <h3 class="box-title">Your Quotas</h3>
+                <div class="box-tools pull-right">
+                  <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+                  </button>
+                  <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                </div>
+              </div>
+                     <div class="box-body table-responsive">
+
+                         <table class="table table-bordered">
+                             <thead>
+                             <tr>
+				                <th>CPU</th>
+				                <th>Memory</th>
+                                <th>Disk</th>
+                                <th>Vnode</th>
+                                <th>Image</th>
+                                <th>Idletime</th>
+                             </tr>
+                             </thead>
+                             <tbody>
+                             <tr>
+                                {% if quotainfo['cpu'] > 1 %}
+                                    <th>{{ quotainfo['cpu'] }} Cores</th>
+                                {% else %}
+                                    <th>{{ quotainfo['cpu'] }} Core</th>
+                                {% endif %}
+                                <th>{{ quotainfo['memory'] }} MB</th>
+                                <th>{{ quotainfo['disk'] }} MB</th>
+                                <th>{{ quotainfo['vnode'] }}</th>
+                                <th>{{ quotainfo['image'] }}</th>
+                                <th>{{ quotainfo['idletime'] }} hours</th>
+			                 </tr>
+                             </tbody>
+                         </table>
+                     </div>
+                 </div>
+             </div>
+	   </div>
+
 {% for cluster in clusters %}
 	  <div class="row">
 	     <div class="col-md-12">
@@ -106,18 +150,17 @@
 
        		$.post(url+"/cpu_use",{},function(data){
 		       	var usedp = data.monitor.cpu_use.usedp;
-                var quota = data.groupinfo.cpu;
-                quota = quota/100000.0;
+                var quota = data.monitor.cpu_use.quota.cpu;
 		       	$("#"+index+"_cpu").html((usedp/0.01).toFixed(2)+"%");
-                $("#"+index+"_cpuquota").html((quota*100).toFixed(2)+"% Cores");
+                $("#"+index+"_cpuquota").html(quota+" Cores");
 		       	},"json");
 
        		$.post(url+"/mem_use",{},function(data){
 		       	var usedp = data.monitor.mem_use.usedp;
 			var unit = data.monitor.mem_use.unit;
-			var quota = data.groupinfo.memory;
+			var quota = data.monitor.mem_use.quota.memory/1024.0;
 			var val = data.monitor.mem_use.val;
-			var out = "("+val+unit+"/"+quota+"MB)";
+			var out = "("+val+unit+"/"+quota.toFixed(2)+"MiB)";
 		       	$("#"+index+"_mem").html((usedp/0.01).toFixed(2)+"%<br/>"+out);
 		       	},"json");
 
