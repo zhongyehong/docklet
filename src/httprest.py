@@ -346,7 +346,11 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                     res['basic_info'] = fetcher.get_basic_info(cmds[2])
                 self.response(200, {'success':'true', 'monitor':res})
             elif cmds[1] == 'user':
-                if not user == 'root':
+                if cmds[2] == 'quotainfo':
+                    user_info = G_usermgr.selfQuery(cur_user = cur_user)
+                    quotainfo = user_info['data']['groupinfo']
+                    self.response(200, {'success':'true', 'quotainfo':quotainfo}) 
+                '''if not user == 'root':
                     self.response(400, {'success':'false', 'message':'Root Required'})
                 if cmds[3] == 'clustercnt':
                     flag = True
@@ -391,7 +395,7 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                         else:
                      	    self.response(200, {'success':'false','message':result})
                     else:
-                        self.response(400, {'success':'false', 'message':'not supported request'})
+                        self.response(400, {'success':'false', 'message':'not supported request'})'''
 
             elif cmds[1] == 'listphynodes':
                 res['allnodes'] = G_nodemgr.get_allnodes()

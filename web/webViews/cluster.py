@@ -2,6 +2,7 @@ from flask import session
 from webViews.view import normalView
 from webViews.dockletrequest import dockletRequest
 from webViews.dashboard import *
+from webViews.checkname import checkname
 import time, re
 
 class addClusterView(normalView):
@@ -24,6 +25,7 @@ class createClusterView(normalView):
     def post(self):
         index1 = self.image.rindex("_")
         index2 = self.image[:index1].rindex("_")
+        checkname(self.clustername)
         data = {
             "clustername": self.clustername,
             'imagename': self.image[:index2],
