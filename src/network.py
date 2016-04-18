@@ -307,7 +307,10 @@ class NetworkMgr(object):
     
     def load_shared_vlanids(self):
         [status, shared_vlanids] = self.etcd.getkey("network/shared_vlanids")
-        self.shared_vlanids = json.loads(shared_vlanids)
+        if not status:
+            self.init_shared_vlanids()
+        else:
+            self.shared_vlanids = json.loads(shared_vlanids)
 
     def dump_shared_vlanids(self):
         self.etcd.setkey("network/shared_vlanids", json.dumps(self.shared_vlanids))
