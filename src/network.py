@@ -108,6 +108,9 @@ class IntervalPool(object):
             #self.pool[str(i)].sort(key=ip_to_int)  # cidr between thiscidr and upcidr are null, no need to sort
         return [True, upinterval]
 
+    def exist(self, addr, cidr):
+        pass
+
     # deallocate an interval with IP/CIDR
     # ToDo : when free IP/CIDR, we donot check whether IP/CIDR is in pool
     #        maybe we check this later
@@ -185,14 +188,24 @@ class EnumPool(object):
             return [status, result]
         return [True, list(map(lambda x:x+"/"+self.info.split('/')[1], result))]
 
-    # ToDo : when release :
-    #               not check whether IP is in the range of pool
-    #               not check whether IP is already in the pool
+    def inrange(self, ip):
+        addr = self.info.split('/')[0]
+        addrint = ip_to_int(addr)
+        cidr = int(self.info.split('/')[1])
+        if addrint+1 <= ip_to_int(ip) <= addrint+pow(2, 32-cidr)-2:
+            return True
+        return False
+
     def release(self, ip_or_ips):
         if type(ip_or_ips) == str:
             ips = [ ip_or_ips ]
         else:
             ips = ip_or_ips
+        # check whether all IPs are not in the pool but in the range of pool 
+        for ip in ips:
+            ip = ip.split('/')[0]
+            if (ip in self.pool) or (not self.inrange(ip)):
+                return [False, 'release IPs failed for ip already existing or ip exceeding the network pool, ips to be released: %s, ip pool is: %s and content is : %s' % (ips, self.info, self.pool)]
         for ip in ips:
             # maybe ip is in format IP/CIDR
             ip = ip.split('/')[0]
