@@ -10,4 +10,4 @@ if __name__ == '__main__':
 	etcdclient = etcdlib.Client(etcdaddr, prefix = clustername)
 	net_dev = env.getenv("NETWORK_DEVICE")
 	ipaddr = network.getip(net_dev)
-	etcdclient.setkey("machines/runnodes/"+ipaddr, "stop")
+	etcdclient.deldir("machines/runnodes/"+ipaddr)
