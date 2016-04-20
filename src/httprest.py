@@ -565,9 +565,6 @@ if __name__ == '__main__':
         etcdclient.setkey("service/mode", mode)
         if etcdclient.isdir("_lock")[0]:
             etcdclient.deldir("_lock")
-        if etcdclient.isdir("machines/runnodes")[0]:
-            etcdclient.deldir("machines/runnodes")
-        etcdclient.createdir("machines/runnodes")
 
     G_usermgr = userManager.userManager('root')
     clusternet = env.getenv("CLUSTER_NET")
