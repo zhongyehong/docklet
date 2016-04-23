@@ -342,6 +342,8 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                     res['cpu_use'] = fetcher.get_cpu_use(cmds[2])
                 elif cmds[3] == 'mem_use':
                     res['mem_use'] = fetcher.get_mem_use(cmds[2])
+                elif cmds[3] == 'disk_use':
+                    res['disk_use'] = fetcher.get_disk_use(cmds[2])
                 elif cmds[3] == 'basic_info':
                     res['basic_info'] = fetcher.get_basic_info(cmds[2])
                 elif cmds[3] == 'owner':
