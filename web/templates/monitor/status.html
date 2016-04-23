@@ -84,7 +84,8 @@
                                  <th>Status</th>
 				                 <th>Cpu Usage</th>
 				                 <th>Mem Usage</th>
-				                <th>Summary</th>
+				                 <th>Disk Usage</th>
+				                 <th>Summary</th>
                              </tr>
                              </thead>
                              <tbody>
@@ -101,7 +102,7 @@
                                  {% endif %}
                                  <td id='{{cluster}}_{{ loop.index }}_cpu'>--</td>
                                  <td id='{{cluster}}_{{ loop.index }}_mem'>--</td>
-
+                                 <td id='{{cluster}}_{{ loop.index }}_disk'>--</td>
                                  <td><a class="btn btn-info btn-xs" href='/vclusters/{{ cluster }}/{{ container['containername'] }}/'>Realtime</a></td>
 			     </tr>
                              {% endfor %}
@@ -141,7 +142,6 @@
 		    $("#"+index+"_pid").html('--');
 		    $("#"+index+"_ip").html('--');
 		    $("#"+index+"_cpu").html('--');
-		    $("#"+index+"_cpuquota").html('--');
 		    $("#"+index+"_mem").html('--');
 		    return;
        		}
@@ -166,6 +166,14 @@
 		       	$("#"+index+"_mem").html((usedp/0.01).toFixed(2)+"%<br/>"+out);
 		       	},"json");
 
+       		$.post(url+"/disk_use",{},function(data){
+                var diskuse = data.monitor.disk_use;
+		       	var usedp = diskuse.percent;
+                var total = diskuse.total/1024.0/1024.0;
+                var used = diskuse.used/1024.0/1024.0;
+			    var detail = "("+used.toFixed(2)+"MiB/"+total.toFixed(2)+"MiB)";
+		       	$("#"+index+"_disk").html(usedp+"%<br/>"+detail);
+		       	},"json");
        		},"json");
    }
 
