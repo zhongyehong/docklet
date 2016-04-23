@@ -82,9 +82,8 @@
 				                 <th>Node Name</th>
                                  <th>IP Address</th>
                                  <th>Status</th>
-				                 <th>Cpu used</th>
-				                 <th>Cpu quota</th>
-				                 <th>Mem used</th>
+				                 <th>Cpu Usage</th>
+				                 <th>Mem Usage</th>
 				                <th>Summary</th>
                              </tr>
                              </thead>
@@ -101,7 +100,6 @@
                                  <td><div id='{{cluster}}_{{ loop.index }}_state' class="label label-primary">Running</div></td>
                                  {% endif %}
                                  <td id='{{cluster}}_{{ loop.index }}_cpu'>--</td>
-                                 <td id='{{cluster}}_{{ loop.index }}_cpuquota'>--</td>
                                  <td id='{{cluster}}_{{ loop.index }}_mem'>--</td>
 
                                  <td><a class="btn btn-info btn-xs" href='/vclusters/{{ cluster }}/{{ container['containername'] }}/'>Realtime</a></td>
@@ -151,8 +149,12 @@
        		$.post(url+"/cpu_use",{},function(data){
 		       	var usedp = data.monitor.cpu_use.usedp;
                 var quota = data.monitor.cpu_use.quota.cpu;
-		       	$("#"+index+"_cpu").html((usedp/0.01).toFixed(2)+"%");
-                $("#"+index+"_cpuquota").html(quota+" Cores");
+                var quotaout = "("+quota;
+                if(quota == 1)
+                    quotaout += " Core)";
+                else
+                    quotaout += " Cores)";
+		       	$("#"+index+"_cpu").html((usedp/0.01).toFixed(2)+"%<br/>"+quotaout);
 		       	},"json");
 
        		$.post(url+"/mem_use",{},function(data){

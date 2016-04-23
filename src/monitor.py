@@ -63,11 +63,12 @@ class Container_Collector(threading.Thread):
                         self.mem_quota[container_name] = float(words[1].strip().strip("M"))*1000000/1024
                     elif key == "lxc.cgroup.cpu.cfs_quota_us":
                         tmp = int(words[1].strip())
-                        if tmp == -1:
+                        if tmp < 0:
                             self.cpu_quota[container_name] = self.cores_num
                         else:
                             self.cpu_quota[container_name] = tmp/100000.0
                 quota = {'cpu':self.cpu_quota[container_name],'memory':self.mem_quota[container_name]}
+                logger.info(quota)
                 self.etcdser.setkey('/vnodes/%s/quota'%(container_name),quota)
             else:
                 logger.error("Cant't find config file %s"%(confpath))

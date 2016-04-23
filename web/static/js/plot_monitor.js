@@ -22,8 +22,12 @@ function processCpuData(data)
 	var val = data.monitor.cpu_use.val;
 	var unit = data.monitor.cpu_use.unit;
     var quota = data.monitor.cpu_use.quota.cpu;
-	$("#con_cpu").html(val +" "+ unit);
-    $("#con_cpuquota").html(quota + " Cores");
+    var quotaout = "("+quota;
+    if(quota == 1)
+        quotaout += " Core)";
+    else
+        quotaout += " Cores)";
+	$("#con_cpu").html(val +" "+ unit+"<br/>"+quotaout);
 }
 function getCpuY()
 {
