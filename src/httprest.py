@@ -344,6 +344,11 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                     res['mem_use'] = fetcher.get_mem_use(cmds[2])
                 elif cmds[3] == 'basic_info':
                     res['basic_info'] = fetcher.get_basic_info(cmds[2])
+                elif cmds[3] == 'owner':
+                    names = cmds[2].split('-')
+                    res['owner'] = names[0]
+                else:
+                    res = "Unspported Method!"
                 self.response(200, {'success':'true', 'monitor':res})
             elif cmds[1] == 'user':
                 if cmds[2] == 'quotainfo':
