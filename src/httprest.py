@@ -348,7 +348,13 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                     res['basic_info'] = fetcher.get_basic_info(cmds[2])
                 elif cmds[3] == 'owner':
                     names = cmds[2].split('-')
-                    res['owner'] = names[0]
+                    result = G_usermgr.query(username = names[0], cur_user = cur_user)
+                    if result['success'] == 'false':
+                        res['username'] = ""
+                        res['truename'] = ""
+                    else:
+                        res['username'] = result['data']['username']
+                        res['truename'] = result['data']['truename']
                 else:
                     res = "Unspported Method!"
                 self.response(200, {'success':'true', 'monitor':res})

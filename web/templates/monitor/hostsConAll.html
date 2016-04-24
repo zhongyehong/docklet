@@ -38,6 +38,7 @@
 				                 <th>NO</th>
 				                 <th>Name</th>
                                  <th>Owner</th>
+                                 <th>Owner's Truename</th>
                                  <th>State</th>
                                  <th>PID</th>
                                  <th>IP Address</th>
@@ -51,7 +52,8 @@
                              <tr>
                                  <td>{{ loop.index }}</td>
                                  <td>{{ container['Name'] }}</td>
-                                 <td id='{{ loop.index }}_owner'>{{ container['owner'] }}</td>
+                                 <td>{{ container['owner']['username'] }}</td>
+                                 <td>{{ container['owner']['truename'] }}</td>
                                  {% if container['State'] == 'STOPPED' %}
                                  <td><div id='{{ loop.index }}_state' class="label label-danger">Stopped</div></td>
                                  <td id='{{ loop.index }}_pid'>--</td>
