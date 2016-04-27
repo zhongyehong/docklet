@@ -156,7 +156,7 @@ class Worker(object):
 
     # send heardbeat package to keep alive in etcd, ttl=2s
     def sendheartbeat(self):
-        while(true):
+        while(True):
             # check send heartbeat package every 1s
             time.sleep(1)
             [status, value] = self.etcd.getkey("machines/runnodes/"+self.addr)
