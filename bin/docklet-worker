@@ -115,10 +115,6 @@ case "$1" in
     status)
         status_of_proc -p $PIDFILE "$DAEMON" "$DAEMON_NAME" && exit 0 || exit $?
         ;;
-
-    change)
-        do_changestage
-        ;;
     *)
         echo "Usage: $DAEMON_NAME {start|stop|restart|status}"
         exit 1
