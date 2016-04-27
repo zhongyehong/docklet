@@ -13,7 +13,7 @@ import env
 #               2. update node list when new node joins
 # ETCD table :
 #         machines/allnodes  -- all nodes in docklet, for recovery
-#         machines/runnodes  -- run nodes of this start up 
+#         machines/runnodes  -- run nodes of this start up
 ##############################################
 class NodeMgr(object):
     def __init__(self, networkmgr, etcdclient, addr, mode):
@@ -53,13 +53,13 @@ class NodeMgr(object):
         if len(self.runnodes)>0:
             logger.error ("init runnodes is not null, need to be clean")
             sys.exit(1)
-        # init rpc list 
+        # init rpc list
         self.rpcs = []
         # start new thread to watch whether a new node joins
         logger.info ("start thread to watch new nodes ...")
         self.thread_watchnewnode = threading.Thread(target=self._watchnewnode)
         self.thread_watchnewnode.start()
-        # wait for all nodes joins 
+        # wait for all nodes joins
         while(True):
             allin = True
             for node in self.allnodes:
@@ -73,7 +73,7 @@ class NodeMgr(object):
         logger.info ("run nodes are: %s" % self.runnodes)
 
 
-    # get nodes list from etcd table 
+    # get nodes list from etcd table
     def _nodelist_etcd(self, which):
         if which == "allnodes" or which == "runnodes":
             [status, nodeinfo]=self.etcd.listdir("machines/"+which)
@@ -91,7 +91,7 @@ class NodeMgr(object):
             time.sleep(0.1)
             [status, runlist] = self.etcd.listdir("machines/runnodes")
             if not status:
-                logger.warning ("get runnodes list failed from etcd ")    
+                logger.warning ("get runnodes list failed from etcd ")
                 continue
             for node in runlist:
                 nodeip = node['key'].rsplit('/',1)[1]
@@ -109,8 +109,8 @@ class NodeMgr(object):
                     if nodeip in self.allnodes:
                         ######## HERE MAYBE NEED TO FIX ###############
                         # here we must use "machines/runnodes/nodeip"
-                        # we cannot use node['key'], node['key'] is absolute 
-                        # path, etcd client will append the path to prefix, 
+                        # we cannot use node['key'], node['key'] is absolute
+                        # path, etcd client will append the path to prefix,
                         # which is wrong
                         ###############################################
                         self.etcd.setkey("machines/runnodes/"+nodeip, "init-"+self.mode)
@@ -138,7 +138,7 @@ class NodeMgr(object):
                         % (nodeip, workerport)))
                     logger.info ("add %s:%s in rpc client list" %
                         (nodeip, workerport))
-                    
+
     # get all run nodes' IP addr
     def get_nodeips(self):
         return self.allnodes
