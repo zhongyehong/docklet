@@ -85,20 +85,10 @@ do_start() {
     log_end_msg $?
 }
 
-do_changestage () {
-    RUNNING_CONFIG=$FS_PREFIX/local/docklet-running.conf
-    export CONFIG=$RUNNING_CONFIG
-    log_daemon_msg "Change $DAEMON_NAME daemon state"
-    cmd=$(python3 ../src/stopworker.py)
-    log_end_msg $?    
-}
-
 do_stop () {
     log_daemon_msg "Stopping $DAEMON_NAME daemon"
     start-stop-daemon --stop --quiet --oknodo --remove-pidfile --pidfile $PIDFILE --retry 10
     log_end_msg $?
-
-    do_changestage
 }
 
 

@@ -12,6 +12,7 @@ from log import logger
 
 import xmlrpc.server, sys, time
 from socketserver import ThreadingMixIn
+import threading
 import etcdlib, network, container
 from nettools import netcontrol
 import monitor
@@ -65,7 +66,7 @@ class Worker(object):
             sys.exit(1)
         logger.info ("worker registered and checked the token")
 
-        # worker itself to judge how to init
+        # worker search all run nodes to judge how to init
         value = 'init-new'
         [status, runlist] = self.etcd.listdir("machines/runnodes")
         for node in runlist:
@@ -147,9 +148,26 @@ class Worker(object):
     # start service of worker
     def start(self):
         self.etcd.setkey("machines/runnodes/"+self.addr, "work")
+        self.thread_sendheartbeat = threading.Thread(target=self.sendheartbeat)
+        self.thread_sendheartbeat.start()
         # start serving for rpc
         logger.info ("begins to work")
         self.rpcserver.serve_forever()
+
+    # send heardbeat package to keep alive in etcd, ttl=2s
+    def sendheartbeat(self):
+        while(true):
+            # check send heartbeat package every 1s
+            time.sleep(1)
+            [status, value] = self.etcd.getkey("machines/runnodes/"+self.addr)
+            if status:
+                # master has know the worker so we start send heartbeat package
+                if value=='ok':
+                    self.etcd.setkey("machines/runnodes/"+self.addr, "ok", ttl = 2)
+            else:
+                logger.error("get key failed. %s" % node)
+                sys.exit(1)
+
         
     
 if __name__ == '__main__':
