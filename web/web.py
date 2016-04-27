@@ -275,11 +275,11 @@ def monitor_request(comid,infotype):
     result = dockletRequest.post(request.path, data)
     return json.dumps(result)
 
-@app.route("/monitor/User/", methods=['GET'])
+'''@app.route("/monitor/User/", methods=['GET'])
 @administration_required
 def monitorUserAll():
     return monitorUserAllView.as_view()
-
+'''
 
 
 

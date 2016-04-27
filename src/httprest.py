@@ -344,8 +344,21 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                     res['cpu_use'] = fetcher.get_cpu_use(cmds[2])
                 elif cmds[3] == 'mem_use':
                     res['mem_use'] = fetcher.get_mem_use(cmds[2])
+                elif cmds[3] == 'disk_use':
+                    res['disk_use'] = fetcher.get_disk_use(cmds[2])
                 elif cmds[3] == 'basic_info':
                     res['basic_info'] = fetcher.get_basic_info(cmds[2])
+                elif cmds[3] == 'owner':
+                    names = cmds[2].split('-')
+                    result = G_usermgr.query(username = names[0], cur_user = cur_user)
+                    if result['success'] == 'false':
+                        res['username'] = ""
+                        res['truename'] = ""
+                    else:
+                        res['username'] = result['data']['username']
+                        res['truename'] = result['data']['truename']
+                else:
+                    res = "Unspported Method!"
                 self.response(200, {'success':'true', 'monitor':res})
             elif cmds[1] == 'user':
                 if cmds[2] == 'quotainfo':

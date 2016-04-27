@@ -4,15 +4,15 @@ var total = 0;
 var idle = 0;
 var disk_usedp = 0;
 var count = 0;
-var MB = 1024; 
+var Ki = 1024; 
 
 function processMemData(data)
 {
 	used = data.monitor.meminfo.used;
 	total = data.monitor.meminfo.total;
-	var used2 = ((data.monitor.meminfo.used)/MB).toFixed(2);
-	var total2 = ((data.monitor.meminfo.total)/MB).toFixed(2);
-	var free2 = ((data.monitor.meminfo.free)/MB).toFixed(2);	
+	var used2 = ((data.monitor.meminfo.used)/Ki).toFixed(2);
+	var total2 = ((data.monitor.meminfo.total)/Ki).toFixed(2);
+	var free2 = ((data.monitor.meminfo.free)/Ki).toFixed(2);	
 	$("#mem_used").html(used2);
 	$("#mem_total").html(total2);
 	$("#mem_free").html(free2);
@@ -50,9 +50,9 @@ function processDiskData(data)
 	disk_usedp = vals[0].usedp;
 	for(var idx = 0; idx < vals.length; ++idx)
 	{
-		var used = (vals[idx].used/MB/MB).toFixed(2);
-		var total = (vals[idx].total/MB/MB).toFixed(2);
-		var free = (vals[idx].free/MB/MB).toFixed(2);
+		var used = (vals[idx].used/Ki/Ki).toFixed(2);
+		var total = (vals[idx].total/Ki/Ki).toFixed(2);
+		var free = (vals[idx].free/Ki/Ki).toFixed(2);
 		var usedp = (vals[idx].percent);
 		var name = "#disk_" + (idx+1) + "_";
 		$(name+"device").html(vals[idx].device);
