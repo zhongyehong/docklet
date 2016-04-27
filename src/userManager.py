@@ -155,17 +155,33 @@ class userManager:
             groups.append({'name':'fundation', 'quotas':{'cpu':'4', 'disk':'2000', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
             groupfile.write(json.dumps(groups))
             groupfile.close()
+        else: 
+            pass
         if not os.path.exists(fspath+"/global/sys/quotainfo"):
             quotafile = open(fspath+"/global/sys/quotainfo",'w')
-            quotas = []
-            quotas.append({'name':'cpu', 'hint':'the cpu quota, number of cores, e.g. 4'})
-            quotas.append({'name':'memory', 'hint':'the memory quota, number of MB , e.g. 4000'})
-            quotas.append({'name':'disk', 'hint':'the disk quota, number of MB, e.g. 4000'})
-            quotas.append({'name':'image', 'hint':'how many images the user can save, e.g. 10'})
-            quotas.append({'name':'idletime', 'hint':'will stop cluster after idletime, number of hours, e.g. 24'})
-            quotas.append({'name':'vnode', 'hint':'how many containers the user can have, e.g. 8'})
+            quotas = {}
+            quotas['default'] = 'fundation' 
+            quotas['quotainfo'] = []
+            quotas['quotainfo'].append({'name':'cpu', 'hint':'the cpu quota, number of cores, e.g. 4'})
+            quotas['quotainfo'].append({'name':'memory', 'hint':'the memory quota, number of MB , e.g. 4000'})
+            quotas['quotainfo'].append({'name':'disk', 'hint':'the disk quota, number of MB, e.g. 4000'})
+            quotas['quotainfo'].append({'name':'image', 'hint':'how many images the user can save, e.g. 10'})
+            quotas['quotainfo'].append({'name':'idletime', 'hint':'will stop cluster after idletime, number of hours, e.g. 24'})
+            quotas['quotainfo'].append({'name':'vnode', 'hint':'how many containers the user can have, e.g. 8'})
             quotafile.write(json.dumps(quotas))
             quotafile.close()
+        else:
+            quotafile = open(fspath+"/global/sys/quotainfo",'r')
+            quotas = json.loads(quotafile.read())
+            quotafile.close()
+            if type(quotas) is list:
+                new_quotas = {}
+                new_quotas['default'] = 'fundation'
+                new_quotas['quotainfo'] = quotas
+                quotafile = open(fspath+"/global/sys/quotainfo",'w')
+                quotafile.write(json.dumps(new_quotas))
+                quotafile.close()
+
         
 
     def auth_local(self, username, password):
@@ -476,9 +492,23 @@ class userManager:
         result = {
             "success": 'true',
             "groups": groups,
-            "quotas": quotas,
+            "quotas": quotas['quotainfo'],
+            "default": quotas['default'],
         }
         return result
+
+    @administration_required
+    def change_default_group(*args, **kwargs):
+        form = kwargs['form']
+        default_group = form.getvalue('defaultgroup')
+        quotafile = open(fspath+"/global/sys/quotainfo",'r')
+        quotas = json.loads(quotafile.read())
+        quotafile.close()
+        quotas['default'] = default_group
+        quotafile = open(fspath+"/global/sys/quotainfo",'r')
+        quotafile.write(json.dumps(quotas))
+        quotafile.close()
+
 
     @administration_required
     def groupQuery(*args, **kwargs):
@@ -639,7 +669,7 @@ class userManager:
         quotafile = open(fspath+"/global/sys/quotainfo",'r')
         quotas = json.loads(quotafile.read())
         quotafile.close()
-        quotas.append({'name':quotaname, 'hint':hint})
+        quotas['quotainfo'].append({'name':quotaname, 'hint':hint})
         quotafile = open(fspath+"/global/sys/quotainfo",'w')
         quotafile.write(json.dumps(quotas))
         quotafile.close()

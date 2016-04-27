@@ -328,6 +328,11 @@ def usermodify():
 def quotaadd():
     return quotaaddView.as_view()
 
+@app.route("/quota/chdefault/", methods=['POST'])
+@administration_required
+def chdefault():
+    return chdefaultView.as_view()
+
 @app.route("/group/add/", methods=['POST'])
 @administration_required
 def groupadd():

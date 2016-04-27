@@ -12,7 +12,8 @@ class adminView(normalView):
         result = dockletRequest.post('/user/groupList/')
         groups = result["groups"]
         quotas = result["quotas"]
-        return self.render(self.template_path, groups = groups, quotas = quotas)
+        defaultgroup = result["default"]
+        return self.render(self.template_path, groups = groups, quotas = quotas, defaultgroup = defaultgroup)
 
 class groupaddView(normalView):
     @classmethod
@@ -24,6 +25,12 @@ class quotaaddView(normalView):
     @classmethod
     def post(self):
         dockletRequest.post('/user/quotaadd', request.form)
+        return redirect('/admin/')
+
+class chdefaultView(normalView):
+    @classmethod
+    def post(self):
+        dockletRequest.post('/user/chdefault', request.form)
         return redirect('/admin/')
 
 class groupdelView(normalView):
