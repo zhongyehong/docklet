@@ -33,7 +33,6 @@ DAEMON_USER=root
 
 # settings for docklet worker
 DAEMON=$DOCKLET_LIB/worker.py
-STOP_DEAMON=$DOCKLET_LIB/stopworker.py
 DAEMON_NAME=docklet-worker
 DAEMON_OPTS=
 # The process ID of the script when it runs is stored here:
