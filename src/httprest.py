@@ -203,8 +203,10 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                 else:
                     self.response(200, {'success':'false', 'action':'stop cluster', 'message':result})
             elif cmds[1] == 'delete':
+                user_info = G_usermgr.selfQuery(cur_user = cur_user)
+                user_info = json.dumps(user_info)
                 logger.info ("handle request : delete cluster %s" % clustername)
-                [status, result] = G_vclustermgr.delete_cluster(clustername, user)
+                [status, result] = G_vclustermgr.delete_cluster(clustername, user, user_info)
                 if status:
                     self.response(200, {'success':'true', 'action':'delete cluster', 'message':result})
                 else:

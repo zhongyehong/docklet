@@ -273,6 +273,8 @@ class NetworkMgr(object):
         self.etcd.setkey("network/vlanids/"+str(i+1), json.dumps(self.vlanids['currentpool']))
         self.etcd.setkey("network/vlanids/current", str(i+1))
     
+    # Data Structure:
+    # shared_vlanids = [{vlanid = ..., sharenum = ...}, {vlanid = ..., sharenum = ...}, ...]
     def init_shared_vlanids(self, vlannum = 128, sharenum = 128):
         self.shared_vlanids = []
         for i in range(vlannum):
@@ -352,6 +354,9 @@ class NetworkMgr(object):
 
     def acquire_vlanid(self, isshared = False):
         if isshared:
+            # only share vlanid of the front entry
+            # if sharenum is reduced to 0, move the front entry to the back
+            # if sharenum is still equal to 0, one round of sharing is complete, start another one
             if self.shared_vlanids[0]['sharenum'] == 0:
                 self.shared_vlanids.append(self.shared_vlanids.pop(0))
             if self.shared_vlanids[0]['sharenum'] == 0:
