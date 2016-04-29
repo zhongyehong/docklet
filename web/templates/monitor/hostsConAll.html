@@ -35,14 +35,16 @@
                          <table class="table table-bordered">
                              <thead>
                              <tr>
-				 <th>NO</th>
-				 <th>Name</th>
+				                 <th>NO</th>
+				                 <th>Name</th>
+                                 <th>Owner</th>
+                                 <th>Owner's Truename</th>
                                  <th>State</th>
                                  <th>PID</th>
                                  <th>IP Address</th>
-				 <th>Cpu used</th>
-				 <th>Mem used</th>
-				 <th>Summary</th>
+				                 <th>Cpu used</th>
+                                 <th>Mem used</th>
+                                 <th>Summary</th>
                              </tr>
                              </thead>
                              <tbody>
@@ -50,6 +52,8 @@
                              <tr>
                                  <td>{{ loop.index }}</td>
                                  <td>{{ container['Name'] }}</td>
+                                 <td>{{ container['owner']['username'] }}</td>
+                                 <td>{{ container['owner']['truename'] }}</td>
                                  {% if container['State'] == 'STOPPED' %}
                                  <td><div id='{{ loop.index }}_state' class="label label-danger">Stopped</div></td>
                                  <td id='{{ loop.index }}_pid'>--</td>

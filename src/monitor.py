@@ -63,11 +63,12 @@ class Container_Collector(threading.Thread):
                         self.mem_quota[container_name] = float(words[1].strip().strip("M"))*1000000/1024
                     elif key == "lxc.cgroup.cpu.cfs_quota_us":
                         tmp = int(words[1].strip())
-                        if tmp == -1:
+                        if tmp < 0:
                             self.cpu_quota[container_name] = self.cores_num
                         else:
                             self.cpu_quota[container_name] = tmp/100000.0
                 quota = {'cpu':self.cpu_quota[container_name],'memory':self.mem_quota[container_name]}
+                logger.info(quota)
                 self.etcdser.setkey('/vnodes/%s/quota'%(container_name),quota)
             else:
                 logger.error("Cant't find config file %s"%(confpath))
@@ -81,7 +82,7 @@ class Container_Collector(threading.Thread):
             cpu_usedp = 1
         cpu_use['usedp'] = cpu_usedp
         self.cpu_last[container_name] = cpu_val;
-        self.etcdser.setkey('vnodes/%s/cpu_use'%(container_name), cpu_use)
+        self.etcdser.setkey('/vnodes/%s/cpu_use'%(container_name), cpu_use)
 
         mem_parts = re.split(' +',info['Memory use'])
         mem_val = mem_parts[0].strip()
@@ -139,6 +140,7 @@ class Collector(threading.Thread):
         self.host = host
         self.thread_stop = False
         self.etcdser = etcdlib.Client(etcdaddr,"/%s/monitor/hosts/%s" % (cluster_name,host))
+        self.vetcdser = etcdlib.Client(etcdaddr,"/%s/monitor/vnodes" % (cluster_name))
         self.interval = 1
         self.test=test
         return
@@ -198,6 +200,10 @@ class Collector(threading.Thread):
                 diskval['used'] = usage.used
                 diskval['free'] = usage.free
                 diskval['percent'] = usage.percent
+                if(part.mountpoint.startswith('/opt/docklet/local/volume')):
+                    names = re.split('/',part.mountpoint)
+                    container = names[len(names)-1]
+                    self.vetcdser.setkey('/%s/disk_use'%(container), diskval)
                 setval.append(diskval)
         self.etcdser.setkey('/diskinfo', setval)
         #print(output)
@@ -267,6 +273,15 @@ class Container_Fetcher:
         else:
             logger.warning(ans)
             return res
+
+    def get_disk_use(self,container_name):
+        res = {}
+        [ret, ans] = self.etcdser.getkey('/%s/disk_use'%(container_name))
+        if ret == True :
+            res = dict(eval(ans))
+        else:
+            logger.warning(ans)
+        return res
 
     def get_basic_info(self,container_name):
         res = self.etcdser.getkey("/%s/basic_info"%(container_name))
