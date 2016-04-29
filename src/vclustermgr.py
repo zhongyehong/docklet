@@ -252,7 +252,7 @@ class VclusterMgr(object):
         os.remove(self.fspath+"/global/users/"+username+"/hosts/"+str(info['clusterid'])+".hosts")
         
         groupname = json.loads(user_info)["data"]["group"]
-        [status, clusters] = self.list_clusters[username]
+        [status, clusters] = self.list_clusters(username)
         if len(clusters) == 0:
             self.networkmgr.del_user(username, isshared = True if str(groupname) == "fundation" else False)
             logger.info("vlanid release triggered")

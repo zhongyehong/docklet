@@ -412,11 +412,11 @@ class NetworkMgr(object):
         return [True, 'add user success']
 
     def del_user(self, username, isshared = False):
-        logger.info ("delete user %s with cidr=%s" % (username))
         if not self.has_user(username):
             return [False, username+" not in users set"]
         self.load_user(username)
         [addr, cidr] = self.users[username].info.split('/')
+        logger.info ("delete user %s with cidr=%s" % (username, int(cidr)))
         self.center.free(addr, int(cidr))
         self.dump_center()
         if not isshared:
