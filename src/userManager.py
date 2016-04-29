@@ -149,14 +149,12 @@ class userManager:
         if not os.path.exists(fspath+"/global/sys/quota"):
             groupfile = open(fspath+"/global/sys/quota",'w')
             groups = []
-            groups.append({'name':'root', 'quotas':{ 'cpu':'4', 'disk':'2000', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8' }})
-            groups.append({'name':'admin', 'quotas':{'cpu':'4', 'disk':'2000', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
-            groups.append({'name':'primary', 'quotas':{'cpu':'4', 'disk':'2000', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
-            groups.append({'name':'fundation', 'quotas':{'cpu':'4', 'disk':'2000', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
+            groups.append({'name':'root', 'quotas':{ 'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8' }})
+            groups.append({'name':'admin', 'quotas':{'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
+            groups.append({'name':'primary', 'quotas':{'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
+            groups.append({'name':'fundation', 'quotas':{'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
             groupfile.write(json.dumps(groups))
             groupfile.close()
-        else: 
-            pass
         if not os.path.exists(fspath+"/global/sys/quotainfo"):
             quotafile = open(fspath+"/global/sys/quotainfo",'w')
             quotas = {}
@@ -165,22 +163,12 @@ class userManager:
             quotas['quotainfo'].append({'name':'cpu', 'hint':'the cpu quota, number of cores, e.g. 4'})
             quotas['quotainfo'].append({'name':'memory', 'hint':'the memory quota, number of MB , e.g. 4000'})
             quotas['quotainfo'].append({'name':'disk', 'hint':'the disk quota, number of MB, e.g. 4000'})
+            quotas['quotainfo'].append({'name':'data', 'hint':'the quota of data space, number of GB, e.g. 100'})
             quotas['quotainfo'].append({'name':'image', 'hint':'how many images the user can save, e.g. 10'})
             quotas['quotainfo'].append({'name':'idletime', 'hint':'will stop cluster after idletime, number of hours, e.g. 24'})
             quotas['quotainfo'].append({'name':'vnode', 'hint':'how many containers the user can have, e.g. 8'})
             quotafile.write(json.dumps(quotas))
             quotafile.close()
-        else:
-            quotafile = open(fspath+"/global/sys/quotainfo",'r')
-            quotas = json.loads(quotafile.read())
-            quotafile.close()
-            if type(quotas) is list:
-                new_quotas = {}
-                new_quotas['default'] = 'fundation'
-                new_quotas['quotainfo'] = quotas
-                quotafile = open(fspath+"/global/sys/quotainfo",'w')
-                quotafile.write(json.dumps(new_quotas))
-                quotafile.close()
 
         
 
@@ -505,9 +493,10 @@ class userManager:
         quotas = json.loads(quotafile.read())
         quotafile.close()
         quotas['default'] = default_group
-        quotafile = open(fspath+"/global/sys/quotainfo",'r')
+        quotafile = open(fspath+"/global/sys/quotainfo",'w')
         quotafile.write(json.dumps(quotas))
         quotafile.close()
+        return { 'success':'true', 'action':'change default group' }
 
 
     @administration_required
@@ -618,7 +607,10 @@ class userManager:
         call this method first, modify the return value which is a database row instance,then call self.register()
         '''
         user_new = User('newuser', 'asdf1234')
-        user_new.user_group = 'primary'
+        quotafile = open(fspath+"/global/sys/quotainfo",'r')
+        quotas = json.loads(quotafile.read())
+        quotafile.close()
+        user_new.user_group = quotas['default'] 
         user_new.avatar = 'default.png'
         return user_new
 

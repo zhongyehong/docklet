@@ -106,7 +106,7 @@
                    </div>
                </div>
            </div>
-             <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#ChangeDefaultModal"><i class="fa fa-plus"></i>Change Default</button>
+             <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#ChangeDefaultModal"><i class="fa fa-plus"></i> Change Default</button>
            <div class="modal inmodal" id="ChangeDefaultModal" tabindex="-1" role="dialog" aria-hidden="true">
                <div class="modal-dialog">
                <div class="modal-content animated fadeIn">
@@ -130,7 +130,7 @@
                        </div>
                        <div class="modal-footer">
                            <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
-                           <button type="button" class="btn btn-primary" onClick="javascript:sendchDefault();">Submit</button>
+                           <button type="button" class="btn btn-primary" onClick="javascript:sendChDefault();">Submit</button>
                        </div>
                    </div>
                </div>
@@ -154,10 +154,14 @@
                     {% endfor %}
                     <th><a class="btn btn-xs btn-info" data-toggle="modal" data-target="#ModifyGroupModal_{{ group['name'] }}">Edit</a>&nbsp;
                     {% if group['name'] in [ "root", "primary", "admin", "fundation" ] %}  
-                        <a class="btn btn-xs btn-default" href="javascript:void(0)">Delete</a></th>
+                        <a class="btn btn-xs btn-default" href="javascript:void(0)">Delete</a>&nbsp;
                     {% else %}
-                        <a class="btn btn-xs btn-danger" href="/group/delete/{{group['name']}}">Delete</a></th>
+                        <a class="btn btn-xs btn-danger" href="/group/delete/{{group['name']}}">Delete</a>&nbsp;
                     {% endif %}
+                    {% if group['name'] == defaultgroup %}
+                        <span class="glyphicon glyphicon-ok"></span>
+                    {% endif %}
+                    </th>
                     <div class="modal inmodal" id="ModifyGroupModal_{{ group['name'] }}" tabindex="-1" role="dialog" aria-hidden="true">
                         <div class="modal-dialog">
                         <div class="modal-content animated fadeIn">
