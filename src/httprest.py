@@ -393,23 +393,23 @@ def hosts_monitor(cur_user, user, form, com_id, issue):
     return json.dumps({'success':'true', 'monitor':res})
 
 
-@app.route("/monitor/vnodes/<com_id>/<issue>/", methods=['POST'])
+@app.route("/monitor/vnodes/<con_id>/<issue>/", methods=['POST'])
 @login_required
-def vnodes_monitor(cur_user, user, form, com_id, issue):
+def vnodes_monitor(cur_user, user, form, con_id, issue):
     global G_clustername
     logger.info("handle request: monitor/vnodes")
     res = {}
     fetcher = monitor.Container_Fetcher(etcdaddr,G_clustername)
     if issue == 'cpu_use':
-        res['cpu_use'] = fetcher.get_cpu_use(cmds[2])
+        res['cpu_use'] = fetcher.get_cpu_use(con_id)
     elif issue == 'mem_use':
-        res['mem_use'] = fetcher.get_mem_use(cmds[2])
+        res['mem_use'] = fetcher.get_mem_use(con_id)
     elif issue == 'disk_use':
-        res['disk_use'] = fetcher.get_disk_use(cmds[2])
+        res['disk_use'] = fetcher.get_disk_use(con_id)
     elif issue == 'basic_info':
-        res['basic_info'] = fetcher.get_basic_info(cmds[2])
+        res['basic_info'] = fetcher.get_basic_info(con_id)
     elif issue == 'owner':
-        names = com_id.split('-')
+        names = con_id.split('-')
         result = G_usermgr.query(username = names[0], cur_user = cur_user)
         if result['success'] == 'false':
             res['username'] = ""

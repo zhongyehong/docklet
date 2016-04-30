@@ -122,7 +122,7 @@
    function update(url,index)
    {
 
-       $.post(url+"/basic_info",{},function(data){
+       $.post(url+"/basic_info/",{},function(data){
 		var state = data.monitor.basic_info.State;
 		if(state == 'RUNNING')
        		{
@@ -146,7 +146,7 @@
 		    return;
        		}
 
-       		$.post(url+"/cpu_use",{},function(data){
+       		$.post(url+"/cpu_use/",{},function(data){
 		       	var usedp = data.monitor.cpu_use.usedp;
                 var quota = data.monitor.cpu_use.quota.cpu;
                 var quotaout = "("+quota;
@@ -157,7 +157,7 @@
 		       	$("#"+index+"_cpu").html((usedp/0.01).toFixed(2)+"%<br/>"+quotaout);
 		       	},"json");
 
-       		$.post(url+"/mem_use",{},function(data){
+       		$.post(url+"/mem_use/",{},function(data){
 		       	var usedp = data.monitor.mem_use.usedp;
 			var unit = data.monitor.mem_use.unit;
 			var quota = data.monitor.mem_use.quota.memory/1024.0;
@@ -166,7 +166,7 @@
 		       	$("#"+index+"_mem").html((usedp/0.01).toFixed(2)+"%<br/>"+out);
 		       	},"json");
 
-       		$.post(url+"/disk_use",{},function(data){
+       		$.post(url+"/disk_use/",{},function(data){
                 var diskuse = data.monitor.disk_use;
 		       	var usedp = diskuse.percent;
                 var total = diskuse.total/1024.0/1024.0;
