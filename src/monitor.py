@@ -68,7 +68,7 @@ class Container_Collector(threading.Thread):
                         else:
                             self.cpu_quota[container_name] = tmp/100000.0
                 quota = {'cpu':self.cpu_quota[container_name],'memory':self.mem_quota[container_name]}
-                logger.info(quota)
+                #logger.info(quota)
                 self.etcdser.setkey('/vnodes/%s/quota'%(container_name),quota)
             else:
                 logger.error("Cant't find config file %s"%(confpath))
