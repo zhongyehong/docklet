@@ -30,7 +30,7 @@ class quotaaddView(normalView):
 class chdefaultView(normalView):
     @classmethod
     def post(self):
-        dockletRequest.post('/user/chdefault', request.form)
+        dockletRequest.post('/user/chdefault/', request.form)
         return redirect('/admin/')
 
 class groupdelView(normalView):
