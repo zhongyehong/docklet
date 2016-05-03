@@ -214,11 +214,14 @@ def stop_cluster(cur_user, user, form):
 @login_required
 def delete_cluster(cur_user, user, form):
     global G_vclustermgr
+    global G_usermgr
     clustername = form.get('clustername', None)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
     logger.info ("handle request : delete cluster %s" % clustername)
-    [status, result] = G_vclustermgr.delete_cluster(clustername, user)
+    user_info = G_usermgr.selfQuery(cur_user=cur_user)
+    user_info = json.dumps(user_info)
+    [status, result] = G_vclustermgr.delete_cluster(clustername, user, user_info)
     if status:
         return json.dumps({'success':'true', 'action':'delete cluster', 'message':result})
     else:
