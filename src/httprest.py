@@ -41,10 +41,10 @@ def login_required(func):
         logger.info ("get request, path: %s" % request.path)
         token = request.form.get("token", None)
         if (token == None):
-            return {'success':'false', 'message':'user or key is null'}
+            return json.dumps({'success':'false', 'message':'user or key is null'})
         cur_user = G_usermgr.auth_token(token)
         if (cur_user == None):
-            return {'success':'false', 'message':'token failed or expired', 'Unauthorized': 'True'}
+            return json.dumps({'success':'false', 'message':'token failed or expired', 'Unauthorized': 'True'})
         return func(cur_user, cur_user.username, request.form, *args, **kwargs)
 
     return wrapper
@@ -571,6 +571,12 @@ def selfModify_user(cur_user, user, form):
     logger.info("handle request: user/selfModify/")
     result = G_usermgr.selfModify(cur_user = cur_user, newValue = form)
     return json.dumps(result)
+
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    logger.debug("An internel server error occured")
+    return json.dumps({'success':'false', 'message':'500 Internal Server Error', 'Unauthorized': 'True'})
 
 
 if __name__ == '__main__':
