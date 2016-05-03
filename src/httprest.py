@@ -203,8 +203,10 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                 else:
                     self.response(200, {'success':'false', 'action':'stop cluster', 'message':result})
             elif cmds[1] == 'delete':
+                user_info = G_usermgr.selfQuery(cur_user = cur_user)
+                user_info = json.dumps(user_info)
                 logger.info ("handle request : delete cluster %s" % clustername)
-                [status, result] = G_vclustermgr.delete_cluster(clustername, user)
+                [status, result] = G_vclustermgr.delete_cluster(clustername, user, user_info)
                 if status:
                     self.response(200, {'success':'true', 'action':'delete cluster', 'message':result})
                 else:
@@ -342,8 +344,21 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                     res['cpu_use'] = fetcher.get_cpu_use(cmds[2])
                 elif cmds[3] == 'mem_use':
                     res['mem_use'] = fetcher.get_mem_use(cmds[2])
+                elif cmds[3] == 'disk_use':
+                    res['disk_use'] = fetcher.get_disk_use(cmds[2])
                 elif cmds[3] == 'basic_info':
                     res['basic_info'] = fetcher.get_basic_info(cmds[2])
+                elif cmds[3] == 'owner':
+                    names = cmds[2].split('-')
+                    result = G_usermgr.query(username = names[0], cur_user = cur_user)
+                    if result['success'] == 'false':
+                        res['username'] = ""
+                        res['truename'] = ""
+                    else:
+                        res['username'] = result['data']['username']
+                        res['truename'] = result['data']['truename']
+                else:
+                    res = "Unspported Method!"
                 self.response(200, {'success':'true', 'monitor':res})
             elif cmds[1] == 'user':
                 if cmds[2] == 'quotainfo':
@@ -431,6 +446,9 @@ class DockletHttpHandler(http.server.BaseHTTPRequestHandler):
                 self.response(200, result)
             elif cmds[1] == 'quotaadd':
                 result = G_usermgr.quotaadd(form = form, cur_user = cur_user)
+                self.response(200, result)
+            elif cmds[1] == 'chdefault':
+                result = G_usermgr.change_default_group(form = form, cur_user = cur_user)
                 self.response(200, result)
             elif cmds[1] == 'groupdel':
                 result = G_usermgr.groupdel(name = form.getvalue('name', None), cur_user = cur_user)

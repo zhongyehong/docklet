@@ -275,11 +275,11 @@ def monitor_request(comid,infotype):
     result = dockletRequest.post(request.path, data)
     return json.dumps(result)
 
-@app.route("/monitor/User/", methods=['GET'])
+'''@app.route("/monitor/User/", methods=['GET'])
 @administration_required
 def monitorUserAll():
     return monitorUserAllView.as_view()
-
+'''
 
 
 
@@ -327,6 +327,11 @@ def usermodify():
 @administration_required
 def quotaadd():
     return quotaaddView.as_view()
+
+@app.route("/quota/chdefault/", methods=['POST'])
+@administration_required
+def chdefault():
+    return chdefaultView.as_view()
 
 @app.route("/group/add/", methods=['POST'])
 @administration_required

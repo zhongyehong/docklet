@@ -55,7 +55,7 @@ class VclusterMgr(object):
     def create_cluster(self, clustername, username, image, user_info):
         if self.is_cluster(clustername, username):
             return [False, "cluster:%s already exists" % clustername]
-        clustersize = int(self.defaultsize);
+        clustersize = int(self.defaultsize)
         logger.info ("starting cluster %s with %d containers for %s" % (clustername, int(clustersize), username))
         workers = self.nodemgr.get_rpcs()
         image_json = json.dumps(image)
@@ -143,7 +143,7 @@ class VclusterMgr(object):
         clusterfile.write(json.dumps(clusterinfo))
         clusterfile.close()
         return [True, clusterinfo]
-    
+
     def addproxy(self,username,clustername,ip,port):
         [status, clusterinfo] = self.get_clusterinfo(clustername, username)
         if 'proxy_ip' in clusterinfo:
@@ -234,7 +234,7 @@ class VclusterMgr(object):
         infofile.close()
         return res
 
-    def delete_cluster(self, clustername, username):
+    def delete_cluster(self, clustername, username, user_info):
         [status, info] = self.get_clusterinfo(clustername, username)
         if not status:
             return [False, "cluster not found"]
@@ -250,6 +250,13 @@ class VclusterMgr(object):
         self.networkmgr.printpools()
         os.remove(self.fspath+"/global/users/"+username+"/clusters/"+clustername)
         os.remove(self.fspath+"/global/users/"+username+"/hosts/"+str(info['clusterid'])+".hosts")
+        
+        groupname = json.loads(user_info)["data"]["group"]
+        [status, clusters] = self.list_clusters(username)
+        if len(clusters) == 0:
+            self.networkmgr.del_user(username, isshared = True if str(groupname) == "fundation" else False)
+            logger.info("vlanid release triggered")
+        
         return [True, "cluster delete"]
 
     def scale_in_cluster(self, clustername, username, containername):

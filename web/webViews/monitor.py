@@ -77,6 +77,9 @@ class hostsConAllView(normalView):
         for container in containers:
             result = dockletRequest.post('/monitor/vnodes/%s/basic_info'%(container), data)
             basic_info = result.get('monitor').get('basic_info')
+            result = dockletRequest.post('/monitor/vnodes/%s/owner'%(container), data)
+            owner = result.get('monitor')
+            basic_info['owner'] = owner
             containerslist.append(basic_info)
         return self.render(self.template_path, containerslist = containerslist, com_ip = self.com_ip, user = session['username'])
 
