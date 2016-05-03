@@ -190,8 +190,8 @@ var host = window.location.host;
 var com_ip = $("#com_ip").html();
 var url = "http://" + host + "/monitor/hosts/"+com_ip;
 
-plot_graph($("#mem-chart"), url + "/meminfo",processMemData,getMemY);
-plot_graph($("#cpu-chart"), url +  "/cpuinfo",processCpuData,getCpuY);
+plot_graph($("#mem-chart"), url + "/meminfo/",processMemData,getMemY);
+plot_graph($("#cpu-chart"), url +  "/cpuinfo/",processCpuData,getCpuY);
 //plot_graph($("#disk-chart"), url + "/diskinfo",processDiskData,getDiskY);
-$.post(url+"/diskinfo",{user:"root",key:"unias"},processDiskData,"json");
+$.post(url+"/diskinfo/",{user:"root",key:"unias"},processDiskData,"json");
 
