@@ -520,6 +520,46 @@ def data_user(cur_user, user, form):
     result = G_usermgr.userList(cur_user = cur_user)
     return json.dumps(result)
 
+@app.route("/user/groupNameList/", methods=['POST'])
+@login_required
+def groupNameList_user(cur_user, user, form):
+    global G_usermgr
+    logger.info("handle request: user/groupNameList/")
+    result = G_usermgr.groupListName(cur_user = cur_user)
+    return json.dumps(result)
+
+
+@app.route("/user/groupList/", methods=['POST'])
+@login_required
+def groupList_user(cur_user, user, form):
+    global G_usermgr
+    logger.info("handle request: user/groupList/")
+    result = G_usermgr.groupList(cur_user = cur_user)
+    return json.dumps(result)
+
+@app.route("/user/groupQuery/", methods=['POST'])
+@login_required
+def groupQuery_user(cur_user, user, form):
+    global G_usermgr
+    logger.info("handle request: user/groupQuery/")
+    result = G_usermgr.groupQuery(name = form.getvalue("name"), cur_user = cur_user)
+    return json.dumps(result)
+
+@app.route("/user/selfQuery/", methods=['POST'])
+@login_required
+def selfQuery_user(cur_user, user, form):
+    global G_usermgr
+    logger.info("handle request: user/selfQuery/")
+    result = G_usermgr.selfQuery(cur_user = cur_user)
+    return json.dumps(result)
+
+@app.route("/user/selfModify/", methods=['POST'])
+@login_required
+def selfModify_user(cur_user, user, form):
+    global G_usermgr
+    logger.info("handle request: user/selfModify/")
+    result = G_usermgr.selfModify(cur_user = cur_user, newValue = form)
+    return json.dumps(result)
 
 
 if __name__ == '__main__':
