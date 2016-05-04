@@ -149,24 +149,27 @@ class userManager:
         if not os.path.exists(fspath+"/global/sys/quota"):
             groupfile = open(fspath+"/global/sys/quota",'w')
             groups = []
-            groups.append({'name':'root', 'quotas':{ 'cpu':'4', 'disk':'2000', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8' }})
-            groups.append({'name':'admin', 'quotas':{'cpu':'4', 'disk':'2000', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
-            groups.append({'name':'primary', 'quotas':{'cpu':'4', 'disk':'2000', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
-            groups.append({'name':'fundation', 'quotas':{'cpu':'4', 'disk':'2000', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
+            groups.append({'name':'root', 'quotas':{ 'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8' }})
+            groups.append({'name':'admin', 'quotas':{'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
+            groups.append({'name':'primary', 'quotas':{'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
+            groups.append({'name':'fundation', 'quotas':{'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
             groupfile.write(json.dumps(groups))
             groupfile.close()
         if not os.path.exists(fspath+"/global/sys/quotainfo"):
             quotafile = open(fspath+"/global/sys/quotainfo",'w')
-            quotas = []
-            quotas.append({'name':'cpu', 'hint':'the cpu quota, number of cores, e.g. 4'})
-            quotas.append({'name':'memory', 'hint':'the memory quota, number of MB , e.g. 4000'})
-            quotas.append({'name':'disk', 'hint':'the disk quota, number of MB, e.g. 4000'})
-            quotas.append({'name':'image', 'hint':'how many images the user can save, e.g. 10'})
-            quotas.append({'name':'idletime', 'hint':'will stop cluster after idletime, number of hours, e.g. 24'})
-            quotas.append({'name':'vnode', 'hint':'how many containers the user can have, e.g. 8'})
+            quotas = {}
+            quotas['default'] = 'fundation'
+            quotas['quotainfo'] = []
+            quotas['quotainfo'].append({'name':'cpu', 'hint':'the cpu quota, number of cores, e.g. 4'})
+            quotas['quotainfo'].append({'name':'memory', 'hint':'the memory quota, number of MB , e.g. 4000'})
+            quotas['quotainfo'].append({'name':'disk', 'hint':'the disk quota, number of MB, e.g. 4000'})
+            quotas['quotainfo'].append({'name':'data', 'hint':'the quota of data space, number of GB, e.g. 100'})
+            quotas['quotainfo'].append({'name':'image', 'hint':'how many images the user can save, e.g. 10'})
+            quotas['quotainfo'].append({'name':'idletime', 'hint':'will stop cluster after idletime, number of hours, e.g. 24'})
+            quotas['quotainfo'].append({'name':'vnode', 'hint':'how many containers the user can have, e.g. 8'})
             quotafile.write(json.dumps(quotas))
             quotafile.close()
-        
+
 
     def auth_local(self, username, password):
         password = hashlib.sha512(password.encode('utf-8')).hexdigest()
@@ -399,7 +402,7 @@ class userManager:
                 "tel" : user.tel,
                 "register_date" : "%s"%(user.register_date),
                 "group" : user.user_group,
-                "groupinfo": group, 
+                "groupinfo": group,
             },
         }
         return result
@@ -411,8 +414,8 @@ class userManager:
         Modify informantion for oneself
         '''
         form = kwargs['newValue']
-        name = form.getvalue('name', None)
-        value = form.getvalue('value', None)
+        name = form.get('name', None)
+        value = form.get('value', None)
         if (name == None or value == None):
             result = {'success': 'false'}
             return result
@@ -476,9 +479,24 @@ class userManager:
         result = {
             "success": 'true',
             "groups": groups,
-            "quotas": quotas,
+            "quotas": quotas['quotainfo'],
+            "default": quotas['default'],
         }
         return result
+
+    @administration_required
+    def change_default_group(*args, **kwargs):
+        form = kwargs['form']
+        default_group = form.getvalue('defaultgroup')
+        quotafile = open(fspath+"/global/sys/quotainfo",'r')
+        quotas = json.loads(quotafile.read())
+        quotafile.close()
+        quotas['default'] = default_group
+        quotafile = open(fspath+"/global/sys/quotainfo",'w')
+        quotafile.write(json.dumps(quotas))
+        quotafile.close()
+        return { 'success':'true', 'action':'change default group' }
+
 
     @administration_required
     def groupQuery(*args, **kwargs):
@@ -524,13 +542,13 @@ class userManager:
         groups = json.loads(groupfile.read())
         groupfile.close()
         for group in groups:
-            if group['name'] == kwargs['newValue'].getvalue('groupname',None):
+            if group['name'] == kwargs['newValue'].get('groupname',None):
                 form = kwargs['newValue']
                 for key in form.keys():
                     if key == "groupname" or key == "token":
                         pass
                     else:
-                        group['quotas'][key] = form.getvalue(key)
+                        group['quotas'][key] = form.get(key)
                 groupfile = open(fspath+"/global/sys/quota",'w')
                 groupfile.write(json.dumps(groups))
                 groupfile.close()
@@ -545,28 +563,28 @@ class userManager:
         will send an e-mail when status is changed from 'applying' to 'normal'
         Usage: modify(newValue = dict_from_form, cur_user = token_from_auth)
         '''
-        user_modify = User.query.filter_by(username = kwargs['newValue'].getvalue('username', None)).first()
+        user_modify = User.query.filter_by(username = kwargs['newValue'].get('username', None)).first()
         if (user_modify == None):
 
             return {"success":'false', "reason":"User does not exist"}
 
         #try:
         form = kwargs['newValue']
-        user_modify.truename = form.getvalue('truename', '')
-        user_modify.e_mail = form.getvalue('e_mail', '')
-        user_modify.department = form.getvalue('department', '')
-        user_modify.student_number = form.getvalue('student_number', '')
-        user_modify.tel = form.getvalue('tel', '')
-        user_modify.user_group = form.getvalue('group', '')
-        user_modify.auth_method = form.getvalue('auth_method', '')
-        if (user_modify.status == 'applying' and form.getvalue('status', '') == 'normal'):
+        user_modify.truename = form.get('truename', '')
+        user_modify.e_mail = form.get('e_mail', '')
+        user_modify.department = form.get('department', '')
+        user_modify.student_number = form.get('student_number', '')
+        user_modify.tel = form.get('tel', '')
+        user_modify.user_group = form.get('group', '')
+        user_modify.auth_method = form.get('auth_method', '')
+        if (user_modify.status == 'applying' and form.get('status', '') == 'normal'):
             send_activated_email(user_modify.e_mail, user_modify.username)
-        user_modify.status = form.getvalue('status', '')
-        if (form.getvalue('Chpassword', '') == 'Yes'):
-            new_password = form.getvalue('password','no_password')
+        user_modify.status = form.get('status', '')
+        if (form.get('Chpassword', '') == 'Yes'):
+            new_password = form.get('password','no_password')
             new_password = hashlib.sha512(new_password.encode('utf-8')).hexdigest()
             user_modify.password = new_password
-            #self.chpassword(cur_user = user_modify, password = form.getvalue('password','no_password'))
+            #self.chpassword(cur_user = user_modify, password = form.get('password','no_password'))
 
         db.session.commit()
         return {"success":'true'}
@@ -588,7 +606,10 @@ class userManager:
         call this method first, modify the return value which is a database row instance,then call self.register()
         '''
         user_new = User('newuser', 'asdf1234')
-        user_new.user_group = 'primary'
+        quotafile = open(fspath+"/global/sys/quotainfo",'r')
+        quotas = json.loads(quotafile.read())
+        quotafile.close()
+        user_new.user_group = quotas['default']
         user_new.avatar = 'default.png'
         return user_new
 
@@ -621,9 +642,9 @@ class userManager:
     @administration_required
     def quotaadd(*args, **kwargs):
         form = kwargs.get('form')
-        quotaname = form.getvalue("quotaname")
-        default_value = form.getvalue("default_value")
-        hint = form.getvalue("hint")
+        quotaname = form.get("quotaname")
+        default_value = form.get("default_value")
+        hint = form.get("hint")
         if (quotaname == None):
             return { "success":'false', "reason": "Empty quota name"}
         if (default_value == None):
@@ -639,7 +660,7 @@ class userManager:
         quotafile = open(fspath+"/global/sys/quotainfo",'r')
         quotas = json.loads(quotafile.read())
         quotafile.close()
-        quotas.append({'name':quotaname, 'hint':hint})
+        quotas['quotainfo'].append({'name':quotaname, 'hint':hint})
         quotafile = open(fspath+"/global/sys/quotainfo",'w')
         quotafile.write(json.dumps(quotas))
         quotafile.close()
@@ -648,7 +669,7 @@ class userManager:
     @administration_required
     def groupadd(*args, **kwargs):
         form = kwargs.get('form')
-        groupname = form.getvalue("groupname")
+        groupname = form.get("groupname")
         if (groupname == None):
             return {"success":'false', "reason": "Empty group name"}
         groupfile = open(fspath+"/global/sys/quota",'r')
@@ -662,13 +683,13 @@ class userManager:
             if key == "groupname" or key == "token":
                 pass
             else:
-                group['quotas'][key] = form.getvalue(key)
+                group['quotas'][key] = form.get(key)
         groups.append(group)
         groupfile = open(fspath+"/global/sys/quota",'w')
         groupfile.write(json.dumps(groups))
         groupfile.close()
         return {"success":'true'}
-    
+
     @administration_required
     def groupdel(*args, **kwargs):
         name = kwargs.get('name', None)

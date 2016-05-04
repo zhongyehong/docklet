@@ -13,7 +13,7 @@ import env
 #               2. update node list when new node joins
 # ETCD table :
 #         machines/allnodes  -- all nodes in docklet, for recovery
-#         machines/runnodes  -- run nodes of this start up 
+#         machines/runnodes  -- run nodes of this start up
 ##############################################
 class NodeMgr(object):
     def __init__(self, networkmgr, etcdclient, addr, mode):
@@ -68,7 +68,7 @@ class NodeMgr(object):
         logger.info ("start thread to watch new nodes ...")
         self.thread_watchnewnode = threading.Thread(target=self._watchnewnode)
         self.thread_watchnewnode.start()
-        # wait for all nodes joins 
+        # wait for all nodes joins
         while(True):
             allin = True
             for node in self.allnodes:
@@ -82,7 +82,7 @@ class NodeMgr(object):
         logger.info ("run nodes are: %s" % self.runnodes)
 
 
-    # get nodes list from etcd table 
+    # get nodes list from etcd table
     def _nodelist_etcd(self, which):
         if which == "allnodes" or which == "runnodes":
             [status, nodeinfo]=self.etcd.listdir("machines/"+which)
@@ -99,7 +99,7 @@ class NodeMgr(object):
             time.sleep(0.1)
             [status, runlist] = self.etcd.listdir("machines/runnodes")
             if not status:
-                logger.warning ("get runnodes list failed from etcd ")    
+                logger.warning ("get runnodes list failed from etcd ")
                 continue
             for node in runlist:
                 nodeip = node['key'].rsplit('/',1)[1]
@@ -128,7 +128,6 @@ class NodeMgr(object):
                             % (nodeip, self.workerport)))
                         logger.info ("add %s:%s in rpc client list" %
                             (nodeip, self.workerport))
-                    
     # get all run nodes' IP addr
     def get_nodeips(self):
         return self.allnodes

@@ -33,6 +33,11 @@ from lvmtool import *
 #      start rpc service
 ##################################################################
 
+# imitate etcdlib to genernate the key of etcdlib manually
+def generatekey(path):
+    clustername = env.getenv("CLUSTER_NAME")
+    return '/'+clustername+'/'+path
+
 class ThreadXMLRPCServer(ThreadingMixIn,xmlrpc.server.SimpleXMLRPCServer):
     pass
 
@@ -50,9 +55,9 @@ class Worker(object):
         self.mode=None
 
         self.etcd.setkey("machines/runnodes/"+self.addr, "waiting")
-        [status, node] = self.etcd.getnode("machines/runnodes/"+self.addr)
+        [status, key] = self.etcd.getkey("machines/runnodes/"+self.addr)
         if status:
-            self.key = node['key']
+            self.key = generatekey("machines/runnodes/"+self.addr)
         else:
             logger.error("get key failed. %s" % node)
             sys.exit(1)
@@ -167,8 +172,6 @@ class Worker(object):
             else:
                 logger.error("get key failed. %s" % node)
                 sys.exit(1)
-
-        
     
 if __name__ == '__main__':
 

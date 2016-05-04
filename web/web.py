@@ -265,8 +265,8 @@ def statusRealtime(vcluster_name,node_name):
     statusRealtimeView.node_name = node_name
     return statusRealtimeView.as_view()
 
-@app.route("/monitor/hosts/<comid>/<infotype>", methods=['POST'])
-@app.route("/monitor/vnodes/<comid>/<infotype>", methods=['POST'])
+@app.route("/monitor/hosts/<comid>/<infotype>/", methods=['POST'])
+@app.route("/monitor/vnodes/<comid>/<infotype>/", methods=['POST'])
 @login_required
 def monitor_request(comid,infotype):
     data = {
@@ -327,6 +327,11 @@ def usermodify():
 @administration_required
 def quotaadd():
     return quotaaddView.as_view()
+
+@app.route("/quota/chdefault/", methods=['POST'])
+@administration_required
+def chdefault():
+    return chdefaultView.as_view()
 
 @app.route("/group/add/", methods=['POST'])
 @administration_required
@@ -470,4 +475,4 @@ if __name__ == '__main__':
         elif opt in ("-p", "--port"):
             webport = int(arg)
 
-    app.run(host = webip, port = webport, debug = True, threaded=True)
+    app.run(host = webip, port = webport, threaded=True)
