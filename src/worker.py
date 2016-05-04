@@ -73,8 +73,8 @@ class Worker(object):
 
         # worker search all run nodes to judge how to init
         value = 'init-new'
-        [status, runlist] = self.etcd.listdir("machines/allnodes")
-        for node in runlist:
+        [status, alllist] = self.etcd.listdir("machines/allnodes")
+        for node in alllist:
             if node['key'] == self.key:
                 value = 'init-recovery'
                 break
