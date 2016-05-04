@@ -57,7 +57,7 @@ class Worker(object):
         self.etcd.setkey("machines/runnodes/"+self.addr, "waiting")
         [status, key] = self.etcd.getkey("machines/runnodes/"+self.addr)
         if status:
-            self.key = generatekey("machines/runnodes/"+self.addr)
+            self.key = generatekey("machines/allnodes/"+self.addr)
         else:
             logger.error("get key failed. %s" % node)
             sys.exit(1)
@@ -73,8 +73,8 @@ class Worker(object):
 
         # worker search all run nodes to judge how to init
         value = 'init-new'
-        [status, runlist] = self.etcd.listdir("machines/runnodes")
-        for node in runlist:
+        [status, alllist] = self.etcd.listdir("machines/allnodes")
+        for node in alllist:
             if node['key'] == self.key:
                 value = 'init-recovery'
                 break
