@@ -68,7 +68,7 @@ class Container_Collector(threading.Thread):
                         else:
                             self.cpu_quota[container_name] = tmp/100000.0
                 quota = {'cpu':self.cpu_quota[container_name],'memory':self.mem_quota[container_name]}
-                logger.info(quota)
+                #logger.info(quota)
                 self.etcdser.setkey('/vnodes/%s/quota'%(container_name),quota)
             else:
                 logger.error("Cant't find config file %s"%(confpath))
@@ -114,7 +114,7 @@ class Container_Collector(threading.Thread):
                         if(self.collect_containerinfo(container)):
                             countR += 1
                     except Exception as err:
-                        #pass
+                        logger.warning(traceback.format_exc())
                         logger.warning(err)
             containers_num = len(containers)-1
             concnt = {}
@@ -195,16 +195,20 @@ class Collector(threading.Thread):
                 diskval = {}
                 diskval['device'] = part.device
                 diskval['mountpoint'] = part.mountpoint
-                usage = psutil.disk_usage(part.mountpoint)
-                diskval['total'] = usage.total
-                diskval['used'] = usage.used
-                diskval['free'] = usage.free
-                diskval['percent'] = usage.percent
-                if(part.mountpoint.startswith('/opt/docklet/local/volume')):
-                    names = re.split('/',part.mountpoint)
-                    container = names[len(names)-1]
-                    self.vetcdser.setkey('/%s/disk_use'%(container), diskval)
-                setval.append(diskval)
+                try:
+                    usage = psutil.disk_usage(part.mountpoint)
+                    diskval['total'] = usage.total
+                    diskval['used'] = usage.used
+                    diskval['free'] = usage.free
+                    diskval['percent'] = usage.percent
+                    if(part.mountpoint.startswith('/opt/docklet/local/volume')):
+                        names = re.split('/',part.mountpoint)
+                        container = names[len(names)-1]
+                        self.vetcdser.setkey('/%s/disk_use'%(container), diskval)
+                    setval.append(diskval)
+                except Exception as err:
+                    logger.warning(traceback.format_exc())
+                    logger.warning(err)
         self.etcdser.setkey('/diskinfo', setval)
         #print(output)
         #print(diskparts)
