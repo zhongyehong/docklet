@@ -1,6 +1,9 @@
 #!/usr/bin/python3
 
-import os, json
+import os, json, sys
+sys.path.append("../src")
+from model import db, User
+from lvmtool import *
 
 fspath="/opt/docklet"
 
@@ -39,5 +42,63 @@ def update_quotainfo():
     quotafile.write(json.dumps(quotas))
     quotafile.close()
 
+def allquota():
+    try:
+        quotafile = open(fspath+"/global/sys/quota", 'r')
+        quotas = json.loads(quotafile.read())
+        quotafile.close()
+        return quotas
+    except Exception as e:
+        print(e)
+        return None
+
+def quotaquery(quotaname,quotas):
+    for quota in quotas:
+        if quota['name'] == quotaname:
+            return quota['quotas']
+    return None
+
+def enable_gluster_quota():
+    conffile=open("../conf/docklet.conf",'r')
+    conf=conffile.readlines()
+    conffile.close()
+    enable = False
+    volume_name = ""
+    for line in conf:
+        if line.startswith("GLUSTER_VOLUME_QUOTA"):
+            keyvalue = line.split("=")
+            if len(keyvalue) < 2:
+                continue
+            key = keyvalue[0].strip()
+            value = keyvalue[1].strip()
+            if value == "YES":
+                enable = True
+                break
+    for line in conf:
+        if line.startswith("GLUSTER_VOLUME_NAME"):
+            keyvalue = line.split("=")
+            if len(keyvalue) < 2:
+                continue
+            volume_name = keyvalue[1].strip()
+    if not enable:
+        print("don't need to enable the quota")
+        return
+    
+    users = User.query.all()
+    quotas = allquota()
+    if quotaquery == None:
+        print("quota info not found")
+        return
+    sys_run("gluster volume quota %s enable" % volume_name)
+    for user in users:
+        quota = quotaquery(user.user_group, quotas)
+        nfs_quota = quota['data']
+        if nfs_quota == None:
+            print("data quota should be set")
+            return
+        nfspath = "/users/%s/data" % user.username
+        sys_run("gluster volume quota %s limit-usage %s %sGB" % (volume_name,nfspath,nfs_quota))
+
 if __name__ == '__main__':
     update_quotainfo()
+    enable_gluster_quota()

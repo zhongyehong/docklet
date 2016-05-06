@@ -315,7 +315,7 @@ def description_image(cur_user, user, form):
 @login_required
 def share_image(cur_user, user, form):
     global G_imagemgr
-    image = form.getvalue('image')
+    image = form.get('image')
     G_imagemgr.shareImage(user,image)
     return json.dumps({'success':'true', 'action':'share'})
 
@@ -555,7 +555,7 @@ def groupList_user(cur_user, user, form):
 def groupQuery_user(cur_user, user, form):
     global G_usermgr
     logger.info("handle request: user/groupQuery/")
-    result = G_usermgr.groupQuery(name = form.getvalue("name"), cur_user = cur_user)
+    result = G_usermgr.groupQuery(name = form.get("name"), cur_user = cur_user)
     return json.dumps(result)
 
 @app.route("/user/selfQuery/", methods=['POST'])

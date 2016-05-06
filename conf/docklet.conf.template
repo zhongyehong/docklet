@@ -134,3 +134,11 @@
 # If this address i "", no email will be sent to admin.
 # default: ""
 # ADMIN_EMAIL_ADDRESS=""
+
+# GLUSTER_VOLUME_QUOTA : whether enable the quota of glusterfs volume or not
+# default: "NO"
+# GLUSTER_VOLUME_QUOTA=""
+
+# GLUSTER_VOLUME_NAME : the name of glusterfs volume
+# default: "docklet-volume"
+# GLUSTER_VOLUME_NAME=""

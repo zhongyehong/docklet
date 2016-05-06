@@ -21,11 +21,15 @@ from email.header import Header
 from datetime import datetime
 import json
 from log import logger
+from lvmtool import *
 
 email_from_address = env.getenv('EMAIL_FROM_ADDRESS')
 admin_email_address = env.getenv('ADMIN_EMAIL_ADDRESS')
 PAM = pam.pam()
 fspath = env.getenv('FS_PREFIX')
+gluster_volume_quota = env.getenv('GLUSTER_VOLUME_QUOTA')
+gluster_volume_name = env.getenv('GLUSTER_VOLUME_NAME')
+
 
 if (env.getenv('EXTERNAL_LOGIN').lower() == 'true'):
     from plugin import external_receive
@@ -305,6 +309,21 @@ class userManager:
         '''
         user = User.verify_auth_token(token)
         return user
+    
+    def set_nfs_quota_bygroup(self,groupname, quota):
+        users = User.query.filter_by(user_group = groupname).all()  
+        for user in users:
+            self.set_nfs_quota(user.username, quota)
+    
+    def set_nfs_quota(self, username, quota):
+        if not gluster_volume_quota == "YES":
+            return 
+        nfspath = "/users/%s/data" % username
+        try:
+            sys_run("gluster volume quota %s limit-usage %s %sGB" % (gluster_volume_name, nfspath, quota))
+        except Exception as e:
+            logger.error(e)
+    
 
     @administration_required
     def query(*args, **kwargs):
@@ -487,7 +506,7 @@ class userManager:
     @administration_required
     def change_default_group(*args, **kwargs):
         form = kwargs['form']
-        default_group = form.getvalue('defaultgroup')
+        default_group = form.get('defaultgroup')
         quotafile = open(fspath+"/global/sys/quotainfo",'r')
         quotas = json.loads(quotafile.read())
         quotafile.close()
@@ -498,8 +517,7 @@ class userManager:
         return { 'success':'true', 'action':'change default group' }
 
 
-    @administration_required
-    def groupQuery(*args, **kwargs):
+    def groupQuery(self, *args, **kwargs):
         '''
         Usage: groupQuery(name = XXX, cur_user = token_from_auth)
         List a group for an administrator
@@ -511,7 +529,7 @@ class userManager:
             if group['name'] == kwargs['name']:
                 result = {
                     "success":'true',
-                    "data": group,
+                    "data": group['quotas'],
                 }
                 return result
         else:
@@ -534,7 +552,7 @@ class userManager:
         return result
 
     @administration_required
-    def groupModify(*args, **kwargs):
+    def groupModify(self, *args, **kwargs):
         '''
         Usage: groupModify(newValue = dict_from_form, cur_user = token_from_auth)
         '''
@@ -545,6 +563,12 @@ class userManager:
             if group['name'] == kwargs['newValue'].get('groupname',None):
                 form = kwargs['newValue']
                 for key in form.keys():
+                    if key == "data":
+                        if not group['quotas'][key] == form.get(key):
+                            self.set_nfs_quota_bygroup(group['name'],form.get(key))
+                    else:
+                        pass
+
                     if key == "groupname" or key == "token":
                         pass
                     else:
@@ -557,7 +581,7 @@ class userManager:
             return {"success":'false', "reason":"UserGroup does not exist"}
 
     @administration_required
-    def modify(*args, **kwargs):
+    def modify(self, *args, **kwargs):
         '''
         modify a user's information in database
         will send an e-mail when status is changed from 'applying' to 'normal'
@@ -587,6 +611,9 @@ class userManager:
             #self.chpassword(cur_user = user_modify, password = form.get('password','no_password'))
 
         db.session.commit()
+        res = self.groupQuery(name=user_modify.user_group)
+        if res['success']:
+            self.set_nfs_quota(user_modify.username,res['data']['data'])
         return {"success":'true'}
         #except:
             #return {"success":'false', "reason":"Something happened"}
@@ -599,6 +626,8 @@ class userManager:
         cur_user = kwargs['cur_user']
         cur_user.password = hashlib.sha512(kwargs['password'].encode('utf-8')).hexdigest()
 
+    
+                
     def newuser(*args, **kwargs):
         '''
         Usage : newuser()
@@ -613,7 +642,7 @@ class userManager:
         user_new.avatar = 'default.png'
         return user_new
 
-    def register(*args, **kwargs):
+    def register(self, *args, **kwargs):
         '''
         Usage: register(user = modified_from_newuser())
         '''
@@ -637,6 +666,9 @@ class userManager:
         #if newuser.status == 'normal':
         path = env.getenv('DOCKLET_LIB')
         subprocess.call([path+"/userinit.sh", newuser.username])
+        res = self.groupQuery(name=newuser.user_group)
+        if res['success']:
+            self.set_nfs_quota(newuser.username,res['data']['data'])
         return {"success":'true'}
 
     @administration_required
