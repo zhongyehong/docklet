@@ -487,7 +487,7 @@ class userManager:
     @administration_required
     def change_default_group(*args, **kwargs):
         form = kwargs['form']
-        default_group = form.getvalue('defaultgroup')
+        default_group = form.get('defaultgroup')
         quotafile = open(fspath+"/global/sys/quotainfo",'r')
         quotas = json.loads(quotafile.read())
         quotafile.close()
