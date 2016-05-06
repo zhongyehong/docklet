@@ -27,8 +27,8 @@ email_from_address = env.getenv('EMAIL_FROM_ADDRESS')
 admin_email_address = env.getenv('ADMIN_EMAIL_ADDRESS')
 PAM = pam.pam()
 fspath = env.getenv('FS_PREFIX')
-gluster_volume_quota = env.getenv('GLUSTER_VOLUME_QUOTA')
-gluster_volume_name = env.getenv('GLUSTER_VOLUME_NAME')
+data_quota = env.getenv('DATA_QUOTA')
+data_quota_cmd = env.getenv('DATA_QUOTA_CMD')
 
 
 if (env.getenv('EXTERNAL_LOGIN').lower() == 'true'):
@@ -311,16 +311,19 @@ class userManager:
         return user
     
     def set_nfs_quota_bygroup(self,groupname, quota):
+        if not data_quota == "YES":
+            return 
         users = User.query.filter_by(user_group = groupname).all()  
         for user in users:
             self.set_nfs_quota(user.username, quota)
     
     def set_nfs_quota(self, username, quota):
-        if not gluster_volume_quota == "YES":
+        if not data_quota == "YES":
             return 
         nfspath = "/users/%s/data" % username
         try:
-            sys_run("gluster volume quota %s limit-usage %s %sGB" % (gluster_volume_name, nfspath, quota))
+            cmd = data_quota_cmd % (nfspath,quota+"GB")
+            sys_run(cmd.strip('"'))
         except Exception as e:
             logger.error(e)
     
