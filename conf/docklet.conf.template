@@ -141,5 +141,5 @@
 
 # DATA_QUOTA_CMD : the cmd to set the data quota, the argument of it should be directory name
 # and the quota value.
-# default: "gluster volume quota docklet-volume %s %s"
+# default: "gluster volume quota docklet-volume limit-usage %s %s"
 # DATA_QUOTA_CMD=""
