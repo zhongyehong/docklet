@@ -1,9 +1,6 @@
 #!/usr/bin/python3
 
 import os, json, sys
-sys.path.append("../src")
-from model import db, User
-from lvmtool import *
 
 fspath="/opt/docklet"
 
@@ -65,7 +62,7 @@ def enable_gluster_quota():
     enable = False
     volume_name = ""
     for line in conf:
-        if line.startswith("GLUSTER_VOLUME_QUOTA"):
+        if line.startswith("DATA_QUOTA"):
             keyvalue = line.split("=")
             if len(keyvalue) < 2:
                 continue
@@ -75,7 +72,7 @@ def enable_gluster_quota():
                 enable = True
                 break
     for line in conf:
-        if line.startswith("GLUSTER_VOLUME_NAME"):
+        if line.startswith("DATA_QUOTA_CMD"):
             keyvalue = line.split("=")
             if len(keyvalue) < 2:
                 continue
@@ -101,4 +98,4 @@ def enable_gluster_quota():
 
 if __name__ == '__main__':
     update_quotainfo()
-    enable_gluster_quota()
+#    enable_gluster_quota()
