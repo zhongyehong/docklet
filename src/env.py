@@ -50,5 +50,9 @@ def getenv(key):
         return os.environ.get("EMAIL_FROM_ADDRESS", "")
     elif key =="ADMIN_EMAIL_ADDRESS":
         return os.environ.get("ADMIN_EMAIL_ADDRESS", "")
+    elif key =="GLUSTER_VOLUME_QUOTA":
+        return os.environ.get("GLUSTER_VOLUME_QUOTA", "NO")
+    elif key =="GLUSTER_VOLUME_NAME":
+        return os.environ.get("GLUSTER_VOLUME_NAME", "docklet-volume")
     else:
         return os.environ[key]
