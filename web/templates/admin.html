@@ -135,6 +135,7 @@
                    </div>
                </div>
            </div>
+        <div class="table table-responsive">
          <table id="myGroupTable" class="table table-striped table-bordered">
            <thead>
                <tr>
@@ -153,7 +154,7 @@
                     <th> {{ group['quotas'][quota['name']] }} </th>
                     {% endfor %}
                     <th><a class="btn btn-xs btn-info" data-toggle="modal" data-target="#ModifyGroupModal_{{ group['name'] }}">Edit</a>&nbsp;
-                    {% if group['name'] in [ "root", "primary", "admin", "fundation" ] %}  
+                    {% if group['name'] in [ "root", "primary", "admin", "fundation" ] %}
                         <a class="btn btn-xs btn-default" href="javascript:void(0)">Delete</a>&nbsp;
                     {% else %}
                         <a class="btn btn-xs btn-danger" href="/group/delete/{{group['name']}}">Delete</a>&nbsp;
@@ -196,6 +197,7 @@
                {% endfor %}
            </tbody>
          </table>
+       </div>
        </div>
      </div>
  </div>
