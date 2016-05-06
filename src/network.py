@@ -108,13 +108,38 @@ class IntervalPool(object):
             #self.pool[str(i)].sort(key=ip_to_int)  # cidr between thiscidr and upcidr are null, no need to sort
         return [True, upinterval]
 
-    def exist(self, addr, cidr):
-        pass
+    # check whether the addr/cidr overlaps the self.pool 
+    # for example, addr/cidr=172.16.0.48/29 overlaps self.pool['24']=[172.16.0.0]
+    def overlap(self, addr, cidr):
+        cidr=int(cidr)
+        start_cidr=int(self.info.split('/')[1])
+        # test self.pool[cidr] from first cidr pool to last cidr pool
+        for cur_cidr in range(start_cidr, 33):
+            if not self.pool[str(cur_cidr)]:
+                continue
+            # for every cur_cidr, test every possible element covered by pool[cur_cidr] in range of addr/cidr
+            cur_addr=fix_ip(addr, min(cidr, cur_cidr))
+            last_addr=next_interval(addr, cidr)
+            while(ip_to_int(cur_addr)<ip_to_int(last_addr)):
+                if cur_addr in self.pool[str(cur_cidr)]:
+                    return  True
+                cur_addr=next_interval(cur_addr, cur_cidr)
+        return False
+
+    # whether addr/cidr is in the range of self.pool
+    def inrange(self, addr, cidr):
+         pool_addr,pool_cidr=self.info.split('/')
+         if int(cidr)>=int(pool_cidr) and fix_ip(addr,pool_cidr)==pool_addr:
+             return True
+         else:
+             return False
 
     # deallocate an interval with IP/CIDR
-    # ToDo : when free IP/CIDR, we donot check whether IP/CIDR is in pool
-    #        maybe we check this later
     def free(self, addr, cidr):
+        if not self.inrange(addr, cidr):
+            return [False, '%s/%s not in range of %s' % (addr, str(cidr), self.info)]
+        if self.overlap(addr, cidr):
+            return [False, '%s/%s overlaps the center pool:%s' % (addr, str(cidr), self.__str__())]
         cidr = int(cidr)
         # cidr not in pool means CIDR out of pool range
         if str(cidr) not in self.pool:
