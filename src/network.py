@@ -259,6 +259,14 @@ class UserPool(EnumPool):
     def get_gateway_cidr(self):
         return self.gateway+"/"+self.info.split('/')[1]
 
+    def inrange(self, ip):
+        addr = self.info.split('/')[0]
+        addrint = ip_to_int(addr)
+        cidr = int(self.info.split('/')[1])
+        if addrint+2 <= ip_to_int(ip) <= addrint+pow(2, 32-cidr)-2:
+            return True
+        return False
+
     def printpool(self):
         print("users ID:"+str(self.vlanid)+",  net info:"+self.info+",  gateway:"+self.gateway)
         print (str(self.pool))
