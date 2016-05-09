@@ -156,13 +156,13 @@ class userManager:
             groups.append({'name':'root', 'quotas':{ 'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8' }})
             groups.append({'name':'admin', 'quotas':{'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
             groups.append({'name':'primary', 'quotas':{'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
-            groups.append({'name':'fundation', 'quotas':{'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
+            groups.append({'name':'foundation', 'quotas':{'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
             groupfile.write(json.dumps(groups))
             groupfile.close()
         if not os.path.exists(fspath+"/global/sys/quotainfo"):
             quotafile = open(fspath+"/global/sys/quotainfo",'w')
             quotas = {}
-            quotas['default'] = 'fundation'
+            quotas['default'] = 'foundation'
             quotas['quotainfo'] = []
             quotas['quotainfo'].append({'name':'cpu', 'hint':'the cpu quota, number of cores, e.g. 4'})
             quotas['quotainfo'].append({'name':'memory', 'hint':'the memory quota, number of MB , e.g. 4000'})
@@ -311,15 +311,15 @@ class userManager:
         return user
 
     def set_nfs_quota_bygroup(self,groupname, quota):
-        if not data_quota == "YES":
-            return
-        users = User.query.filter_by(user_group = groupname).all()
+        if not data_quota == "True":
+            return 
+        users = User.query.filter_by(user_group = groupname).all()  
         for user in users:
             self.set_nfs_quota(user.username, quota)
 
     def set_nfs_quota(self, username, quota):
-        if not data_quota == "YES":
-            return
+        if not data_quota == "True":
+            return 
         nfspath = "/users/%s/data" % username
         try:
             cmd = data_quota_cmd % (nfspath,quota+"GB")
