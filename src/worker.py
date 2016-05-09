@@ -120,6 +120,7 @@ class Worker(object):
         self.rpcserver = ThreadXMLRPCServer((self.addr, int(self.port)), allow_none=True)
         self.rpcserver.register_introspection_functions()
         self.rpcserver.register_instance(Containers)
+        self.rpcserver.register_function(monitor.workerFetchInfo)
         # register functions or instances to server for rpc
         #self.rpcserver.register_function(function_name)
 
@@ -199,10 +200,6 @@ if __name__ == '__main__':
         sys.exit(1)
     else:
         logger.info("etcd connected")
-    
-    # init collector to collect monitor infomation
-    collector = monitor.Collector(etcdaddr,clustername,ipaddr)
-    collector.start()
 
     cpu_quota = env.getenv('CONTAINER_CPU')
     logger.info ("using CONTAINER_CPU %s" % cpu_quota )
@@ -213,9 +210,11 @@ if __name__ == '__main__':
     worker_port = env.getenv('WORKER_PORT')
     logger.info ("using WORKER_PORT %s" % worker_port )
 
-    con_collector = monitor.Container_Collector(etcdaddr, clustername,
-        ipaddr)
+    # init collector to collect monitor infomation
+    con_collector = monitor.Container_Collector()
     con_collector.start()
+    collector = monitor.Collector()
+    collector.start()
     logger.info("CPU and Memory usage monitor started")
 
     logger.info("Starting worker")

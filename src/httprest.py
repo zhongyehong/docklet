@@ -365,7 +365,7 @@ def hosts_monitor(cur_user, user, form, com_id, issue):
 
     logger.info("handle request: monitor/hosts")
     res = {}
-    fetcher = monitor.Fetcher(etcdaddr,G_clustername,com_id)
+    fetcher = monitor.Fetcher(com_id)
     if issue == 'meminfo':
         res['meminfo'] = fetcher.get_meminfo()
     elif issue == 'cpuinfo':
@@ -404,7 +404,7 @@ def vnodes_monitor(cur_user, user, form, con_id, issue):
     global G_clustername
     logger.info("handle request: monitor/vnodes")
     res = {}
-    fetcher = monitor.Container_Fetcher(etcdaddr,G_clustername)
+    fetcher = monitor.Container_Fetcher()
     if issue == 'cpu_use':
         res['cpu_use'] = fetcher.get_cpu_use(con_id)
     elif issue == 'mem_use':
@@ -700,6 +700,8 @@ if __name__ == '__main__':
     Guest_control = guest_control.Guest(G_vclustermgr,G_nodemgr)
     logger.info("guest control started")
     threading.Thread(target=Guest_control.work, args=()).start()
+    master_collector = monitor.Master_Collector(G_nodemgr)
+    master_collector.start()
 
     logger.info("startting to listen on: ")
     masterip = env.getenv('MASTER_IP')
