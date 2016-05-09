@@ -101,12 +101,6 @@ def activate():
 def dashboard():
     return dashboardView.as_view()
 
-@app.route("/dashboard_guest/", methods=['GET'])
-def dashboard_guest():
-    resp = make_response(dashboard_guestView.as_view())
-    resp.set_cookie('guest-cookie', cookie_tool.generate_cookie('guest', app.secret_key))
-    return resp
-
 @app.route("/document/", methods=['GET'])
 def redirect_dochome():
     return redirect("http://docklet.unias.org/userguide")

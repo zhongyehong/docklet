@@ -24,7 +24,7 @@ from socketserver import ThreadingMixIn
 import nodemgr, vclustermgr, etcdlib, network, imagemgr
 import userManager
 import monitor
-import guest_control, threading
+import threading
 
 #default EXTERNAL_LOGIN=False
 external_login = env.getenv('EXTERNAL_LOGIN')
@@ -356,7 +356,7 @@ def deleteproxy(cur_user, user, form):
     logger.info ("handle request : delete proxy")
     clustername = form.get("clustername", None)
     G_vclustermgr.deleteproxy(user,clustername)
-    self.response(200, {'success':'true', 'action':'deleteproxy'})
+    return json.dumps({'success':'true', 'action':'deleteproxy'})
 
 @app.route("/monitor/hosts/<com_id>/<issue>/", methods=['POST'])
 @login_required
@@ -697,9 +697,6 @@ if __name__ == '__main__':
     logger.info("vclustermgr started")
     G_imagemgr = imagemgr.ImageMgr()
     logger.info("imagemgr started")
-    Guest_control = guest_control.Guest(G_vclustermgr,G_nodemgr)
-    logger.info("guest control started")
-    threading.Thread(target=Guest_control.work, args=()).start()
     master_collector = monitor.Master_Collector(G_nodemgr)
     master_collector.start()
 
