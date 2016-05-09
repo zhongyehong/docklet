@@ -311,14 +311,14 @@ class userManager:
         return user
     
     def set_nfs_quota_bygroup(self,groupname, quota):
-        if not data_quota == "YES":
+        if not data_quota == "True":
             return 
         users = User.query.filter_by(user_group = groupname).all()  
         for user in users:
             self.set_nfs_quota(user.username, quota)
     
     def set_nfs_quota(self, username, quota):
-        if not data_quota == "YES":
+        if not data_quota == "True":
             return 
         nfspath = "/users/%s/data" % username
         try:
