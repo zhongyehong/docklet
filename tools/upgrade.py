@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 import os, json, sys
-
+sys.path.append("../src/")
+from model import db, User
 fspath="/opt/docklet"
 
 def update_quotainfo():
@@ -13,7 +14,7 @@ def update_quotainfo():
     quotafile.close()
     if type(quotas) is list:
         new_quotas = {}
-        new_quotas['default'] = 'fundation'
+        new_quotas['default'] = 'foundation'
         new_quotas['quotainfo'] = quotas
         quotas = new_quotas
         print("change the type of quotafile from list to dict")
@@ -65,6 +66,31 @@ def update_quotainfo():
     groupfile.close()
 
 
+def name_error():
+    quotafile = open(fspath+"/global/sys/quotainfo", 'r')
+    quotas = json.loads(quotafile.read())
+    quotafile.close()
+    if quotas['default'] == 'fundation':
+        quotas['default'] = 'foundation'
+    quotafile = open(fspath+"/global/sys/quotainfo",'w')
+    quotafile.write(json.dumps(quotas)) 
+    quotafile.close()
+
+    groupfile = open(fspath+"/global/sys/quota", 'r')
+    groups = json.loads(groupfile.read())
+    groupfile.close()
+    for group in groups:
+        if group['name'] == 'fundation':
+            group['name'] = 'foundation'
+    groupfile = open(fspath+"/global/sys/quota",'w')
+    groupfile.write(json.dumps(groups)) 
+    groupfile.close()
+    
+    users = User.query.filter_by(user_group = 'fundation').all()
+    for user in users:
+        user.user_group = 'foundation'
+    db.session.commit()
+    
 
 def allquota():
     try:
@@ -125,4 +151,6 @@ def enable_gluster_quota():
 
 if __name__ == '__main__':
     update_quotainfo()
+    if "fix-name-error" in sys.argv:
+        name_error()
 #    enable_gluster_quota()
