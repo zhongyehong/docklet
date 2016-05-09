@@ -38,6 +38,33 @@ def update_quotainfo():
     quotafile = open(fspath+"/global/sys/quotainfo", 'w')
     quotafile.write(json.dumps(quotas))
     quotafile.close()
+    if not os.path.exists(fspath+"/global/sys/quota"):
+        print("quota file not exists, please run docklet to init it")
+        return False
+    groupfile = open(fspath+"/global/sys/quota",'r')
+    groups = json.loads(groupfile.read())
+    groupfile.close()
+    for group in groups:
+        if 'cpu' not in group['quotas'].keys():
+            group['quotas']['cpu'] = "4"
+        if 'memory' not in group['quotas'].keys():
+            group['quotas']['memory'] = "2000"
+        if 'disk' not in group['quotas'].keys():
+            group['quotas']['disk'] = "2000"
+        if 'data' not in group['quotas'].keys():
+            group['quotas']['data'] = "100"
+        if 'image' not in group['quotas'].keys():
+            group['quotas']['image'] = "10"
+        if 'idletime' not in group['quotas'].keys():
+            group['quotas']['idletime'] = "24"
+        if 'vnode' not in group['quotas'].keys():
+            group['quotas']['vnode'] = "8"
+    print("quota updated")
+    groupfile = open(fspath+"/global/sys/quota",'w')
+    groupfile.write(json.dumps(groups))
+    groupfile.close()
+
+
 
 def allquota():
     try:
