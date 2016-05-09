@@ -95,10 +95,8 @@ class Container(object):
                 else:
                     logger.error ("get AUTH COOKIE URL failed for jupyter")
                     authurl = "error"
-            if (username=='guest'):
-                cookiename='guest-cookie'
-            else:
-                cookiename='docklet-jupyter-cookie'
+            
+            cookiename='docklet-jupyter-cookie'
 
             rundir = self.lxcpath+'/'+lxc_name+'/rootfs' + self.rundir
 
