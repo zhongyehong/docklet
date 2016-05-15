@@ -30,6 +30,20 @@ class Container_Collector(threading.Thread):
         containers = re.split('\s+',output)
         return containers
 
+    def get_proc_etime(self,pid):
+        fmt = subprocess.getoutput("ps -A -opid,etime | grep '^ *%d' | awk '{print $NF}'" % pid).strip()
+        if fmt == '':
+            return -1
+        parts = fmt.split('-')
+        days = int(parts[0]) if len(parts) == 2 else 0
+        fmt = parts[-1]
+        parts = fmt.split(':')
+        hours = int(parts[0]) if len(parts) == 3 else 0
+        parts = parts[len(parts)-2:]
+        minutes = int(parts[0])
+        seconds = int(parts[1])
+        return ((days * 24 + hours) * 60 + minutes) * 60 + seconds
+
     def collect_containerinfo(self,container_name):
         global workercinfo
         output = subprocess.check_output("sudo lxc-info -n %s" % (container_name),shell=True)
@@ -37,6 +51,9 @@ class Container_Collector(threading.Thread):
         parts = re.split('\n',output)
         info = {}
         basic_info = {}
+        basic_exist = 'basic_info' in workercinfo[container_name].keys()
+        if basic_exist:
+            basic_info = workercinfo[container_name]['basic_info']
         for part in parts:
             if not part == '':
                 key_val = re.split(':',part)
@@ -50,6 +67,11 @@ class Container_Collector(threading.Thread):
             return False
         basic_info['PID'] = info['PID']
         basic_info['IP'] = info['IP']
+        running_time = self.get_proc_etime(int(info['PID']))
+        if basic_exist and 'PID' in workercinfo[container_name]['basic_info'].keys():
+            if not info['PID'] == workercinfo[container_name]['basic_info']['PID']:
+                running_time += workercinfo[container_name]['basic_info']['RunningTime']
+        basic_info['RunningTime'] = running_time
         workercinfo[container_name]['basic_info'] = basic_info
 
         cpu_parts = re.split(' +',info['CPU use'])
