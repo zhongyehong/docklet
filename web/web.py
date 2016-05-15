@@ -348,6 +348,30 @@ def userinfo():
 def userquery():
     return userqueryView.as_view()
 
+@app.route("/system/modify/", methods=['POST'])
+@administration_required
+def systemmodify():
+    return systemmodifyView.as_view()
+
+@app.route("/system/clear_history/", methods=['POST'])
+@administration_required
+def systemclearhistory():
+    return systemclearView.as_view()
+
+@app.route("/system/add/", methods=['POST'])
+@administration_required
+def systemadd():
+    return systemaddView.as_view()
+
+@app.route("/system/delete/", methods=['POST'])
+@administration_required
+def systemdelete():
+    return systemdeleteView.as_view()
+
+@app.route("/system/resetall/", methods=['POST'])
+@administration_required
+def systemresetall():
+    return systemresetallView.as_view()
 
 @app.route("/admin/", methods=['GET', 'POST'])
 @administration_required
