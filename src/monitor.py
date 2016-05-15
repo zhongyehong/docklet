@@ -256,6 +256,10 @@ def workerFetchInfo():
     global workercinfo
     return str([workerinfo, workercinfo])
 
+def get_owner(container_name):
+    names = container_name.split('-')
+    return names[0]
+
 class Master_Collector(threading.Thread):
 
     def __init__(self,nodemgr):
@@ -274,12 +278,14 @@ class Master_Collector(threading.Thread):
             for worker in workers:
                 try:
                     ip = self.nodemgr.rpc_to_ip(worker)
-                    #[info,cinfo] = worker.workerFetchInfo()
                     info = list(eval(worker.workerFetchInfo()))
-                    logger.info(info[1])
+                    #logger.info(info[1])
                     monitor_hosts[ip] = info[0]
                     for container in info[1].keys():
-                        monitor_vnodes[container] = info[1][container]
+                        owner = get_owner(container)
+                        if not owner in monitor_vnodes.keys():
+                            monitor_vnodes[owner] = {}
+                        monitor_vnodes[owner][container] = info[1][container]
                 except Exception as err:
                     logger.warning(traceback.format_exc())
                     logger.warning(err)
@@ -291,45 +297,47 @@ class Master_Collector(threading.Thread):
         return
 
 class Container_Fetcher:
-    def __init__(self):
+    def __init__(self,container_name):
+        self.owner = get_owner(container_name)
+        self.con_id = container_name
         return
 
-    def get_cpu_use(self,container_name):
+    def get_cpu_use(self):
         global monitor_vnodes
         try:
-            res = monitor_vnodes[container_name]['cpu_use']
-            res['quota'] = monitor_vnodes[container_name]['quota']
+            res = monitor_vnodes[self.owner][self.con_id]['cpu_use']
+            res['quota'] = monitor_vnodes[self.owner][self.con_id]['quota']
         except Exception as err:
             logger.warning(traceback.format_exc())
             logger.warning(err)
             res = {}
         return res
 
-    def get_mem_use(self,container_name):
+    def get_mem_use(self):
         global monitor_vnodes
         try:
-            res = monitor_vnodes[container_name]['mem_use']
-            res['quota'] = monitor_vnodes[container_name]['quota']
+            res = monitor_vnodes[self.owner][self.con_id]['mem_use']
+            res['quota'] = monitor_vnodes[self.owner][self.con_id]['quota']
         except Exception as err:
             logger.warning(traceback.format_exc())
             logger.warning(err)
             res = {}
         return res
 
-    def get_disk_use(self,container_name):
+    def get_disk_use(self):
         global monitor_vnodes
         try:
-            res = monitor_vnodes[container_name]['disk_use']
+            res = monitor_vnodes[self.owner][self.con_id]['disk_use']
         except Exception as err:
             logger.warning(traceback.format_exc())
             logger.warning(err)
             res = {}
         return res
 
-    def get_basic_info(self,container_name):
+    def get_basic_info(self):
         global monitor_vnodes
         try:
-            res = monitor_vnodes[container_name]['basic_info']
+            res = monitor_vnodes[self.owner][self.con_id]['basic_info']
         except Exception as err:
             logger.warning(traceback.format_exc())
             logger.warning(err)
