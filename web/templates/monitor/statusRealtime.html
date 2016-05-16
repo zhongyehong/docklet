@@ -41,6 +41,7 @@
                     <tr>
                         <th>State</th>
                         <th>IP Address</th>
+                        <th>Running Time</th>
                         <th>CPU Usage</th>
                         <th>Mem Usage</th>
                         <th>Disk Usage</th>
@@ -49,12 +50,13 @@
                     <tbody>
                       <tr>
                         {% if container['State'] == 'STOPPED' %}
-                        <td><div id='con_state' class="label label-danger">Stopped</div></td>
+                        <td id='con_state'><div class="label label-danger">Stopped</div></td>
                         <td id='con_ip'>--</td>
                         {% else %}
-                        <td><div id='con_state' class="label label-primary">Running</div></td>
+                        <td id='con_state'><div class="label label-primary">Running</div></td>
                         <td id='con_ip'>{{ container['IP'] }}</td>
                         {% endif %}
+                        <td id='con_time'>{{ container['RunningTime'] }}s</td>
                         <td id='con_cpu'>--</td>
                         <td id='con_mem'>--</td>
                         <td id='con_disk'>--</td>

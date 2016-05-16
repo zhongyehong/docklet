@@ -62,15 +62,23 @@ class Container_Collector(threading.Thread):
                 info[key] = val.lstrip()
         basic_info['Name'] = info['Name']
         basic_info['State'] = info['State']
+        #if basic_exist:
+         #   logger.info(workercinfo[container_name]['basic_info'])
         if(info['State'] == 'STOPPED'):
             workercinfo[container_name]['basic_info'] = basic_info
+            logger.info(basic_info)
             return False
-        basic_info['PID'] = info['PID']
-        basic_info['IP'] = info['IP']
         running_time = self.get_proc_etime(int(info['PID']))
         if basic_exist and 'PID' in workercinfo[container_name]['basic_info'].keys():
+            last_time = workercinfo[container_name]['basic_info']['LastTime']
             if not info['PID'] == workercinfo[container_name]['basic_info']['PID']:
-                running_time += workercinfo[container_name]['basic_info']['RunningTime']
+                last_time = workercinfo[container_name]['basic_info']['RunningTime']
+        else:
+            last_time = 0
+        basic_info['LastTime'] = last_time
+        running_time += last_time
+        basic_info['PID'] = info['PID']
+        basic_info['IP'] = info['IP']
         basic_info['RunningTime'] = running_time
         workercinfo[container_name]['basic_info'] = basic_info
 
