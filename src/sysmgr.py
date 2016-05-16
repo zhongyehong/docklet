@@ -36,7 +36,7 @@ class SystemManager():
             for line in lines:
                 [linekind, lineparm, lineval] = parse_line(line)
                 if linekind == "default":
-                    conf[lineparm] = {"val": lineval, "default": lineval, "history": []}
+                    conf[lineparm] = {"val": "novalidvaluea", "default": lineval, "history": []}
             for line in lines:
                 [linekind, lineparm, lineval] = parse_line(line)
                 if linekind == "active":
@@ -74,7 +74,6 @@ class SystemManager():
                 line = lines[i]
                 [linekind, lineparm, lineval] = parse_line(line)
                 if linekind == "default" and parm == lineparm:
-                    lines.insert(i+1, "## " + parm + "=" + lineval + "\n")
                     lines.insert(i+1, parm + "="  + val + "\n")
                     break
         for i in range(0, len(lines)):

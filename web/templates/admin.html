@@ -286,11 +286,29 @@
            <tbody>
                {% for parm in parms[field] %}
                <tr>
-                    <th>{{ parm["parm"]|truncate(20) }}</th>
-                    <th>{{ parm["val"]|truncate(20) }}</th>
+
+                    {% if parm["parm"]|length > 20%}
+                    <th title={{parm["parm"]}}>{{ parm["parm"]|truncate(20) }}</th>
+                    {% else %}
+                    <th>{{ parm["parm"] }}</th>
+                    {% endif %}
+
+                    {% if parm["val"] == "novalidvaluea" %}
+                    <th class="text-muted">No Valid Value</th>
+                    {% elif parm["val"]|length > 20 %} 
+                    <th title="{{parm["val"]}}">{{ parm["val"]|truncate(20) }}</th>
+                    {% else %}
+                    <th>{{ parm["val"] }}</th>
+                    {% endif %}
+
                     <th>
                     {% for history in parm["history"] %}
-                      <a class="btn btn-xs btn-default" data-toggle="modal" data-target="#UseHistoryModal_{{field}}_{{ parm["parm"]|replace(".","") }}_{{ loop.indexo }}">{{ history|truncate(20) }}</a>
+                      {% if history|length > 20 %}
+                      <a class="btn btn-xs btn-default" data-toggle="modal" data-target="#UseHistoryModal_{{field}}_{{ parm["parm"]|replace(".","") }}_{{ loop.indexo }}" title="{{history}}">{{ history|truncate(20) }}</a>
+                      {% else %}
+                      <a class="btn btn-xs btn-default" data-toggle="modal" data-target="#UseHistoryModal_{{field}}_{{ parm["parm"]|replace(".","") }}_{{ loop.indexo }}">{{ history }}</a>
+                      {% endif %}
+
                         <div class="modal inmodal" id="UseHistoryModal_{{field}}_{{ parm["parm"]|replace(".","") }}_{{ loop.indexo }}" tabindex="-1" role="dialog" aria-hidden="true">
                         <div class="modal-dialog">
                         <div class="modal-content animated fadeIn">
@@ -322,7 +340,12 @@
                     </div>
                     {% endfor %}
                     </th>
-                    <th><a class="btn btn-xs btn-default" data-toggle="modal" data-target="#UseDefaultModal_{{field}}_{{ parm["parm"]|replace(".","") }}">{{ parm["default"]|truncate(20) }}</a></th>
+
+                    {% if parm["default"]|length > 20 %}
+                    <th><a class="btn btn-xs btn-default" data-toggle="modal" data-target="#UseDefaultModal_{{field}}_{{ parm["parm"]|replace(".","") }}" title={{ parm["default"] }}> {{ parm["default"]|truncate(20) }}</a></th>
+                    {% else %}
+                    <th><a class="btn btn-xs btn-default" data-toggle="modal" data-target="#UseDefaultModal_{{field}}_{{ parm["parm"]|replace(".","") }}"> {{ parm["default"] }}</a></th>
+                    {% endif %}
                     <th>
                       <a class="btn btn-xs btn-info" data-toggle="modal" data-target="#ModifyParmModal_{{field}}_{{ parm["parm"]|replace(".","") }}">Edit</a>&nbsp;
                       <a class="btn btn-xs btn-default" data-toggle="modal" data-target="#ClearHistoryModal_{{field}}_{{ parm["parm"]|replace(".","") }}">Clear History</a>&nbsp;
@@ -348,7 +371,11 @@
                                       </div>
                                       <div class="form-group">
                                           <label>Value</label>
+                                          {% if parm['val'] == "novalidvaluea" %}
+                                          <input type="text" placeholder="Enter Value" class="form-control" name="val" value="" />
+                                          {% else %}
                                           <input type="text" placeholder="Enter Value" class="form-control" name="val" value="{{ parm['val'] }}" />
+                                          {% endif %}
                                       </div>
                                     </div>
                                     <div class="modal-footer">
