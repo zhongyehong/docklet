@@ -24,7 +24,8 @@ from socketserver import ThreadingMixIn
 import nodemgr, vclustermgr, etcdlib, network, imagemgr
 import userManager
 import monitor
-import guest_control, threading
+import threading
+import sysmgr
 
 #default EXTERNAL_LOGIN=False
 external_login = env.getenv('EXTERNAL_LOGIN')
@@ -356,7 +357,7 @@ def deleteproxy(cur_user, user, form):
     logger.info ("handle request : delete proxy")
     clustername = form.get("clustername", None)
     G_vclustermgr.deleteproxy(user,clustername)
-    self.response(200, {'success':'true', 'action':'deleteproxy'})
+    return json.dumps({'success':'true', 'action':'deleteproxy'})
 
 @app.route("/monitor/hosts/<com_id>/<issue>/", methods=['POST'])
 @login_required
@@ -365,7 +366,7 @@ def hosts_monitor(cur_user, user, form, com_id, issue):
 
     logger.info("handle request: monitor/hosts")
     res = {}
-    fetcher = monitor.Fetcher(etcdaddr,G_clustername,com_id)
+    fetcher = monitor.Fetcher(com_id)
     if issue == 'meminfo':
         res['meminfo'] = fetcher.get_meminfo()
     elif issue == 'cpuinfo':
@@ -404,7 +405,7 @@ def vnodes_monitor(cur_user, user, form, con_id, issue):
     global G_clustername
     logger.info("handle request: monitor/vnodes")
     res = {}
-    fetcher = monitor.Container_Fetcher(etcdaddr,G_clustername)
+    fetcher = monitor.Container_Fetcher()
     if issue == 'cpu_use':
         res['cpu_use'] = fetcher.get_cpu_use(con_id)
     elif issue == 'mem_use':
@@ -574,6 +575,84 @@ def selfModify_user(cur_user, user, form):
     result = G_usermgr.selfModify(cur_user = cur_user, newValue = form)
     return json.dumps(result)
 
+@app.route("/system/parmList/", methods=['POST'])
+@login_required
+def parmList_system(cur_user, user, form):
+    global G_sysmgr
+    logger.info("handle request: system/parmList/")
+    result = G_sysmgr.getParmList()
+    return json.dumps(result)
+
+@app.route("/system/modify/", methods=['POST'])
+@login_required
+def modify_system(cur_user, user, form):
+    global G_sysmgr
+    logger.info("handle request: system/modify/")
+    field = form.get("field", None)
+    parm = form.get("parm", None)
+    val = form.get("val", None)
+    [status, message] = G_sysmgr.modify(field,parm,val)
+    if status is True:
+        return json.dumps({'success':'true', 'action':'modify_system'})
+    else:
+        return json.dumps({'success':'false', 'message': message})
+    return json.dumps(result)
+
+@app.route("/system/clear_history/", methods=['POST'])
+@login_required
+def clear_system(cur_user, user, form):
+    global G_sysmgr
+    logger.info("handle request: system/clear_history/")
+    field = form.get("field", None)
+    parm = form.get("parm", None)
+    [status, message] = G_sysmgr.clear(field,parm)
+    if status is True:
+        return json.dumps({'success':'true', 'action':'clear_history'})
+    else:
+        return json.dumps({'success':'false', 'message': message})
+    return json.dumps(result)
+
+@app.route("/system/add/", methods=['POST'])
+@login_required
+def add_system(cur_user, user, form):
+    global G_sysmgr
+    logger.info("handle request: system/add/")
+    field = form.get("field", None)
+    parm = form.get("parm", None)
+    val = form.get("val", None)
+    [status, message] = G_sysmgr.add(field, parm, val)
+    if status is True:
+        return json.dumps({'success':'true', 'action':'add_parameter'})
+    else:
+        return json.dumps({'success':'false', 'message': message})
+    return json.dumps(result)
+
+@app.route("/system/delete/", methods=['POST'])
+@login_required
+def delete_system(cur_user, user, form):
+    global G_sysmgr
+    logger.info("handle request: system/delete/")
+    field = form.get("field", None)
+    parm = form.get("parm", None)
+    [status, message] = G_sysmgr.delete(field,parm)
+    if status is True:
+        return json.dumps({'success':'true', 'action':'delete_parameter'})
+    else:
+        return json.dumps({'success':'false', 'message': message})
+    return json.dumps(result)
+
+@app.route("/system/reset_all/", methods=['POST'])
+@login_required
+def resetall_system(cur_user, user, form):
+    global G_sysmgr
+    logger.info("handle request: system/reset_all/")
+    field = form.get("field", None)
+    [status, message] = G_sysmgr.reset_all(field)
+    if status is True:
+        return json.dumps({'success':'true', 'action':'reset_all'})
+    else:
+        return json.dumps({'success':'false', 'message': message})
+    return json.dumps(result)
 
 @app.errorhandler(500)
 def internal_server_error(error):
@@ -608,6 +687,7 @@ if __name__ == '__main__':
     global etcdclient
     global G_networkmgr
     global G_clustername
+    global G_sysmgr
     # move 'tools.loadenv' to the beginning of this file
 
     fs_path = env.getenv("FS_PREFIX")
@@ -687,6 +767,8 @@ if __name__ == '__main__':
     clusternet = env.getenv("CLUSTER_NET")
     logger.info("using CLUSTER_NET %s" % clusternet)
 
+    G_sysmgr = sysmgr.SystemManager()
+
     G_networkmgr = network.NetworkMgr(clusternet, etcdclient, mode)
     G_networkmgr.printpools()
 
@@ -697,9 +779,8 @@ if __name__ == '__main__':
     logger.info("vclustermgr started")
     G_imagemgr = imagemgr.ImageMgr()
     logger.info("imagemgr started")
-    Guest_control = guest_control.Guest(G_vclustermgr,G_nodemgr)
-    logger.info("guest control started")
-    threading.Thread(target=Guest_control.work, args=()).start()
+    master_collector = monitor.Master_Collector(G_nodemgr)
+    master_collector.start()
 
     logger.info("startting to listen on: ")
     masterip = env.getenv('MASTER_IP')

@@ -159,7 +159,7 @@ class VclusterMgr(object):
     def deleteproxy(self, username, clustername):
         [status, clusterinfo] = self.get_clusterinfo(clustername, username)
         if 'proxy_ip' not in clusterinfo:
-            return [False, "proxy not exists"]
+            return [True, clusterinfo]
         clusterinfo.pop('proxy_ip')
         clusterfile = open(self.fspath + "/global/users/" + username + "/clusters/" + clustername, 'w')
         clusterfile.write(json.dumps(clusterinfo))

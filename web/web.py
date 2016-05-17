@@ -101,12 +101,6 @@ def activate():
 def dashboard():
     return dashboardView.as_view()
 
-@app.route("/dashboard_guest/", methods=['GET'])
-def dashboard_guest():
-    resp = make_response(dashboard_guestView.as_view())
-    resp.set_cookie('guest-cookie', cookie_tool.generate_cookie('guest', app.secret_key))
-    return resp
-
 @app.route("/document/", methods=['GET'])
 def redirect_dochome():
     return redirect("http://docklet.unias.org/userguide")
@@ -354,6 +348,30 @@ def userinfo():
 def userquery():
     return userqueryView.as_view()
 
+@app.route("/system/modify/", methods=['POST'])
+@administration_required
+def systemmodify():
+    return systemmodifyView.as_view()
+
+@app.route("/system/clear_history/", methods=['POST'])
+@administration_required
+def systemclearhistory():
+    return systemclearView.as_view()
+
+@app.route("/system/add/", methods=['POST'])
+@administration_required
+def systemadd():
+    return systemaddView.as_view()
+
+@app.route("/system/delete/", methods=['POST'])
+@administration_required
+def systemdelete():
+    return systemdeleteView.as_view()
+
+@app.route("/system/resetall/", methods=['POST'])
+@administration_required
+def systemresetall():
+    return systemresetallView.as_view()
 
 @app.route("/admin/", methods=['GET', 'POST'])
 @administration_required

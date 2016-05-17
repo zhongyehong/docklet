@@ -156,13 +156,13 @@ class userManager:
             groups.append({'name':'root', 'quotas':{ 'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8' }})
             groups.append({'name':'admin', 'quotas':{'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
             groups.append({'name':'primary', 'quotas':{'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
-            groups.append({'name':'fundation', 'quotas':{'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
+            groups.append({'name':'foundation', 'quotas':{'cpu':'4', 'disk':'2000', 'data':'100', 'memory':'2000', 'image':'10', 'idletime':'24', 'vnode':'8'}})
             groupfile.write(json.dumps(groups))
             groupfile.close()
         if not os.path.exists(fspath+"/global/sys/quotainfo"):
             quotafile = open(fspath+"/global/sys/quotainfo",'w')
             quotas = {}
-            quotas['default'] = 'fundation'
+            quotas['default'] = 'foundation'
             quotas['quotainfo'] = []
             quotas['quotainfo'].append({'name':'cpu', 'hint':'the cpu quota, number of cores, e.g. 4'})
             quotas['quotainfo'].append({'name':'memory', 'hint':'the memory quota, number of MB , e.g. 4000'})
@@ -309,16 +309,16 @@ class userManager:
         '''
         user = User.verify_auth_token(token)
         return user
-    
+
     def set_nfs_quota_bygroup(self,groupname, quota):
-        if not data_quota == "YES":
+        if not data_quota == "True":
             return 
         users = User.query.filter_by(user_group = groupname).all()  
         for user in users:
             self.set_nfs_quota(user.username, quota)
-    
+
     def set_nfs_quota(self, username, quota):
-        if not data_quota == "YES":
+        if not data_quota == "True":
             return 
         nfspath = "/users/%s/data" % username
         try:
@@ -326,7 +326,7 @@ class userManager:
             sys_run(cmd.strip('"'))
         except Exception as e:
             logger.error(e)
-    
+
 
     @administration_required
     def query(*args, **kwargs):
@@ -607,8 +607,8 @@ class userManager:
         if (user_modify.status == 'applying' and form.get('status', '') == 'normal'):
             send_activated_email(user_modify.e_mail, user_modify.username)
         user_modify.status = form.get('status', '')
-        if (form.get('Chpassword', '') == 'Yes'):
-            new_password = form.get('password','no_password')
+        if (form.get('password', '') != ''):
+            new_password = form.get('password','')
             new_password = hashlib.sha512(new_password.encode('utf-8')).hexdigest()
             user_modify.password = new_password
             #self.chpassword(cur_user = user_modify, password = form.get('password','no_password'))
@@ -629,8 +629,8 @@ class userManager:
         cur_user = kwargs['cur_user']
         cur_user.password = hashlib.sha512(kwargs['password'].encode('utf-8')).hexdigest()
 
-    
-                
+
+
     def newuser(*args, **kwargs):
         '''
         Usage : newuser()

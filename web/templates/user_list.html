@@ -132,16 +132,10 @@
                                     <label>Telephone Number</label>
                                     <input type = "text" placeholder="Enter Telephone Number" class="form-control" name="tel" id="mTel">
                                   </div>
-                                  <div class="form-group">
-                                    <label>Change Password?</label>
-                                    <select class="form-control" name="Chpassword" id="mChpassword">
-                                          <option>Yes</option>
-                                          <option>No</option>
-                                    </select>
-                                  </div>
+
                                   <div class="form-group">
                                     <label>Password</label>
-                                    <input type = "text" placeholder="Enter Password" class="form-control" name="password" id="mPassword">
+                                    <input type="password" placeholder="Enter Password" class="form-control" name="password" id="mPassword">
                                   </div>
 
                                   <div class="form-group">
@@ -249,8 +243,6 @@
         $("#mDepartment").val(result.department);
         $("#mStudentNumber").val(result.student_number);
         $("#mTel").val(result.tel);
-        $("#mChpassword").val('No');
-        $("#mPassword").val(result.password);
         $("#mStatus").val(result.status);
         $("#mUserGroup").val(result.group);
         $("#mAuthMethod").val(result.auth_method);
