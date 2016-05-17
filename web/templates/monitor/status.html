@@ -82,6 +82,7 @@
 				                 <th>Node Name</th>
                                  <th>IP Address</th>
                                  <th>Status</th>
+                                 <th>Running Time</th>
 				                 <th>Cpu Usage</th>
 				                 <th>Mem Usage</th>
 				                 <th>Disk Usage</th>
@@ -100,6 +101,7 @@
                                  {% else %}
                                  <td><div id='{{cluster}}_{{ loop.index }}_state' class="label label-primary">Running</div></td>
                                  {% endif %}
+                                 <td id='{{cluster}}_{{ loop.index }}_time'>--</td>
                                  <td id='{{cluster}}_{{ loop.index }}_cpu'>--</td>
                                  <td id='{{cluster}}_{{ loop.index }}_mem'>--</td>
                                  <td id='{{cluster}}_{{ loop.index }}_disk'>--</td>
@@ -124,7 +126,7 @@
 
        $.post(url+"/basic_info/",{},function(data){
 		var state = data.monitor.basic_info.State;
-		if(state == 'RUNNING')
+		    if(state == 'RUNNING')
        		{
            	    var tmp = $("#"+index+"_state");
                     tmp.removeClass();
@@ -145,6 +147,7 @@
 		    $("#"+index+"_mem").html('--');
 		    return;
        		}
+            $("#"+index+"_time").html(data.monitor.basic_info.RunningTime+"s")
 
        		$.post(url+"/cpu_use/",{},function(data){
 		       	var usedp = data.monitor.cpu_use.usedp;

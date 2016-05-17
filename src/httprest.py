@@ -23,7 +23,7 @@ import http.server, cgi, json, sys, shutil
 from socketserver import ThreadingMixIn
 import nodemgr, vclustermgr, etcdlib, network, imagemgr
 import userManager
-import monitor
+import monitor,traceback
 import threading
 import sysmgr
 
@@ -405,15 +405,15 @@ def vnodes_monitor(cur_user, user, form, con_id, issue):
     global G_clustername
     logger.info("handle request: monitor/vnodes")
     res = {}
-    fetcher = monitor.Container_Fetcher()
+    fetcher = monitor.Container_Fetcher(con_id)
     if issue == 'cpu_use':
-        res['cpu_use'] = fetcher.get_cpu_use(con_id)
+        res['cpu_use'] = fetcher.get_cpu_use()
     elif issue == 'mem_use':
-        res['mem_use'] = fetcher.get_mem_use(con_id)
+        res['mem_use'] = fetcher.get_mem_use()
     elif issue == 'disk_use':
-        res['disk_use'] = fetcher.get_disk_use(con_id)
+        res['disk_use'] = fetcher.get_disk_use()
     elif issue == 'basic_info':
-        res['basic_info'] = fetcher.get_basic_info(con_id)
+        res['basic_info'] = fetcher.get_basic_info()
     elif issue == 'owner':
         names = con_id.split('-')
         result = G_usermgr.query(username = names[0], cur_user = cur_user)
@@ -657,6 +657,7 @@ def resetall_system(cur_user, user, form):
 @app.errorhandler(500)
 def internal_server_error(error):
     logger.debug("An internel server error occured")
+    logger.error(traceback.format_exc())
     return json.dumps({'success':'false', 'message':'500 Internal Server Error', 'Unauthorized': 'True'})
 
 
