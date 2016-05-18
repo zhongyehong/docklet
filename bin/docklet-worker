@@ -95,7 +95,7 @@ do_stop () {
 
 do_start_meter() {
     log_daemon_msg "Starting $DOCKMETER_NAME in $FS_PREFIX"
-    start-stop-daemon --start --background --pidfile $DOCKMETER_PIDFILE --make-pidfile  --exec `pwd`/main.py
+    start-stop-daemon --start --background --pidfile $DOCKMETER_PIDFILE --make-pidfile --exec $DOCKLET_HOME/meter/main.py
     log_end_msg $?
 }
 
