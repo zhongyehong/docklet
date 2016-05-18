@@ -26,10 +26,12 @@ v0.2.7,  May 17, 2016
   * [#54] display container owner
   * [#61] rewrite httprest.py using flask routing
 
+**Notes**
+  * If you upgrade from former version, please run tools/upgrade.py first.
 
 v0.2.6,  Mar 31, 2016
 --------------------
 
 An initial release on github.com
 
-- Using the open source AdminLTE theme
+* Using the open source AdminLTE theme
