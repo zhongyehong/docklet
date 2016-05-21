@@ -117,7 +117,7 @@ class Worker(object):
         logger.info ("initialize rpcserver %s:%d" % (self.addr, int(self.port)))
         # logRequests=False : not print rpc log
         #self.rpcserver = xmlrpc.server.SimpleXMLRPCServer((self.addr, self.port), logRequests=False)
-        self.rpcserver = ThreadXMLRPCServer((self.addr, int(self.port)), allow_none=True)
+        self.rpcserver = ThreadXMLRPCServer((self.addr, int(self.port)), allow_none=True, logRequests=False)
         self.rpcserver.register_introspection_functions()
         self.rpcserver.register_instance(Containers)
         self.rpcserver.register_function(monitor.workerFetchInfo)
