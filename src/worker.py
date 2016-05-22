@@ -54,7 +54,9 @@ class Worker(object):
         self.master = self.etcd.getkey("service/master")[1]
         self.mode=None
 
+        # waiting state is preserved for compatible.
         self.etcd.setkey("machines/runnodes/"+self.addr, "waiting")
+        # get this node's key to judge how to init.
         [status, key] = self.etcd.getkey("machines/runnodes/"+self.addr)
         if status:
             self.key = generatekey("machines/allnodes/"+self.addr)
@@ -72,6 +74,8 @@ class Worker(object):
         logger.info ("worker registered and checked the token")
 
         # worker search all run nodes to judge how to init
+        # If the node in all node list, we will recover it.
+        # Otherwise, this node is new added in.
         value = 'init-new'
         [status, alllist] = self.etcd.listdir("machines/allnodes")
         for node in alllist:
@@ -153,6 +157,7 @@ class Worker(object):
 
     # start service of worker
     def start(self):
+        # worker change it state itself. Independedntly from master.
         self.etcd.setkey("machines/runnodes/"+self.addr, "work")
         self.thread_sendheartbeat = threading.Thread(target=self.sendheartbeat)
         self.thread_sendheartbeat.start()
