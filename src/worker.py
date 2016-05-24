@@ -16,7 +16,7 @@ import threading
 import etcdlib, network, container
 from nettools import netcontrol
 import monitor
-from lvmtool import *
+from lvmtool import new_group, recover_group
 
 ##################################################################
 #                       Worker
@@ -61,7 +61,7 @@ class Worker(object):
         if status:
             self.key = generatekey("machines/allnodes/"+self.addr)
         else:
-            logger.error("get key failed. %s" % node)
+            logger.error("get key failed. %s" % 'machines/runnodes/'+self.addr)
             sys.exit(1)
 
         # check token to check global directory
