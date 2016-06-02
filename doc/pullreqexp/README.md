@@ -26,3 +26,6 @@ Source Code: https://github.com/yourname/docklet/
 ## Summary
 
 ```
+
+It is recommended to write markdown that could be interepreted by
+remark, please refer the **demo** dir.
