@@ -1,3 +1,5 @@
+import json
+
 from flask import session, render_template, redirect, request
 from webViews.view import normalView
 from webViews.dockletrequest import dockletRequest
@@ -27,3 +29,10 @@ class CreateNotificationView(normalView):
         dockletRequest.post('/notification/create/', request.form)
         # return redirect('/admin/')
         return redirect('/notification/')
+
+
+class QuerySelfNotificationsView(normalView):
+    @classmethod
+    def post(cls):
+        result = dockletRequest.post('/notification/query_self/')
+        return json.dumps(result)
