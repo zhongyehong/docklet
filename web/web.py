@@ -4,6 +4,9 @@ import os
 import getopt
 
 import sys, inspect
+
+from webViews.notification.notification import CreateNotificationView, NotificationView
+
 this_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
 src_folder = os.path.realpath(os.path.abspath(os.path.join(this_folder,"..", "src")))
 if src_folder not in sys.path:
@@ -349,10 +352,17 @@ def userquery():
     return userqueryView.as_view()
 
 
+@app.route("/notification/", methods=['GET'])
+@administration_required
+def create_notification():
+    return NotificationView.as_view()
+
+
 @app.route("/notification/create/", methods=['POST'])
 @administration_required
 def create_notification():
     return CreateNotificationView.as_view()
+
 
 @app.route("/system/modify/", methods=['POST'])
 @administration_required

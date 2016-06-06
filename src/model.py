@@ -144,11 +144,14 @@ class Notification(db.Model):
     title = db.Column(db.String(100))
     content = db.Column(db.String(8000))
     create_date = db.Column(db.String(10))
+    # Status: 'open' -> Open to user, 'closed' -> Closed to user
+    status = db.Column(db.String(20))
 
     def __init__(self, title, content=''):
         self.title = title
         self.content = content
         self.create_date = datetime.utcnow()
+        self.status = 'open'
 
     def __repr__(self):
         return '<Notification %r>' % self.title

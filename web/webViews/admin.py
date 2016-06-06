@@ -89,8 +89,3 @@ class historydelView(normalView):
         return redirect('/admin/')
 
 
-class CreateNotificationView(normalView):
-    @classmethod
-    def post(cls):
-        dockletRequest.post('/notification/create/', request.form)
-        return redirect('admin')
