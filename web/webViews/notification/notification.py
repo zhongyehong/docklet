@@ -26,4 +26,4 @@ class CreateNotificationView(normalView):
     def post(cls):
         dockletRequest.post('/notification/create/', request.form)
         # return redirect('/admin/')
-        return 'success'
+        return redirect('/notification/')
