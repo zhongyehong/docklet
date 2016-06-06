@@ -9,7 +9,6 @@ from flask import Flask, request
 # must first init loadenv
 import tools, env
 # default CONFIG=/opt/docklet/local/docklet-running.conf
-from notificationmgr import NotificationMgr
 
 config = env.getenv("CONFIG")
 tools.loadenv(config)
@@ -23,7 +22,7 @@ from log import logger
 import os
 import http.server, cgi, json, sys, shutil
 from socketserver import ThreadingMixIn
-import nodemgr, vclustermgr, etcdlib, network, imagemgr
+import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr
 import userManager
 import monitor,traceback
 import threading
@@ -781,7 +780,7 @@ if __name__ == '__main__':
             etcdclient.deldir("_lock")
 
     G_usermgr = userManager.userManager('root')
-    G_notificationmgr = NotificationMgr()
+    G_notificationmgr = notificationmgr.NotificationMgr()
 
     clusternet = env.getenv("CLUSTER_NET")
     logger.info("using CLUSTER_NET %s" % clusternet)

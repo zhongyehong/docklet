@@ -1,13 +1,20 @@
+from log import logger
 from model import db, Notification, NotificationGroups
 from userManager import administration_required
 
 
 class NotificationMgr:
     def __init__(self):
+        logger.info("Notification Manager init...")
         try:
             Notification.query.all()
         except:
             db.create_all()
+        try:
+            NotificationGroups.query.all()
+        except:
+            db.create_all()
+        logger.info("Notification Manager init done!")
 
     @administration_required
     def create_notification(self, *args, **kwargs):
