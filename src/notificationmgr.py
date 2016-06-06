@@ -31,6 +31,8 @@ class NotificationMgr:
         # groups = json.loads(form['groups'])
         # for group_name in groups:
         for group_name in form['groups']:
+            if group_name == 'none':
+                continue
             notify_groups = NotificationGroups(notify.id, group_name)
             db.session.add(notify_groups)
         db.session.commit()
