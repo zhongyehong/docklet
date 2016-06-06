@@ -155,7 +155,8 @@ class Notification(db.Model):
 
 
 class NotificationGroups(db.Model):
-    __tablename__ = 'notification_groups'
+    # __tablename__ = 'notification_groups'
+    id = db.Column(db.Integer, primary_key=True)
     notification_id = db.Column(db.Integer)
     group_name = db.Column(db.String(100))
 
