@@ -87,3 +87,10 @@ class historydelView(normalView):
     def post(self):
         dockletRequest.post('/system/historydel/', request.form)
         return redirect('/admin/')
+
+
+class CreateNotificationView(normalView):
+    @classmethod
+    def post(cls):
+        dockletRequest.post('/notification/create/', request.form)
+        return redirect('admin')

@@ -150,10 +150,6 @@ class userManager:
             path = env.getenv('DOCKLET_LIB')
             subprocess.call([path+"/userinit.sh", username])
             db.session.commit()
-        try:
-            Notification.query.all()
-        except:
-            db.create_all()
         if not os.path.exists(fspath+"/global/sys/quota"):
             groupfile = open(fspath+"/global/sys/quota",'w')
             groups = []

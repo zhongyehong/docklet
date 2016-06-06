@@ -348,6 +348,12 @@ def userinfo():
 def userquery():
     return userqueryView.as_view()
 
+
+@app.route("/notification/create/", methods=['POST'])
+@administration_required
+def create_notification():
+    return CreateNotificationView.as_view()
+
 @app.route("/system/modify/", methods=['POST'])
 @administration_required
 def systemmodify():

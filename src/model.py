@@ -145,10 +145,22 @@ class Notification(db.Model):
     content = db.Column(db.String(8000))
     create_date = db.Column(db.String(10))
 
-    def __init__(self, title):
+    def __init__(self, title, content=''):
         self.title = title
-        self.content = ''
+        self.content = content
         self.create_date = datetime.utcnow()
 
     def __repr__(self):
         return '<Notification %r>' % self.title
+
+
+class NotificationGroups(db.Model):
+    notification_id = db.Column(db.Integer)
+    group_name = db.Column(db.String(100))
+
+    def __init__(self, notification_id, group_name):
+        self.notification_id = notification_id
+        self.group_name = group_name
+
+    def __repr__(self):
+        return '<Notification: %r, Group: %r>' % (self.notification_id, self.group_name)

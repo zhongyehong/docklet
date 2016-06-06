@@ -9,6 +9,8 @@ from flask import Flask, request
 # must first init loadenv
 import tools, env
 # default CONFIG=/opt/docklet/local/docklet-running.conf
+from notificationmgr import NotificationMgr
+
 config = env.getenv("CONFIG")
 tools.loadenv(config)
 
@@ -499,6 +501,7 @@ def groupadd_user(cur_user, user, form):
     result = G_usermgr.groupadd(form = form, cur_user = cur_user)
     return json.dumps(result)
 
+
 @app.route("/user/chdefault/", methods=['POST'])
 @login_required
 def chdefault(cur_user, user, form):
@@ -534,6 +537,7 @@ def data_user(cur_user, user, form):
     result = G_usermgr.userList(cur_user = cur_user)
     return json.dumps(result)
 
+
 @app.route("/user/groupNameList/", methods=['POST'])
 @login_required
 def groupNameList_user(cur_user, user, form):
@@ -551,6 +555,7 @@ def groupList_user(cur_user, user, form):
     result = G_usermgr.groupList(cur_user = cur_user)
     return json.dumps(result)
 
+
 @app.route("/user/groupQuery/", methods=['POST'])
 @login_required
 def groupQuery_user(cur_user, user, form):
@@ -558,6 +563,7 @@ def groupQuery_user(cur_user, user, form):
     logger.info("handle request: user/groupQuery/")
     result = G_usermgr.groupQuery(name = form.get("name"), cur_user = cur_user)
     return json.dumps(result)
+
 
 @app.route("/user/selfQuery/", methods=['POST'])
 @login_required
@@ -567,12 +573,22 @@ def selfQuery_user(cur_user, user, form):
     result = G_usermgr.selfQuery(cur_user = cur_user)
     return json.dumps(result)
 
+
 @app.route("/user/selfModify/", methods=['POST'])
 @login_required
 def selfModify_user(cur_user, user, form):
     global G_usermgr
     logger.info("handle request: user/selfModify/")
     result = G_usermgr.selfModify(cur_user = cur_user, newValue = form)
+    return json.dumps(result)
+
+
+@app.route("/notification/create/", methods=['POST'])
+@login_required
+def create_notification(cur_user, user, form):
+    global G_notificationmgr
+    logger.info("handle request: notification/create/")
+    result = G_notificationmgr.create_notification(cur_user=cur_user, form=form)
     return json.dumps(result)
 
 @app.route("/system/parmList/", methods=['POST'])
@@ -681,10 +697,10 @@ if __name__ == '__main__':
     runcmd = sys.argv[0]
     app.runpath = runcmd.rsplit('/', 1)[0]
 
-
     global G_nodemgr
     global G_vclustermgr
     global G_usermgr
+    global G_notificationmgr
     global etcdclient
     global G_networkmgr
     global G_clustername
@@ -765,6 +781,8 @@ if __name__ == '__main__':
             etcdclient.deldir("_lock")
 
     G_usermgr = userManager.userManager('root')
+    G_notificationmgr = NotificationMgr()
+
     clusternet = env.getenv("CLUSTER_NET")
     logger.info("using CLUSTER_NET %s" % clusternet)
 
