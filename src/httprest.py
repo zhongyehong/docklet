@@ -810,4 +810,4 @@ if __name__ == '__main__':
     # server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
     logger.info("starting master server")
 
-    app.run(host = masterip, port = masterport, threaded=True)
+    app.run(host = masterip, port = masterport, threaded=True, debug=True)

@@ -354,7 +354,7 @@ def userquery():
 
 @app.route("/notification/", methods=['GET'])
 @administration_required
-def notification():
+def notification_list():
     return NotificationView.as_view()
 
 
@@ -509,4 +509,4 @@ if __name__ == '__main__':
         elif opt in ("-p", "--port"):
             webport = int(arg)
 
-    app.run(host = webip, port = webport, threaded=True)
+    app.run(host = webip, port = webport, threaded=True, debug=True)
