@@ -61,7 +61,7 @@ class NotificationMgr:
         notifies = NotificationGroups.query.filter_by(group_name=group_name).all()
         notifies.extend(NotificationGroups.query.filter_by(group_name='all').all())
         notify_ids = [notify.notification_id for notify in notifies]
-        notify_ids = sorted(list(set(notify_ids)), reversed=True)
+        notify_ids = sorted(list(set(notify_ids)), reverse=True)
         notify_simple_infos = []
         for notify_id in notify_ids:
             notify = Notification.query.filter_by(id=notify_id).first()
