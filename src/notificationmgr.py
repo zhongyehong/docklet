@@ -28,8 +28,9 @@ class NotificationMgr:
         notify = Notification(form['title'], form['content'])
         db.session.add(notify)
         db.session.commit()
-        groups = json.loads(form['groups'])
-        for group_name in groups:
+        # groups = json.loads(form['groups'])
+        # for group_name in groups:
+        for group_name in form['groups']:
             notify_groups = NotificationGroups(notify.id, group_name)
             db.session.add(notify_groups)
         db.session.commit()
