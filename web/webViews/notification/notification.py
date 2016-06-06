@@ -8,7 +8,10 @@ class NotificationView(normalView):
 
     @classmethod
     def get(cls):
-        return cls.render(cls.template_path)
+        result = dockletRequest.post('/notification/list/')
+        notifications = result['data']
+        notification_titles = [notify['title'] for notify in notifications]
+        return cls.render(cls.template_path, notification_titles=notification_titles)
 
 
 class CreateNotificationView(normalView):

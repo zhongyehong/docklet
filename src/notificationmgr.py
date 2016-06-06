@@ -35,3 +35,16 @@ class NotificationMgr:
         db.session.commit()
         return {"success": 'true'}
 
+    @administration_required
+    def list_notifications(self, *args, **kwargs):
+        notifies = Notification.query.all()
+        notify_infos = []
+        for notify in notifies:
+            groups = NotificationGroups.query.filter_by(notification_id=notify.id).all()
+            notify_infos.append({
+                'id': notify.id,
+                'title': notify.title,
+                'content': notify.content,
+                'groups': [group.group_name for group in groups]
+            })
+        return {'success': 'true', 'data': notify_infos}

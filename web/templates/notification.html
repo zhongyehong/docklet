@@ -1,7 +1,7 @@
 {% extends "base_AdminLTE.html" %}
 {% block title %}Docklet | Notification{% endblock %}
 
-{% block panel_title %}Notification{% endblock %}
+{% block panel_title %}Notifications{% endblock %}
 
 {% block panel_list %}
 <ol class="breadcrumb">
@@ -9,7 +9,7 @@
       <a href="/dashboard/"><i class="fa fa-dashboard"></i>Home</a>
   </li>
   <li class="active">
-      <strong>Notification</strong>
+      <strong>Notifications</strong>
   </li>
 </ol>
 {% endblock %}
@@ -34,6 +34,9 @@
 
             <div class="box-body">
                 <p>test rendering...</p>
+                {% for title in notification_titles %}
+                    <p>{{ title }}</p>
+                {% endfor %}
             </div>
         </div>
     </div>

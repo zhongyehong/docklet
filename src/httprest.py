@@ -582,6 +582,15 @@ def selfModify_user(cur_user, user, form):
     return json.dumps(result)
 
 
+@app.route("/notification/list/", methods=['POST'])
+@login_required
+def list_notifications(cur_user, user, form):
+    global G_notificationmgr
+    logger.info("handle request: notification/list/")
+    result = G_notificationmgr.list_notifications(cur_user=cur_user, form=form)
+    return json.dumps(result)
+
+
 @app.route("/notification/create/", methods=['POST'])
 @login_required
 def create_notification(cur_user, user, form):
