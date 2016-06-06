@@ -1,3 +1,5 @@
+import json
+
 from log import logger
 from model import db, Notification, NotificationGroups
 from userManager import administration_required
@@ -20,13 +22,14 @@ class NotificationMgr:
     def create_notification(self, *args, **kwargs):
         '''
         Usage: createNotification(cur_user = 'Your current user', form = 'Post form')
-        Post form: {title: 'Your title', content: 'Your content', groups: ['groupA', 'groupB']}
+        Post form: {title: 'Your title', content: 'Your content', groups: "['groupA', 'groupB']"}
         '''
         form = kwargs['form']
         notify = Notification(form['title'], form['content'])
         db.session.add(notify)
         db.session.commit()
-        for group_name in form['groups']:
+        groups = json.loads(form['groups'])
+        for group_name in groups:
             notify_groups = NotificationGroups(notify.id, group_name)
             db.session.add(notify_groups)
         db.session.commit()
