@@ -599,6 +599,16 @@ def create_notification(cur_user, user, form):
     result = G_notificationmgr.create_notification(cur_user=cur_user, form=form)
     return json.dumps(result)
 
+
+@app.route("/notification/query_self/", methods=['POST'])
+@login_required
+def query_self_notifications(cur_user, user, form):
+    global G_notificationmgr
+    logger.info("handle request: notification/query_self/")
+    result = G_notificationmgr.query_self_notifications(cur_user=cur_user, form=form)
+    return json.dumps(result)
+
+
 @app.route("/system/parmList/", methods=['POST'])
 @login_required
 def parmList_system(cur_user, user, form):

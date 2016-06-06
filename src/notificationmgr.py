@@ -2,7 +2,7 @@ import json
 
 from log import logger
 from model import db, Notification, NotificationGroups
-from userManager import administration_required
+from userManager import administration_required, token_required
 
 
 class NotificationMgr:
@@ -53,3 +53,23 @@ class NotificationMgr:
                 'groups': [group.group_name for group in groups]
             })
         return {'success': 'true', 'data': notify_infos}
+
+    @token_required
+    def query_self_notifications(self, *args, **kwargs):
+        user = kwargs['cur_user']
+        group_name = user.user_group
+        notifies = NotificationGroups.query.filter_by(group_name=group_name).all()
+        notifies.extend(NotificationGroups.query.filter_by(group_name='all').all())
+        notify_ids = [notify.notification_id for notify in notifies]
+        notify_ids = sorted(list(set(notify_ids)), reversed=True)
+        notify_simple_infos = []
+        for notify_id in notify_ids:
+            notify = Notification.query.filter_by(id=notify_id).first()
+            if notify.status != 'open':
+                continue
+            notify_simple_infos.append({
+                'id': notify.id,
+                'title': notify.title,
+                'create_date': notify.create_date
+            })
+        return {'success': 'true', 'data': notify_simple_infos}
