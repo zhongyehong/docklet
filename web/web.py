@@ -352,7 +352,7 @@ def userquery():
     return userqueryView.as_view()
 
 
-@app.route("/notification/", methods=['GET'])
+@app.route("/notification/list/", methods=['GET'])
 @administration_required
 def create_notification():
     return NotificationView.as_view()
