@@ -358,7 +358,7 @@ def notification_list():
     return NotificationView.as_view()
 
 
-@app.route("/notification/create/", methods=['POST'])
+@app.route("/notification/create/", methods=['GET', 'POST'])
 @administration_required
 def create_notification():
     return CreateNotificationView.as_view()

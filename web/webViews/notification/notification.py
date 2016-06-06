@@ -15,6 +15,13 @@ class NotificationView(normalView):
 
 
 class CreateNotificationView(normalView):
+    template_path = 'create_notification.html'
+
+    @classmethod
+    def get(cls):
+        groups = dockletRequest.post('/user/groupNameList/')['groups']
+        return cls.render(cls.template_path, groups=groups)
+
     @classmethod
     def post(cls):
         dockletRequest.post('/notification/create/', request.form)
