@@ -34,9 +34,40 @@
 
             <div class="box-body">
                 <p>test rendering...</p>
+
                 {% for title in notification_titles %}
                     <p>{{ title }}</p>
                 {% endfor %}
+
+                <div class="table table-responsive">
+                    <table id="notificationTable" class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Content</th>
+                                <th>Groups</th>
+                                <th>Create Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for notify in notifications %}
+                            <tr>
+                                <td>{{ notify['id'] }}</td>
+                                <td>{{ notify['title'] }}</td>
+                                <td>{{ notify['content'] }}</td>
+                                <td>
+                                    {% for group_name in notify['groups'] %}{{ group_name }}&nbsp;{% endfor %}
+                                </td>
+                                <td>{{ notify['create_date'] }}</td>
+                                <td>{{ notify['status'] }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
             </div>
         </div>
     </div>

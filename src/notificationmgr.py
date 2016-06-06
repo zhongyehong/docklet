@@ -45,6 +45,8 @@ class NotificationMgr:
                 'id': notify.id,
                 'title': notify.title,
                 'content': notify.content,
+                'create_date': notify.create_date,
+                'status': notify.status,
                 'groups': [group.group_name for group in groups]
             })
         return {'success': 'true', 'data': notify_infos}
