@@ -137,3 +137,18 @@ class UserGroup(db.Model):
 
     def __repr__(self):
         return '<UserGroup %r>' % self.name
+
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100))
+    content = db.Column(db.String(8000))
+    create_date = db.Column(db.String(10))
+
+    def __init__(self, title):
+        self.title = title
+        self.content = ''
+        self.create_date = datetime.utcnow()
+
+    def __repr__(self):
+        return '<Notification %r>' % self.title
