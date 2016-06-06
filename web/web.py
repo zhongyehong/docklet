@@ -5,7 +5,6 @@ import getopt
 
 import sys, inspect
 
-from webViews.notification.notification import CreateNotificationView, NotificationView
 
 this_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
 src_folder = os.path.realpath(os.path.abspath(os.path.join(this_folder,"..", "src")))
@@ -24,6 +23,7 @@ from webViews.log import logger
 from flask import Flask, request, session, render_template, redirect, send_from_directory, make_response, url_for, abort
 from webViews.dashboard import dashboardView
 from webViews.user.userlist import userlistView, useraddView, usermodifyView, userdataView, userqueryView
+from webViews.notification.notification import CreateNotificationView, NotificationView
 from webViews.user.userinfo import userinfoView
 from webViews.user.userActivate import userActivateView
 from webViews.user.grouplist import grouplistView, groupqueryView, groupdetailView, groupmodifyView
