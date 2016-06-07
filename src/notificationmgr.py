@@ -18,6 +18,14 @@ class NotificationMgr:
             db.create_all()
         logger.info("Notification Manager init done!")
 
+    def query_user_notifications(self, user):
+        group_name = user.user_group
+        notifies = NotificationGroups.query.filter_by(group_name=group_name).all()
+        notifies.extend(NotificationGroups.query.filter_by(group_name='all').all())
+        notify_ids = [notify.notification_id for notify in notifies]
+        notify_ids = sorted(list(set(notify_ids)), reverse=True)
+        return [Notification.query.filter_by(id=notify_id).first() for notify_id in notify_ids]
+
     @administration_required
     def create_notification(self, *args, **kwargs):
         '''
@@ -55,16 +63,26 @@ class NotificationMgr:
         return {'success': 'true', 'data': notify_infos}
 
     @token_required
-    def query_self_notifications(self, *args, **kwargs):
+    def query_self_notification_simple_infos(self, *args, **kwargs):
         user = kwargs['cur_user']
-        group_name = user.user_group
-        notifies = NotificationGroups.query.filter_by(group_name=group_name).all()
-        notifies.extend(NotificationGroups.query.filter_by(group_name='all').all())
-        notify_ids = [notify.notification_id for notify in notifies]
-        notify_ids = sorted(list(set(notify_ids)), reverse=True)
+        notifies = self.query_user_notifications(user)
+        notify_simple_infos = []
+        for notify in notifies:
+            if notify.status != 'open':
+                continue
+            notify_simple_infos.append({
+                'id': notify.id,
+                'title': notify.title,
+                'create_date': notify.create_date
+            })
+        return {'success': 'true', 'data': notify_simple_infos}
+
+    @token_required
+    def query_self_notifications_infos(self, *args, **kwargs):
+        user = kwargs['cur_user']
+        notifies = self.query_user_notifications(user)
         notify_infos = []
-        for notify_id in notify_ids:
-            notify = Notification.query.filter_by(id=notify_id).first()
+        for notify in notifies:
             if notify.status != 'open':
                 continue
             notify_infos.append({

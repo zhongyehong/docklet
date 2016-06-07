@@ -602,10 +602,10 @@ def create_notification(cur_user, user, form):
 
 @app.route("/notification/query_self/", methods=['POST'])
 @login_required
-def query_self_notifications(cur_user, user, form):
+def query_self_notification_simple_infos(cur_user, user, form):
     global G_notificationmgr
     logger.info("handle request: notification/query_self/")
-    result = G_notificationmgr.query_self_notifications(cur_user=cur_user, form=form)
+    result = G_notificationmgr.query_self_notification_simple_infos(cur_user=cur_user, form=form)
     return json.dumps(result)
 
 
@@ -615,6 +615,15 @@ def query_notification(cur_user, user, form):
     global G_notificationmgr
     logger.info("handle request: notification/query/")
     result = G_notificationmgr.query_notification(cur_user=cur_user, form=form)
+    return json.dumps(result)
+
+
+@app.route("/notification/query/all/", methods=['POST'])
+@login_required
+def query_self_notifications_infos(cur_user, user, form):
+    global G_notificationmgr
+    logger.info("handle request: notification/query/all/")
+    result = G_notificationmgr.query_self_notifications_infos(cur_user=cur_user, form=form)
     return json.dumps(result)
 
 

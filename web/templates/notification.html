@@ -48,6 +48,7 @@
                                 <th>Groups</th>
                                 <th>Create Date</th>
                                 <th>Status</th>
+                                <th>Command</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -55,12 +56,16 @@
                             <tr>
                                 <td>{{ notify['id'] }}</td>
                                 <td>{{ notify['title'] }}</td>
-                                <td>{{ notify['content'] }}</td>
+                                <td>{{ notify['content']|truncate(50) }}</td>
                                 <td>
                                     {% for group_name in notify['groups'] %}<code>{{ group_name }}</code>&nbsp;&nbsp;{% endfor %}
                                 </td>
                                 <td>{{ notify['create_date'] }}</td>
                                 <td>{{ notify['status'] }}</td>
+                                <td>
+                                    <a class="btn btn-xs btn-success"><i class="fa fa-plus"></i> details</a>&nbsp;
+                                    <a class="btn btn-xs btn-info"><i class="fa fa-pencil"></i> edit</a>&nbsp;
+                                </td>
                             </tr>
                         {% endfor %}
                         </tbody>

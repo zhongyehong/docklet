@@ -52,7 +52,7 @@
                     <div class="form-group">
                         <label class="col-sm-2 control-label">Groups</label>
                         <div class="checkbox col-sm-10">
-                            <label><input type="checkbox" checked name="groups" value="none" style="display: none"></label>
+                            <label style="display: none"><input type="checkbox" checked name="groups" value="none" style="display: none"></label>
                             <label><input type="checkbox" name="groups" value="all">all&nbsp;&nbsp;</label>
                             {% for group_name in groups %}
                             <label><input type="checkbox" name="groups" value="{{ group_name }}">{{ group_name }}&nbsp;&nbsp;</label>
