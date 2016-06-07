@@ -263,8 +263,20 @@
         success : function(data) {
             console.log(data);
             var notifies = data.data;
-            var cnt = notifies.length;
+            var len = notifies.length;
+            var cnt = 0;
 
+            var now = new Date().getTime();
+            for(var t = 0; t < len; t++) {
+                var notify = notifies[t];
+                var createDate = notify.create_date.substring(0, 19);
+                createDate = createDate.replace(/-/g,'/');
+                var from = new Date(createDate).getTime();
+                var delta = now - from;
+                if(delta <= 604800000) {
+                    cnt ++;
+                }
+            }
 
             $('#notificationIcon').find('span').remove();
             $('#notificationList').empty();
@@ -272,9 +284,9 @@
             if(cnt != 0) {
                 $("<span class=\"label label-warning\">"+cnt+"</span>").appendTo($('#notificationIcon'));
             }
-            $("#notificationHeader").html("You have " + cnt + " notifications");
-            for(var i = 0; i < cnt; i++) {
-                var notify = notifies[i];
+            $("#notificationHeader").html("You have " + len + " notifications, "+cnt+" in 1 week");
+            for(var i = 0; i < len; i++) {
+                notify = notifies[i];
                 console.log(notify);
                 var a = $("<a href=\"/notification/detail/"+ notify.id +"/\"><i class=\"fa fa-envelope\"></i> "+ notify.title +"</a>")
                 var item = $("<li></li>");
