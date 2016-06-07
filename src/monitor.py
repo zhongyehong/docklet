@@ -16,7 +16,7 @@ class Container_Collector(threading.Thread):
     def __init__(self,test=False):
         threading.Thread.__init__(self)
         self.thread_stop = False
-        self.interval = 2000
+        self.interval = 2
         self.test = test
         self.cpu_last = {}
         self.cpu_quota = {}
@@ -181,7 +181,7 @@ class Collector(threading.Thread):
     def __init__(self,test=False):
         threading.Thread.__init__(self)
         self.thread_stop = False
-        self.interval = 1000
+        self.interval = 1
         self.test=test
         return
 
