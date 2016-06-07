@@ -600,6 +600,24 @@ def create_notification(cur_user, user, form):
     return json.dumps(result)
 
 
+@app.route("/notification/modify/", methods=['POST'])
+@login_required
+def modify_notification(cur_user, user, form):
+    global G_notificationmgr
+    logger.info("handle request: notification/modify/")
+    result = G_notificationmgr.modify_notification(cur_user=cur_user, form=form)
+    return json.dumps(result)
+
+
+@app.route("/notification/delete/", methods=['POST'])
+@login_required
+def delete_notification(cur_user, user, form):
+    global G_notificationmgr
+    logger.info("handle request: notification/delete/")
+    result = G_notificationmgr.delete_notification(cur_user=cur_user, form=form)
+    return json.dumps(result)
+
+
 @app.route("/notification/query_self/", methods=['POST'])
 @login_required
 def query_self_notification_simple_infos(cur_user, user, form):

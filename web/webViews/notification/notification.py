@@ -50,3 +50,16 @@ class QueryNotificationView(normalView):
             notifies.append(dockletRequest.post('/notification/query/', data={'notify_id': notify_id})['data'])
         return cls.render(cls.template_path, notifies=notifies)
 
+
+class ModifyNotificationView(normalView):
+    @classmethod
+    def post(cls):
+        dockletRequest.post('/notification/modify/', request.form)
+        return redirect('/notification/')
+
+
+class DeleteNotificationView(normalView):
+    @classmethod
+    def post(cls):
+        dockletRequest.post('/notification/delete/', request.form)
+        return redirect('/notification/')

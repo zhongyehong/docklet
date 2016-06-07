@@ -110,7 +110,7 @@
                                                 <small class="font-bold">Edit the details of the notification</small>
                                             </div>
                                             <div class="modal-body">
-                                                <form id="notificationForm" action="/notification/modify/" method="post">
+                                                <form id="modifyNotificationForm" action="/notification/modify/" method="post">
                                                     <div class="form-group">
                                                         <label>Title</label>
                                                         <input type="text" class="form-control" name="title">
@@ -140,9 +140,25 @@
                                                             {% endfor %}
                                                         </div>
                                                     </div>
+                                                    <div class="form-group" style="margin-bottom: 0">
+                                                        <label>Status</label>
+                                                        <input type="text" class="form-control" name="N/A" style="display: none" value="N/A">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <div class="radio">
+                                                            {% if 'open' == notify['status'] %}
+                                                                <label><input type="radio" name="status" checked value="open">open</label>
+                                                                <label><input type="radio" name="status" value="closed">closed</label>
+                                                            {% else %}
+                                                                <label><input type="radio" name="status" value="open">open</label>
+                                                                <label><input type="radio" name="status" checked value="closed">closed</label>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
                                                 </form>
                                             </div>
                                             <div class="modal-footer">
+                                                <button type="button" class="btn btn-primary" onClick="sendModifyNotification();">Save</button>
                                                 <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
                                             </div>
                                         </div>
@@ -182,5 +198,9 @@
 {% endblock %}
 
 {% block script_src %}
-
+    <script type="text/javascript">
+        function sendModifyNotification() {
+            $('#modifyNotificationForm').submit();
+        }
+    </script>
 {% endblock %}

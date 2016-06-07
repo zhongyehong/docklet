@@ -65,6 +65,37 @@ class NotificationMgr:
             })
         return {'success': 'true', 'data': notify_infos}
 
+    @administration_required
+    def modify_notification(self, *args, **kwargs):
+        form = kwargs['form']
+        notify_id = form['notify_id']
+        notify = Notification.query.filter_by(id=notify_id).first()
+        notify.title = form['title']
+        notify.content = form['content']
+        notify.status = form['status']
+        notifies_groups = NotificationGroups.query.filter_by(notification_id=notify_id).all()
+        for notify_groups in notifies_groups:
+            db.session.delete(notify_groups)
+        group_names = form.getlist('groups')
+        if 'all' in group_names:
+            group_names = ['all']
+        for group_name in group_names:
+            if group_name == 'none':
+                continue
+            notify_groups = NotificationGroups(notify.id, group_name)
+            db.session.add(notify_groups)
+        db.session.commit()
+        return {"success": 'true'}
+
+    @administration_required
+    def delete_notification(self, *args, **kwargs):
+        form = kwargs['form']
+        notify_id = form['notify_id']
+        notify = Notification.query.filter_by(id=notify_id).first()
+        db.session.delete(notify)
+        db.session.commit()
+        return {"success": 'true'}
+
     @token_required
     def query_self_notification_simple_infos(self, *args, **kwargs):
         user = kwargs['cur_user']
