@@ -113,11 +113,11 @@
                                                 <form id="modifyNotificationForm" action="/notification/modify/" method="post">
                                                     <div class="form-group">
                                                         <label>Title</label>
-                                                        <input type="text" class="form-control" name="title">
+                                                        <input type="text" class="form-control" name="title" value="{{ notify['title'] }}">
                                                     </div>
                                                     <div class="form-group">
                                                         <label>Content</label>
-                                                        <textarea class="form-control" name="content"></textarea>
+                                                        <textarea class="form-control" name="content">{{ notify['content'] }}</textarea>
                                                     </div>
                                                     <div class="form-group" style="margin-bottom: 0">
                                                         <label>Groups</label>
@@ -140,11 +140,10 @@
                                                             {% endfor %}
                                                         </div>
                                                     </div>
-                                                    <div class="form-group" style="margin-bottom: 0">
-                                                        <label>Status</label>
-                                                        <input type="text" class="form-control" name="N/A" style="display: none" value="N/A">
-                                                    </div>
                                                     <div class="form-group">
+                                                        <h5>
+                                                            <b>Status</b>
+                                                        </h5>
                                                         <div class="radio">
                                                             {% if 'open' == notify['status'] %}
                                                                 <label><input type="radio" name="status" checked value="open">open</label>
@@ -201,6 +200,11 @@
     <script type="text/javascript">
         function sendModifyNotification() {
             $('#modifyNotificationForm').submit();
+        }
+        function sendDeleteNotification() {
+            var ajaxCfg = {
+
+            }
         }
     </script>
 {% endblock %}
