@@ -56,16 +56,42 @@
                             <tr>
                                 <td>{{ notify['id'] }}</td>
                                 <td>{{ notify['title'] }}</td>
-                                <td>{{ notify['content']|truncate(50) }}</td>
+                                <td>{{ notify['content']|truncate(30) }}</td>
                                 <td>
                                     {% for group_name in notify['groups'] %}<code>{{ group_name }}</code>&nbsp;&nbsp;{% endfor %}
                                 </td>
                                 <td>{{ notify['create_date'] }}</td>
                                 <td>{{ notify['status'] }}</td>
                                 <td>
-                                    <a class="btn btn-xs btn-success"><i class="fa fa-plus"></i> details</a>&nbsp;
+                                    <a class="btn btn-xs btn-success" data-toggle="modal" data-target="#detailModal_{{ notify['id'] }}"><i class="fa fa-plus"></i> details</a>&nbsp;
                                     <a class="btn btn-xs btn-info"><i class="fa fa-pencil"></i> edit</a>&nbsp;
+                                    <a class="btn btn-xs btn-danger"><i class="fa fa-times"></i> delete</a>
                                 </td>
+                            <!-- Modal Dialog -->
+                                <div class="modal inmodal" id="detailModal_{{ notify['id'] }}" role="dialog" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <button type="button" class="close" data-dismiss="modal">
+                                                    <span aria-hidden="true">&times;</span>
+                                                    <span class="sr-only">Close</span>
+                                                </button>
+                                                <i class="fa fa-envelope modal-icon"></i>
+                                                <h4 class="modal-title">Notification Details</h4>
+                                                <small class="font-bold">Show the details of the notification</small>
+                                            </div>
+                                            <div class="modal-body">
+                                                <h6>Title</h6>
+                                                <p>{{ notify['title'] }}</p>
+                                                <h6>Content</h6>
+                                                <p>{{ notify['content'] }}</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </tr>
                         {% endfor %}
                         </tbody>

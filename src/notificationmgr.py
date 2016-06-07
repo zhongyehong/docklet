@@ -34,11 +34,14 @@ class NotificationMgr:
         '''
         form = kwargs['form']
         notify = Notification(form['title'], form['content'])
+        group_names = form.getlist('groups')
         db.session.add(notify)
         db.session.commit()
         # groups = json.loads(form['groups'])
         # for group_name in groups:
-        for group_name in form.getlist('groups'):
+        if 'all' in group_names:
+            group_names = ['all']
+        for group_name in group_names:
             if group_name == 'none':
                 continue
             notify_groups = NotificationGroups(notify.id, group_name)
