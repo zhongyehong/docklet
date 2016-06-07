@@ -72,7 +72,7 @@
 {#                </li>#}
               </ul>
             </li>
-            <li class="footer"><a href="#">View all</a></li>
+            <li class="footer"><a href="/notification/detail/all/">View all</a></li>
           </ul>
           </li>
           <li class="dropdown user user-menu">
@@ -264,6 +264,10 @@
             console.log(data);
             var notifies = data.data;
             var cnt = notifies.length;
+
+            $('#notificationIcon').empty();
+            $('#notificationList').empty();
+
             if(cnt != 0) {
                 $("<span class=\"label label-warning\">"+cnt+"</span>").appendTo($('#notificationIcon'));
             }
@@ -284,7 +288,9 @@
     }
 
     $(document).ready(function(){
-        $.ajax(ajaxCfg);
+        var refresh = setInterval(function(){
+            $.ajax(ajaxCfg);
+        }, 10000);
     });
 </script>
 
