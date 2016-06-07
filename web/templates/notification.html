@@ -110,7 +110,7 @@
                                                 <small class="font-bold">Edit the details of the notification</small>
                                             </div>
                                             <div class="modal-body">
-                                                <form id="modifyNotificationForm" action="/notification/modify/" method="post">
+                                                <form id="modifyNotificationForm_{{ notify['id'] }}" action="/notification/modify/" method="post">
                                                     <div class="form-group">
                                                         <label>Title</label>
                                                         <input type="text" class="form-control" name="title" value="{{ notify['title'] }}">
@@ -140,6 +140,7 @@
                                                             {% endfor %}
                                                         </div>
                                                     </div>
+                                                    <div class="row"></div>
                                                     <div class="form-group">
                                                         <h5>
                                                             <b>Status</b>
@@ -157,7 +158,7 @@
                                                 </form>
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-primary" onClick="sendModifyNotification();">Save</button>
+                                                <button type="button" class="btn btn-primary" onClick="sendModifyNotification({{ notify['id'] }});">Save</button>
                                                 <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
                                             </div>
                                         </div>
@@ -176,9 +177,12 @@
                                             </div>
                                             <div class="modal-body">
                                                 <strong class="text-center">Are you sure to do this?</strong>
+                                                <form id="deleteNotificationForm_{{ notify['id'] }}" style="display: none" action="/notification/delete/" method="post">
+                                                    <input type="text" class="form-control" name="notify_id" style="display: none" value="{{ notify['id'] }}">
+                                                </form>
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-danger" data-dismiss="modal">Delete</button>
+                                                <button type="button" class="btn btn-danger" onClick="sendModifyNotification({{ notify['id'] }});">Delete</button>
                                                 <button type="button" class="btn btn-white" data-dismiss="modal">Cancel</button>
                                             </div>
                                         </div>
@@ -198,13 +202,19 @@
 
 {% block script_src %}
     <script type="text/javascript">
-        function sendModifyNotification() {
-            $('#modifyNotificationForm').submit();
+        function sendModifyNotification(notifyId) {
+            $('#modifyNotificationForm_'+notifyId).submit();
         }
-        function sendDeleteNotification() {
+        function sendDeleteNotification(notifyId) {
             var ajaxCfg = {
-
-            }
+                type : "post",
+                url : '/notification/query_self/',
+                dataType : "json",
+                data : {
+                    notify_id: notifyId
+                }
+            };
+            $('#deleteNotificationForm_'+notifyId).submit();
         }
     </script>
 {% endblock %}
