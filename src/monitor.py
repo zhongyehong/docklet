@@ -30,6 +30,20 @@ class Container_Collector(threading.Thread):
         containers = re.split('\s+',output)
         return containers
 
+    def get_proc_etime(self,pid):
+        fmt = subprocess.getoutput("ps -A -opid,etime | grep '^ *%d' | awk '{print $NF}'" % pid).strip()
+        if fmt == '':
+            return -1
+        parts = fmt.split('-')
+        days = int(parts[0]) if len(parts) == 2 else 0
+        fmt = parts[-1]
+        parts = fmt.split(':')
+        hours = int(parts[0]) if len(parts) == 3 else 0
+        parts = parts[len(parts)-2:]
+        minutes = int(parts[0])
+        seconds = int(parts[1])
+        return ((days * 24 + hours) * 60 + minutes) * 60 + seconds
+
     def collect_containerinfo(self,container_name):
         global workercinfo
         output = subprocess.check_output("sudo lxc-info -n %s" % (container_name),shell=True)
@@ -37,6 +51,9 @@ class Container_Collector(threading.Thread):
         parts = re.split('\n',output)
         info = {}
         basic_info = {}
+        basic_exist = 'basic_info' in workercinfo[container_name].keys()
+        if basic_exist:
+            basic_info = workercinfo[container_name]['basic_info']
         for part in parts:
             if not part == '':
                 key_val = re.split(':',part)
@@ -45,11 +62,27 @@ class Container_Collector(threading.Thread):
                 info[key] = val.lstrip()
         basic_info['Name'] = info['Name']
         basic_info['State'] = info['State']
+        #if basic_exist:
+         #   logger.info(workercinfo[container_name]['basic_info'])
         if(info['State'] == 'STOPPED'):
+            if not 'RunningTime' in basic_info.keys():
+                basic_info['RunningTime'] = 0
+                basic_info['LastTime'] = 0
             workercinfo[container_name]['basic_info'] = basic_info
+            logger.info(basic_info)
             return False
+        running_time = self.get_proc_etime(int(info['PID']))
+        if basic_exist and 'PID' in workercinfo[container_name]['basic_info'].keys():
+            last_time = workercinfo[container_name]['basic_info']['LastTime']
+            if not info['PID'] == workercinfo[container_name]['basic_info']['PID']:
+                last_time = workercinfo[container_name]['basic_info']['RunningTime']
+        else:
+            last_time = 0
+        basic_info['LastTime'] = last_time
+        running_time += last_time
         basic_info['PID'] = info['PID']
         basic_info['IP'] = info['IP']
+        basic_info['RunningTime'] = running_time
         workercinfo[container_name]['basic_info'] = basic_info
 
         cpu_parts = re.split(' +',info['CPU use'])
@@ -256,6 +289,10 @@ def workerFetchInfo():
     global workercinfo
     return str([workerinfo, workercinfo])
 
+def get_owner(container_name):
+    names = container_name.split('-')
+    return names[0]
+
 class Master_Collector(threading.Thread):
 
     def __init__(self,nodemgr):
@@ -274,12 +311,14 @@ class Master_Collector(threading.Thread):
             for worker in workers:
                 try:
                     ip = self.nodemgr.rpc_to_ip(worker)
-                    #[info,cinfo] = worker.workerFetchInfo()
                     info = list(eval(worker.workerFetchInfo()))
-                    logger.info(info[1])
+                    #logger.info(info[1])
                     monitor_hosts[ip] = info[0]
                     for container in info[1].keys():
-                        monitor_vnodes[container] = info[1][container]
+                        owner = get_owner(container)
+                        if not owner in monitor_vnodes.keys():
+                            monitor_vnodes[owner] = {}
+                        monitor_vnodes[owner][container] = info[1][container]
                 except Exception as err:
                     logger.warning(traceback.format_exc())
                     logger.warning(err)
@@ -291,45 +330,47 @@ class Master_Collector(threading.Thread):
         return
 
 class Container_Fetcher:
-    def __init__(self):
+    def __init__(self,container_name):
+        self.owner = get_owner(container_name)
+        self.con_id = container_name
         return
 
-    def get_cpu_use(self,container_name):
+    def get_cpu_use(self):
         global monitor_vnodes
         try:
-            res = monitor_vnodes[container_name]['cpu_use']
-            res['quota'] = monitor_vnodes[container_name]['quota']
+            res = monitor_vnodes[self.owner][self.con_id]['cpu_use']
+            res['quota'] = monitor_vnodes[self.owner][self.con_id]['quota']
         except Exception as err:
             logger.warning(traceback.format_exc())
             logger.warning(err)
             res = {}
         return res
 
-    def get_mem_use(self,container_name):
+    def get_mem_use(self):
         global monitor_vnodes
         try:
-            res = monitor_vnodes[container_name]['mem_use']
-            res['quota'] = monitor_vnodes[container_name]['quota']
+            res = monitor_vnodes[self.owner][self.con_id]['mem_use']
+            res['quota'] = monitor_vnodes[self.owner][self.con_id]['quota']
         except Exception as err:
             logger.warning(traceback.format_exc())
             logger.warning(err)
             res = {}
         return res
 
-    def get_disk_use(self,container_name):
+    def get_disk_use(self):
         global monitor_vnodes
         try:
-            res = monitor_vnodes[container_name]['disk_use']
+            res = monitor_vnodes[self.owner][self.con_id]['disk_use']
         except Exception as err:
             logger.warning(traceback.format_exc())
             logger.warning(err)
             res = {}
         return res
 
-    def get_basic_info(self,container_name):
+    def get_basic_info(self):
         global monitor_vnodes
         try:
-            res = monitor_vnodes[container_name]['basic_info']
+            res = monitor_vnodes[self.owner][self.con_id]['basic_info']
         except Exception as err:
             logger.warning(traceback.format_exc())
             logger.warning(err)

@@ -38,6 +38,9 @@ DAEMON_OPTS=
 # The process ID of the script when it runs is stored here:
 PIDFILE=$RUN_DIR/$DAEMON_NAME.pid
 
+DOCKMETER_NAME=$DAEMON_NAME-metering
+DOCKMETER_PIDFILE=$RUN_DIR/$DOCKMETER_NAME.pid
+
 . /lib/lsb/init-functions
 
 ###########
@@ -90,6 +93,18 @@ do_stop () {
     log_end_msg $?
 }
 
+do_start_meter() {
+    log_daemon_msg "Starting $DOCKMETER_NAME in $FS_PREFIX"
+    start-stop-daemon --start --background --pidfile $DOCKMETER_PIDFILE --make-pidfile --exec $DOCKLET_HOME/meter/main.py
+    log_end_msg $?
+}
+
+do_stop_meter() {
+    log_daemon_msg "Stopping $DOCKMETER_NAME daemon"
+    start-stop-daemon --stop --pidfile $DOCKMETER_PIDFILE --remove-pidfile
+    log_end_msg $?
+}
+
 
 
 
@@ -100,6 +115,13 @@ case "$1" in
 
     stop)
         do_stop
+        ;;
+    start-meter)
+        do_start_meter
+        ;;
+
+    stop-meter)
+        do_stop_meter
         ;;
 
     console)
