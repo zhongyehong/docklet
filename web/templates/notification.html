@@ -206,14 +206,6 @@
             $('#modifyNotificationForm_'+notifyId).submit();
         }
         function sendDeleteNotification(notifyId) {
-            var ajaxCfg = {
-                type : "post",
-                url : '/notification/query_self/',
-                dataType : "json",
-                data : {
-                    notify_id: notifyId
-                }
-            };
             $('#deleteNotificationForm_'+notifyId).submit();
         }
     </script>

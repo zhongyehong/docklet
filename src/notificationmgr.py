@@ -54,6 +54,8 @@ class NotificationMgr:
         notifies = Notification.query.all()
         notify_infos = []
         for notify in notifies:
+            if notify is None or notify.status == 'deleted':
+                continue
             groups = NotificationGroups.query.filter_by(notification_id=notify.id).all()
             notify_infos.append({
                 'id': notify.id,
@@ -92,6 +94,10 @@ class NotificationMgr:
         form = kwargs['form']
         notify_id = form['notify_id']
         notify = Notification.query.filter_by(id=notify_id).first()
+        # notify.status = 'deleted'
+        notifies_groups = NotificationGroups.query.filter_by(notification_id=notify_id).all()
+        for notify_groups in notifies_groups:
+            db.session.delete(notify_groups)
         db.session.delete(notify)
         db.session.commit()
         return {"success": 'true'}
@@ -102,7 +108,7 @@ class NotificationMgr:
         notifies = self.query_user_notifications(user)
         notify_simple_infos = []
         for notify in notifies:
-            if notify.status != 'open':
+            if notify is None or notify.status != 'open':
                 continue
             notify_simple_infos.append({
                 'id': notify.id,
@@ -117,7 +123,7 @@ class NotificationMgr:
         notifies = self.query_user_notifications(user)
         notify_infos = []
         for notify in notifies:
-            if notify.status != 'open':
+            if notify is None or notify.status != 'open':
                 continue
             notify_infos.append({
                 'id': notify.id,
