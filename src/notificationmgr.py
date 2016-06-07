@@ -65,6 +65,7 @@ class NotificationMgr:
                 'status': notify.status,
                 'groups': [group.group_name for group in groups]
             })
+        notify_infos.reverse()
         return {'success': 'true', 'data': notify_infos}
 
     @administration_required
