@@ -221,7 +221,7 @@ class shareImageView(normalView):
         }
         result = dockletRequest.post("/image/share/", data)
         if(result):
-            return redirect("/dashboard/")
+            return redirect("/config/")
         else:
             self.error()
 
@@ -235,7 +235,7 @@ class unshareImageView(normalView):
         }
         result = dockletRequest.post("/image/unshare/", data)
         if(result):
-            return redirect("/dashboard/")
+            return redirect("/config/")
         else:
             self.error()
 
@@ -249,7 +249,7 @@ class deleteImageView(normalView):
         }
         result = dockletRequest.post("/image/delete/", data)
         if(result):
-            return redirect("/dashboard/")
+            return redirect("/config/")
         else:
             self.error()
 
@@ -264,7 +264,7 @@ class addproxyView(normalView):
         }
         result = dockletRequest.post("/addproxy/", data)
         if(result):
-            return redirect("/dashboard/")
+            return redirect("/config/")
         else:
             self.error()
 
@@ -277,7 +277,7 @@ class deleteproxyView(normalView):
         }
         result = dockletRequest.post("/deleteproxy/", data)
         if(result):
-            return redirect("/dashboard/")
+            return redirect("/config/")
         else:
             self.error()
 
