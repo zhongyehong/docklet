@@ -609,6 +609,15 @@ def query_self_notifications(cur_user, user, form):
     return json.dumps(result)
 
 
+@app.route("/notification/query/", methods=['POST'])
+@login_required
+def query_notification(cur_user, user, form):
+    global G_notificationmgr
+    logger.info("handle request: notification/query/")
+    result = G_notificationmgr.query_notification(cur_user=cur_user, form=form)
+    return json.dumps(result)
+
+
 @app.route("/system/parmList/", methods=['POST'])
 @login_required
 def parmList_system(cur_user, user, form):

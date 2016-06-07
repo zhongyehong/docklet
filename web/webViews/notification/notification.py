@@ -36,3 +36,17 @@ class QuerySelfNotificationsView(normalView):
     def post(cls):
         result = dockletRequest.post('/notification/query_self/')
         return json.dumps(result)
+
+
+class QueryNotificationView(normalView):
+    template_path = 'notification_info.html'
+
+    @classmethod
+    def get_by_id(cls, notify_id):
+        notifies = []
+        if notify_id == 'all':
+            notifies.extend(dockletRequest.post('/notification/query_self/')['data'])
+        else:
+            notifies.append(dockletRequest.post('/notification/query/', data={'notify_id': notify_id})['data'])
+        return cls.render(cls.template_path, notifies=notifies)
+

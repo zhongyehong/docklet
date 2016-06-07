@@ -62,14 +62,38 @@ class NotificationMgr:
         notifies.extend(NotificationGroups.query.filter_by(group_name='all').all())
         notify_ids = [notify.notification_id for notify in notifies]
         notify_ids = sorted(list(set(notify_ids)), reverse=True)
-        notify_simple_infos = []
+        notify_infos = []
         for notify_id in notify_ids:
             notify = Notification.query.filter_by(id=notify_id).first()
             if notify.status != 'open':
                 continue
-            notify_simple_infos.append({
+            notify_infos.append({
                 'id': notify.id,
                 'title': notify.title,
+                'content': notify.content,
                 'create_date': notify.create_date
             })
-        return {'success': 'true', 'data': notify_simple_infos}
+        return {'success': 'true', 'data': notify_infos}
+
+    @token_required
+    def query_notification(self, *args, **kwargs):
+        user = kwargs['cur_user']
+        form = kwargs['form']
+        group_name = user.user_group
+        notify_id = form['notify_id']
+        groups = NotificationGroups.query.filter_by(notification_id=notify_id).all()
+        if not(group_name in [group.group_name for group in groups]):
+            if not('all' in [group.group_name for group in groups]):
+                return {'success': 'false', 'reason': 'Unauthorized Action'}
+        notify = Notification.query.filter_by(id=notify_id).first()
+        notify_info = {
+            'id': notify.id,
+            'title': notify.title,
+            'content': notify.content,
+            'create_date': notify.create_date
+        }
+        if notify.status != 'open':
+            notify_info['title'] = 'This notification is not available'
+            notify_info['content'] = 'Sorry, it seems that the administrator has closed this notification.'
+            return {'success': 'false', 'data': notify_info}
+        return {'success': 'true', 'data': notify_info}

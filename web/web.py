@@ -23,7 +23,8 @@ from webViews.log import logger
 from flask import Flask, request, session, render_template, redirect, send_from_directory, make_response, url_for, abort
 from webViews.dashboard import dashboardView
 from webViews.user.userlist import userlistView, useraddView, usermodifyView, userdataView, userqueryView
-from webViews.notification.notification import CreateNotificationView, NotificationView, QuerySelfNotificationsView
+from webViews.notification.notification import CreateNotificationView, NotificationView, QuerySelfNotificationsView, \
+    QueryNotificationView
 from webViews.user.userinfo import userinfoView
 from webViews.user.userActivate import userActivateView
 from webViews.user.grouplist import grouplistView, groupqueryView, groupdetailView, groupmodifyView
@@ -368,6 +369,13 @@ def create_notification():
 @login_required
 def query_self_notifications():
     return QuerySelfNotificationsView.as_view()
+
+
+@app.route("/notification/detail/<notify_id>/", methods=['GET'])
+@login_required
+def query_notification_detail(notify_id):
+    return QueryNotificationView.get_by_id(notify_id)
+
 
 @app.route("/system/modify/", methods=['POST'])
 @administration_required
