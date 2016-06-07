@@ -122,9 +122,15 @@
                                                     <div class="form-group">
                                                         <label>Groups</label>
                                                         <input type="text" class="form-control" name="N/A" style="display: none">
+                                                    </div>
+                                                    <div class="form-group">
                                                         <div class="checkbox col-sm-10">
                                                             <label style="display: none"><input type="checkbox" checked name="groups" value="none" style="display: none"></label>
-                                                            <label><input type="checkbox" name="groups" value="all">all&nbsp;&nbsp;</label>
+                                                            {% if 'all' in notify['groups'] %}
+                                                                <label><input type="checkbox" checked name="groups" value="all">all&nbsp;&nbsp;</label>
+                                                            {% else %}
+                                                                <label><input type="checkbox" name="groups" value="all">all&nbsp;&nbsp;</label>
+                                                            {% endif %}
                                                             {% for group_name in groups %}
                                                                 {% if group_name in notify['groups'] %}
                                                                     <label><input type="checkbox" checked name="groups" value="{{ group_name }}">{{ group_name }}&nbsp;&nbsp;</label>
