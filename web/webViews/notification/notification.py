@@ -11,9 +11,9 @@ class NotificationView(normalView):
     @classmethod
     def get(cls):
         result = dockletRequest.post('/notification/list/')
+        groups = dockletRequest.post('/user/groupNameList/')['groups']
         notifications = result['data']
-        notification_titles = [notify['title'] for notify in notifications]
-        return cls.render(cls.template_path, notifications=notifications, notification_titles=notification_titles)
+        return cls.render(cls.template_path, notifications=notifications, groups=groups)
 
 
 class CreateNotificationView(normalView):
