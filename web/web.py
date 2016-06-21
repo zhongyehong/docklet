@@ -4,8 +4,6 @@ import os
 import getopt
 
 import sys, inspect
-
-
 this_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
 src_folder = os.path.realpath(os.path.abspath(os.path.join(this_folder,"..", "src")))
 if src_folder not in sys.path:
@@ -23,8 +21,6 @@ from webViews.log import logger
 from flask import Flask, request, session, render_template, redirect, send_from_directory, make_response, url_for, abort
 from webViews.dashboard import dashboardView
 from webViews.user.userlist import userlistView, useraddView, usermodifyView, userdataView, userqueryView
-from webViews.notification.notification import CreateNotificationView, NotificationView, QuerySelfNotificationsView, \
-    QueryNotificationView, ModifyNotificationView, DeleteNotificationView
 from webViews.user.userinfo import userinfoView
 from webViews.user.userActivate import userActivateView
 from webViews.user.grouplist import grouplistView, groupqueryView, groupdetailView, groupmodifyView
@@ -351,43 +347,6 @@ def userinfo():
 @administration_required
 def userquery():
     return userqueryView.as_view()
-
-
-@app.route("/notification/", methods=['GET'])
-@administration_required
-def notification_list():
-    return NotificationView.as_view()
-
-
-@app.route("/notification/create/", methods=['GET', 'POST'])
-@administration_required
-def create_notification():
-    return CreateNotificationView.as_view()
-
-
-@app.route("/notification/modify/", methods=['POST'])
-@administration_required
-def modify_notification():
-    return ModifyNotificationView.as_view()
-
-
-@app.route("/notification/delete/", methods=['POST'])
-@administration_required
-def delete_notification():
-    return DeleteNotificationView.as_view()
-
-
-@app.route("/notification/query_self/", methods=['POST'])
-@login_required
-def query_self_notifications():
-    return QuerySelfNotificationsView.as_view()
-
-
-@app.route("/notification/detail/<notify_id>/", methods=['GET'])
-@login_required
-def query_notification_detail(notify_id):
-    return QueryNotificationView.get_by_id(notify_id)
-
 
 @app.route("/system/modify/", methods=['POST'])
 @administration_required
