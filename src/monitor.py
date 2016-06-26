@@ -20,7 +20,7 @@ class Container_Collector(threading.Thread):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.interval = 2
-        self.billingtime = 60
+        self.billingtime = 3600
         self.test = test
         self.cpu_last = {}
         self.cpu_quota = {}
@@ -164,14 +164,14 @@ class Container_Collector(threading.Thread):
             if cpu_increment == 0.0:
                 avemem = 0
             else:
-                avemem = cpu_increment*float(increment[container_name]['memincrement'])/3600.0
+                avemem = cpu_increment*float(increment[container_name]['memincrement'])/1800.0
             increment[container_name]['lastcputime'] = cpu_val
             increment[container_name]['memincrement'] = 0
             if 'disk_use' in workercinfo[container_name].keys():
                 disk_quota = workercinfo[container_name]['disk_use']['total']
             else:
                 disk_quota = 0
-            logger.info("cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
+            #logger.info("cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
             billing = cpu_increment/1000.0 + avemem/500000.0 + float(disk_quota)/1024.0/1024.0/2000
             basic_info['billing'] += math.ceil(billing)
         workercinfo[container_name]['basic_info'] = basic_info
