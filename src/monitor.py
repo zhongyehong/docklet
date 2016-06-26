@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import subprocess,re,os,etcdlib,psutil
+import subprocess,re,os,etcdlib,psutil,math
 import time,threading,json,traceback,platform
 
 from log import logger
@@ -11,12 +11,16 @@ monitor_vnodes = {}
 workerinfo = {}
 workercinfo = {}
 
+lastbillingtime = {}
+increment = {}
+
 class Container_Collector(threading.Thread):
 
     def __init__(self,test=False):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.interval = 2
+        self.billingtime = 60
         self.test = test
         self.cpu_last = {}
         self.cpu_quota = {}
@@ -46,6 +50,8 @@ class Container_Collector(threading.Thread):
 
     def collect_containerinfo(self,container_name):
         global workercinfo
+        global increment
+        global lastbillingtime
         output = subprocess.check_output("sudo lxc-info -n %s" % (container_name),shell=True)
         output = output.decode('utf-8')
         parts = re.split('\n',output)
@@ -54,6 +60,10 @@ class Container_Collector(threading.Thread):
         basic_exist = 'basic_info' in workercinfo[container_name].keys()
         if basic_exist:
             basic_info = workercinfo[container_name]['basic_info']
+        else:
+            basic_info['RunningTime'] = 0
+            basic_info['LastTime'] = 0
+            basic_info['billing'] = 0
         for part in parts:
             if not part == '':
                 key_val = re.split(':',part)
@@ -65,11 +75,8 @@ class Container_Collector(threading.Thread):
         #if basic_exist:
          #   logger.info(workercinfo[container_name]['basic_info'])
         if(info['State'] == 'STOPPED'):
-            if not 'RunningTime' in basic_info.keys():
-                basic_info['RunningTime'] = 0
-                basic_info['LastTime'] = 0
             workercinfo[container_name]['basic_info'] = basic_info
-            logger.info(basic_info)
+            #logger.info(basic_info)
             return False
         running_time = self.get_proc_etime(int(info['PID']))
         if basic_exist and 'PID' in workercinfo[container_name]['basic_info'].keys():
@@ -83,7 +90,6 @@ class Container_Collector(threading.Thread):
         basic_info['PID'] = info['PID']
         basic_info['IP'] = info['IP']
         basic_info['RunningTime'] = running_time
-        workercinfo[container_name]['basic_info'] = basic_info
 
         cpu_parts = re.split(' +',info['CPU use'])
         cpu_val = cpu_parts[0].strip()
@@ -121,6 +127,11 @@ class Container_Collector(threading.Thread):
         cpu_use['usedp'] = cpu_usedp
         self.cpu_last[container_name] = cpu_val;
         workercinfo[container_name]['cpu_use'] = cpu_use
+        
+        if container_name not in increment.keys():
+            increment[container_name] = {}
+            increment[container_name]['lastcputime'] = 0
+            increment[container_name]['memincrement'] = 0
 
         mem_parts = re.split(' +',info['Memory use'])
         mem_val = mem_parts[0].strip()
@@ -130,11 +141,40 @@ class Container_Collector(threading.Thread):
         mem_use['unit'] = mem_unit
         if(mem_unit == "MiB"):
             mem_val = float(mem_val) * 1024
+            increment[container_name]['memincrement'] += float(mem_val)
         elif (mem_unit == "GiB"):
             mem_val = float(mem_val) * 1024 * 1024
+            increment[container_name]['memincrement'] += float(mem_val)*1024
         mem_usedp = float(mem_val) / self.mem_quota[container_name]
         mem_use['usedp'] = mem_usedp
         workercinfo[container_name]['mem_use'] = mem_use
+        
+        lasttime = 0
+        if container_name in lastbillingtime.keys():
+            lasttime = lastbillingtime[container_name]
+        else:
+            lasttime = 0
+            lastbillingtime[container_name] = 0
+        #logger.info(running_time)
+        if not int(running_time/self.billingtime) == lasttime:
+            #logger.info("billing:"+str(float(cpu_val)))
+            lastbillingtime[container_name] = int(running_time/self.billingtime)
+            cpu_increment = float(cpu_val) - float(increment[container_name]['lastcputime'])
+            #logger.info("billing:"+str(cpu_increment)+" "+str(increment[container_name]['lastcputime']))
+            if cpu_increment == 0.0:
+                avemem = 0
+            else:
+                avemem = cpu_increment*float(increment[container_name]['memincrement'])/3600.0
+            increment[container_name]['lastcputime'] = cpu_val
+            increment[container_name]['memincrement'] = 0
+            if 'disk_use' in workercinfo[container_name].keys():
+                disk_quota = workercinfo[container_name]['disk_use']['total']
+            else:
+                disk_quota = 0
+            logger.info("cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
+            billing = cpu_increment/1000.0 + avemem/500000.0 + float(disk_quota)/1024.0/1024.0/2000
+            basic_info['billing'] += math.ceil(billing)
+        workercinfo[container_name]['basic_info'] = basic_info
         #print(output)
         #print(parts)
         return True
