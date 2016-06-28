@@ -86,6 +86,7 @@
 				                 <th>Cpu Usage</th>
 				                 <th>Mem Usage</th>
 				                 <th>Disk Usage</th>
+				                 <th>Billing</th>
 				                 <th>Summary</th>
                              </tr>
                              </thead>
@@ -105,6 +106,7 @@
                                  <td id='{{cluster}}_{{ loop.index }}_cpu'>--</td>
                                  <td id='{{cluster}}_{{ loop.index }}_mem'>--</td>
                                  <td id='{{cluster}}_{{ loop.index }}_disk'>--</td>
+                                 <td id='{{cluster}}_{{ loop.index }}_billing'>--</td>
                                  <td><a class="btn btn-info btn-xs" href='/vclusters/{{ cluster }}/{{ container['containername'] }}/'>Realtime</a></td>
 			     </tr>
                              {% endfor %}
@@ -135,6 +137,7 @@
 		       	$("#"+index+"_disk").html(usedp+"%<br/>"+detail);
 		       	},"json");
             $("#"+index+"_time").html(data.monitor.basic_info.RunningTime+"s")
+            $("#"+index+"_billing").html(data.monitor.basic_info.billing+" beans")
 
 		var state = data.monitor.basic_info.State;
 		    if(state == 'RUNNING')

@@ -206,6 +206,7 @@ function processBasicInfo()
             $("#con_ip").html(basic_info.IP);
         }
         $("#con_time").html(basic_info.RunningTime+"s");
+        $("#con_billing").html(basic_info.billing+" beans");
     },"json");
 }
 setInterval(processBasicInfo,1000);
