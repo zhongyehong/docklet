@@ -1,8 +1,13 @@
 import json
 
 from log import logger
-from model import db, Notification, NotificationGroups
+from model import db, Notification, NotificationGroups, User
 from userManager import administration_required, token_required
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.header import Header
+from datetime import datetime
 import env
 
 class NotificationMgr:
@@ -33,18 +38,21 @@ class NotificationMgr:
         notify = Notification.query.filter_by(id=notify_id).first()
         notify_groups = NotificationGroups.query.filter_by(notification_id=notify_id).all()
         to_addr = []
-        if 'all' in notify_groups:
+        groups = []
+        for group in notify_groups:
+            groups.append(group.group_name)
+        if 'all' in groups:
             users = User.query.all()
             for user in users:
-                to_addr.extend(user.e_mail)
+                to_addr.append(user.e_mail)
         else:
             for group in notify_groups:
                 users = User.query.filter_by(user_group=group.group_name).all()
                 for user in users:
-                    to_addr.extend(user.e_mail)
+                    to_addr.append(user.e_mail)
 
         content = notify.content
-        text = '<html><h4>Dear '+ user.username + ':</h4>'
+        text = '<html><h4>Dear '+ 'user' + ':</h4>' #user.username + ':</h4>'
         text += '''<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Your account in <a href='%s'>%s</a> has been recieved a notification:</p>
                    <p>%s</p>
                    <br>
@@ -63,8 +71,11 @@ class NotificationMgr:
         s = smtplib.SMTP()
         s.connect()
         for address in to_addr:
-            msg['To'] = address
-            s.sendmail(email_from_address, address, msg.as_string())
+            try:
+                msg['To'] = address
+                s.sendmail(email_from_address, address, msg.as_string())
+            except Exception as e:
+                logger.error(e)
         s.close()
         return {"success": 'true'}
 
