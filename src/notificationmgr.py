@@ -100,6 +100,8 @@ class NotificationMgr:
             notify_groups = NotificationGroups(notify.id, group_name)
             db.session.add(notify_groups)
         db.session.commit()
+        if 'sendMail' in form:
+            self.mail_notification(notify.id)
         return {"success": 'true'}
 
     @administration_required
