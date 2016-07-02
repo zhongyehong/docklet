@@ -1,9 +1,14 @@
 import json
 
 from log import logger
-from model import db, Notification, NotificationGroups
+from model import db, Notification, NotificationGroups, User
 from userManager import administration_required, token_required
-
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.header import Header
+from datetime import datetime
+import env
 
 class NotificationMgr:
     def __init__(self):
@@ -26,6 +31,54 @@ class NotificationMgr:
         notify_ids = sorted(list(set(notify_ids)), reverse=True)
         return [Notification.query.filter_by(id=notify_id).first() for notify_id in notify_ids]
 
+    def mail_notification(self, notify_id):
+        email_from_address = env.getenv('EMAIL_FROM_ADDRESS')
+        if (email_from_address in ['\'\'', '\"\"', '']):
+            return {'success' : 'true'}
+        notify = Notification.query.filter_by(id=notify_id).first()
+        notify_groups = NotificationGroups.query.filter_by(notification_id=notify_id).all()
+        to_addr = []
+        groups = []
+        for group in notify_groups:
+            groups.append(group.group_name)
+        if 'all' in groups:
+            users = User.query.all()
+            for user in users:
+                to_addr.append(user.e_mail)
+        else:
+            for group in notify_groups:
+                users = User.query.filter_by(user_group=group.group_name).all()
+                for user in users:
+                    to_addr.append(user.e_mail)
+
+        content = notify.content
+        text = '<html><h4>Dear '+ 'user' + ':</h4>' #user.username + ':</h4>'
+        text += '''<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Your account in <a href='%s'>%s</a> has been recieved a notification:</p>
+                   <p>%s</p>
+                   <br>
+                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Note: DO NOT reply to this email!</p>
+                   <br><br>
+                   <p> <a href='http://docklet.unias.org'>Docklet Team</a>, SEI, PKU</p>
+                ''' % (env.getenv("PORTAL_URL"), env.getenv("PORTAL_URL"), content)
+        text += '<p>'+  str(datetime.utcnow()) + '</p>'
+        text += '</html>'
+        subject = 'Docklet Notification: ' + notify.title
+        msg = MIMEMultipart()
+        textmsg = MIMEText(text,'html','utf-8')
+        msg['Subject'] = Header(subject, 'utf-8')
+        msg['From'] = email_from_address
+        msg.attach(textmsg)
+        s = smtplib.SMTP()
+        s.connect()
+        for address in to_addr:
+            try:
+                msg['To'] = address
+                s.sendmail(email_from_address, address, msg.as_string())
+            except Exception as e:
+                logger.error(e)
+        s.close()
+        return {"success": 'true'}
+
     @administration_required
     def create_notification(self, *args, **kwargs):
         '''
@@ -47,6 +100,8 @@ class NotificationMgr:
             notify_groups = NotificationGroups(notify.id, group_name)
             db.session.add(notify_groups)
         db.session.commit()
+        if 'sendMail' in form:
+            self.mail_notification(notify.id)
         return {"success": 'true'}
 
     @administration_required
@@ -88,6 +143,8 @@ class NotificationMgr:
             notify_groups = NotificationGroups(notify.id, group_name)
             db.session.add(notify_groups)
         db.session.commit()
+        if 'sendMail' in form:
+            self.mail_notification(notify_id)
         return {"success": 'true'}
 
     @administration_required
