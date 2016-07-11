@@ -202,6 +202,44 @@
      </div>
  </div>
  </div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="box box-info">
+            <div class="box-header with-border">
+                <h3 class="box-title">Update Base Image</h3>
+                    <div class="box-tools pull-right">
+                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                        <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                    </div>
+            </div>
+            <div class="box-body">
+                <div class="table table-responsive">
+                    <table id="imageTable" class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th>ImageName</th>
+                                <th>CreateTime</th>
+                                <th>Description</th>
+                                <th>Operation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for image in root_image %}
+                            <tr>
+                                <td>{{image['name']}}</td>
+                                <td>{{image['time']}}</td>
+                                <td><a href="/image/description/{{image['name']}}_root_private/" target="_blank">{{image['description']}}</a></td>
+                                <td><a href="/image/updatebase/{{image['name']}}/"><button type="button" class="btn btn-xs btn-success">Update</button></a>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                     </table>
+                 </div>
+             </div>
+         </div>
+     </div>
+ </div>             
+
  {% for field in ["docklet"] %}
  <div class="row">
  <div class="col-md-12">

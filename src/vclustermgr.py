@@ -51,7 +51,34 @@ class VclusterMgr(object):
                 logger.info ("recovering cluster:%s for user:%s ..." % (cluster, user))
                 self.recover_cluster(cluster, user)
         logger.info("recovered all vclusters for all users")
+    
+    def mount_allclusters(self):
+        logger.info("mounting all vclusters for all users...")
+        usersdir = self.fspath+"/global/users/"
+        for user in os.listdir(usersdir):
+            for cluster in self.list_clusters(user)[1]:
+                logger.info ("mounting cluster:%s for user:%s ..." % (cluster, user))
+                self.mount_cluster(cluster, user)
+        logger.info("mounted all vclusters for all users")
 
+    def stop_allclusters(self):
+        logger.info("stopping all vclusters for all users...")
+        usersdir = self.fspath+"/global/users/"
+        for user in os.listdir(usersdir):
+            for cluster in self.list_clusters(user)[1]:
+                logger.info ("stopping cluster:%s for user:%s ..." % (cluster, user))
+                self.stop_cluster(cluster, user)
+        logger.info("stopped all vclusters for all users")
+    
+    def detach_allclusters(self):
+        logger.info("detaching all vclusters for all users...")
+        usersdir = self.fspath+"/global/users/"
+        for user in os.listdir(usersdir):
+            for cluster in self.list_clusters(user)[1]:
+                logger.info ("detaching cluster:%s for user:%s ..." % (cluster, user))
+                self.detach_cluster(cluster, user)
+        logger.info("detached all vclusters for all users")
+     
     def create_cluster(self, clustername, username, image, user_info):
         if self.is_cluster(clustername, username):
             return [False, "cluster:%s already exists" % clustername]
@@ -325,6 +352,15 @@ class VclusterMgr(object):
         infofile.close()
         return [True, "start cluster"]
 
+    def mount_cluster(self, clustername, username):
+        [status, info] = self.get_clusterinfo(clustername, username)
+        if not status:
+            return [False, "cluster not found"]
+        for container in info['containers']:
+            worker = self.nodemgr.ip_to_rpc(container['host'])
+            worker.mount_container(container['containername'])
+        return [True, "mount cluster"]
+
     def recover_cluster(self, clustername, username):
         [status, info] = self.get_clusterinfo(clustername, username)
         if not status:
@@ -362,6 +398,17 @@ class VclusterMgr(object):
         infofile.write(json.dumps(info))
         infofile.close()
         return [True, "start cluster"]
+    
+    def detach_cluster(self, clustername, username):
+        [status, info] = self.get_clusterinfo(clustername, username)
+        if not status:
+            return [False, "cluster not found"]
+        if info['status'] == 'running':
+            return [False, 'cluster is running, please stop it first']
+        for container in info['containers']:
+            worker = self.nodemgr.ip_to_rpc(container['host'])
+            worker.detach_container(container['containername'])
+        return [True, "detach cluster"]
 
     def list_clusters(self, user):
         if not os.path.exists(self.fspath+"/global/users/"+user+"/clusters"):

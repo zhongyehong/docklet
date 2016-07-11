@@ -133,6 +133,9 @@ class ImageMgr():
             sys_run("mount /dev/%s/%s %s" %(vgname,lxc,layer),True)
             #self.sys_call("mkdir -p %s/overlay %s/work" % (layer,layer))
             #self.sys_call("mount -t overlay overlay -olowerdir=%s/local/basefs,upperdir=%s/overlay,workdir=%s/work %s" % (self.NFS_PREFIX,layer,layer,rootfs))
+            #self.prepareImage(user,image,layer+"/overlay")
+            self.prepareImage(user,image,layer)
+            logger.info("image has been prepared")
             sys_run("mount -t aufs -o br=%s=rw:%s/local/basefs=ro+wh -o udba=reval none %s/" % (layer,self.NFS_PREFIX,rootfs),True)
             sys_run("mkdir -p %s/local/temp/%s" % (self.NFS_PREFIX,lxc))
 
@@ -140,9 +143,6 @@ class ImageMgr():
             logger.error(e)
 
         logger.info("FS has been prepared for user:%s lxc:%s" % (user,lxc))
-        #self.prepareImage(user,image,layer+"/overlay")
-        self.prepareImage(user,image,layer)
-        logger.info("image has been prepared")
         return True
 
     def deleteFS(self,lxc,vgname="docklet-group"):
@@ -166,7 +166,15 @@ class ImageMgr():
             logger.error(e)
 
         return True
-    
+   
+    def detachFS(self, lxc, vgname="docklet-group"):
+        rootfs = "/var/lib/lxc/%s/rootfs" % lxc
+        Ret = sys_run("umount %s" % rootfs)
+        if Ret.returncode != 0:
+            logger.error("cannot umount rootfs:%s" % rootfs)
+            return False
+        return True
+ 
     def checkFS(self, lxc, vgname="docklet-group"):
         rootfs = "/var/lib/lxc/%s/rootfs" % lxc
         layer = self.NFS_PREFIX + "/local/volume/" + lxc
@@ -228,6 +236,67 @@ class ImageMgr():
             sys_run("rm -f %s" % public_imgpath+"."+image+".description", True)
         except Exception as e:
             logger.error(e)
+    
+    def update_basefs(self,image):
+        imgpath = self.imgpath + "private/root/"
+        layer = self.NFS_PREFIX + "/local/volume/update_base"
+        mountpoint = self.NFS_PREFIX + "/local/basefs_mp"
+        tmpdir = self.NFS_PREFIX + "/local/basefs_tmp"
+        olddir = self.NFS_PREFIX + "/local/basefs_old"
+        try:
+            logger.info("create directory %s, %s, %s" % (layer,mountpoint,tmpdir))
+            sys_run("mkdir -p %s" % layer)
+            sys_run("mkdir -p %s" % mountpoint)
+            sys_run("mkdir -p %s" % tmpdir)
+            logger.info("load image from %s" % imgpath+image)
+            sys_run("rsync -a --delete --exclude=lost+found/ --exclude=root/nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (imgpath+image,self.dealpath(layer)),True)
+            logger.info("mount old base image and new image by aufs")
+            sys_run("mount -t aufs -o br=%s=rw:%s/local/basefs=ro+wh -o udba=reval none %s/" % (layer,self.NFS_PREFIX,mountpoint),True)
+            logger.info("save new image to %s" % tmpdir)
+            sys_run("rsync -a --delete %s/ %s/" % (self.dealpath(mountpoint),self.dealpath(tmpdir)),True)
+            logger.info("umount %s" % mountpoint)
+            sys_run("umount %s" % mountpoint)
+            logger.info("remove directory %s, %s" % (layer,mountpoint))
+            sys_run("rm -rf %s/" % mountpoint)
+            sys_run("rm -rf %s/" % layer)
+            logger.info("move old base image to an tmp directory")
+            sys_run("mv %s %s" % (self.NFS_PREFIX + "/local/basefs",olddir))
+            logger.info("move new base image from %s to %s" % (tmpdir, self.NFS_PREFIX+"/local/basefs"))
+            sys_run("mv %s %s" % (tmpdir, self.NFS_PREFIX+"/local/basefs"))
+            logger.info("remove old base image")
+            sys_run("rm -rf %s/" % olddir)
+            logger.info("update base image success")
+        except Exception as e:
+            logger.error(e)
+        return True
+
+    """ 
+    def update_basefs(self,image):
+        imgpath = self.imgpath + "private/root/"
+        try:
+            logger.info("start updating base image")
+            sys_run("rsync -a %s/ %s/" % (imgpath+image, self.NFS_PREFIX+"/local/basefs"))
+            logger.info("update base image success")
+        except Exception as e:
+            logger.error(e)
+        return True
+    """
+    
+    def update_base_image(self, user, vclustermgr, image):
+        if not user == "root":
+            logger.info("only root can update base image")
+        vclustermgr.stop_allclusters()
+        vclustermgr.detach_allclusters()
+        workers = vclustermgr.nodemgr.get_rpcs()
+        logger.info("update base image in all workers")
+        for worker in workers:
+            worker.update_basefs(image)
+        logger.info("update base image success")
+        vclustermgr.mount_allclusters()
+        logger.info("mount all cluster success")
+        vclustermgr.recover_allclusters()
+        logger.info("recover all cluster success")
+        return [True, "update base image"]
 
     def get_image_info(self, user, image, imagetype):
         if imagetype == "private": 

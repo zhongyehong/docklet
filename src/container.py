@@ -199,6 +199,15 @@ IP=%s
                     sube.output.decode('utf-8')))
             return [False, "start services for container failed"]
 
+    # mount_container: mount base image and user image by aufs
+    def mount_container(self,lxc_name):
+        logger.info ("mount container:%s" % lxc_name)
+        [success, status] = self.container_status(lxc_name)
+        if not success:
+            return [False, status]
+        self.imgmgr.checkFS(lxc_name)
+        return [True, "mount success"]
+
     # recover container: if running, do nothing. if stopped, start it
     def recover_container(self, lxc_name):
         logger.info ("recover container:%s" % lxc_name)
@@ -206,6 +215,7 @@ IP=%s
         [success, status] = self.container_status(lxc_name)
         if not success:
             return [False, status]
+        self.imgmgr.checkFS(lxc_name)
         if status == 'stopped':
             logger.info("%s stopped, recover it to running" % lxc_name)
             if self.start_container(lxc_name)[0]:
@@ -243,6 +253,16 @@ IP=%s
         #else:
         #    logger.info ("stop container %s success" % lxc_name)
         #    return [True, "stop container success"]
+
+    def detach_container(self, lxc_name):
+        logger.info("detach container:%s" % lxc_name)
+        [success, status] = self.container_status(lxc_name)
+        if not success:
+            return [False, status]
+        if status == 'running':
+            logger.error("container %s is running, please stop it first" % lxc_name)
+        self.imgmgr.detachFS(lxc_name)
+        return [True, "detach container success"]
 
     # check container: check LV and mountpoints, if wrong, try to repair it
     def check_container(self, lxc_name):
@@ -328,6 +348,9 @@ IP=%s
 
     def create_image(self,username,imagename,containername,description="not thing",imagenum=10):
         return self.imgmgr.createImage(username,imagename,containername,description,imagenum)
+    
+    def update_basefs(self,imagename):
+        return self.imgmgr.update_basefs(imagename)
 
     # check all local containers
     def check_allcontainers(self):

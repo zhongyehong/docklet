@@ -302,6 +302,14 @@ def list_image(cur_user, user, form):
     images = G_imagemgr.list_images(user)
     return json.dumps({'success':'true', 'images': images})
 
+@app.route("/image/updatebase/", methods=['POST'])
+@login_required
+def update_base(cur_user, user, form):
+    global G_imagemgr
+    global G_vclustermgr
+    [success, status] = G_imagemgr.update_base_image(user, G_vclustermgr, form.get('image'))
+    return json.dumps({'success':'true', 'message':status})
+
 @app.route("/image/description/", methods=['POST'])
 @login_required
 def description_image(cur_user, user, form):
