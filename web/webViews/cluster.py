@@ -1,4 +1,4 @@
-from flask import session, redirect
+from flask import session, redirect, request
 from webViews.view import normalView
 from webViews.dockletrequest import dockletRequest
 from webViews.dashboard import *
@@ -12,8 +12,37 @@ class addClusterView(normalView):
     def get(self):
         result = dockletRequest.post("/image/list/")
         images = result.get("images")
+        result = dockletRequest.post("/user/quotaQuery/")
+        quota = result.get("quota")
+        usage = result.get("usage")
+        defaultcpu = int(quota['cpu']) - int(usage['cpu'])
+        defaultmemory = int(quota['memory']) - int(usage['memory'])
+        defaultdisk = int(quota['disk']) - int(usage['disk'])
+        if defaultcpu >= 4:
+            defaultcpu = "4"
+        elif defaultcpu <= 0:
+            defaultcpu = "0"
+        else:
+            defaultcpu = str(defaultcpu)
+        if defaultmemory >= 2000: 
+            defaultmemory = "2000"
+        elif defaultmemory <= 0:
+            defaultmemory = "0"
+        else:
+            defaultmemory = str(defaultmemory)
+        if defaultdisk >= 2000:
+            defaultdisk = "2000"
+        elif defaultdisk <= 0:
+            defaultdisk = "0"
+        else:
+            defaultdisk = str(defaultdisk)
+        defaultsetting = {
+                'cpu': defaultcpu,
+                'memory': defaultmemory,
+                'disk': defaultdisk
+                }
         if (result):
-            return self.render(self.template_path, user = session['username'], images = images)
+            return self.render(self.template_path, user = session['username'], images = images, quota = quota, usage = usage, defaultsetting = defaultsetting)
         else:
             self.error()
 
@@ -32,7 +61,7 @@ class createClusterView(normalView):
             'imageowner': self.image[index2+1:index1],
             'imagetype': self.image[index1+1:],
         }
-        result = dockletRequest.post("/cluster/create/", data)
+        result = dockletRequest.post("/cluster/create/", dict(data, **(request.form)))
         if(result.get('success', None) == "true"):
            return redirect("/dashboard/")
             #return self.render(self.template_path, user = session['username'])
@@ -71,7 +100,7 @@ class scaleoutView(normalView):
             'imageowner': self.image[index2+1:index1],
             'imagetype': self.image[index1+1:]
         }
-        result = dockletRequest.post("/cluster/scaleout/", data)
+        result = dockletRequest.post("/cluster/scaleout/", dict(data, **(request.form)))
         if(result.get('success', None) == "true"):
             return redirect("/config/")
         else:
@@ -296,7 +325,36 @@ class configView(normalView):
             data["clustername"] = cluster
             result = dockletRequest.post("/cluster/info/",data).get("message")
             clusters_info[cluster] = result
-        return self.render("config.html", images = images, clusters = clusters_info, mysession=dict(session))
+        result = dockletRequest.post("/user/quotaQuery/")
+        quota = result.get("quota")
+        usage = result.get("usage")
+        defaultcpu = int(quota['cpu']) - int(usage['cpu'])
+        defaultmemory = int(quota['memory']) - int(usage['memory'])
+        defaultdisk = int(quota['disk']) - int(usage['disk'])
+        if defaultcpu >= 4:
+            defaultcpu = "4"
+        elif defaultcpu <= 0:
+            defaultcpu = "0"
+        else:
+            defaultcpu = str(defaultcpu)
+        if defaultmemory >= 2000: 
+            defaultmemory = "2000"
+        elif defaultmemory <= 0:
+            defaultmemory = "0"
+        else:
+            defaultmemory = str(defaultmemory)
+        if defaultdisk >= 2000:
+            defaultdisk = "2000"
+        elif defaultdisk <= 0:
+            defaultdisk = "0"
+        else:
+            defaultdisk = str(defaultdisk)
+        defaultsetting = {
+                'cpu': defaultcpu,
+                'memory': defaultmemory,
+                'disk': defaultdisk
+                }
+        return self.render("config.html", images = images, clusters = clusters_info, mysession=dict(session), quota = quota, usage = usage, defaultsetting = defaultsetting)
 
     @classmethod
     def post(self):

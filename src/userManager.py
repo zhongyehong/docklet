@@ -7,7 +7,7 @@ Warning: in some early versions, "token" stand for the instance of class model.U
 Original author: Liu Peidong
 '''
 
-from model import db, User, UserGroup, Notification
+from model import db, User, UserGroup, Notification, UserUsage
 from functools import wraps
 import os, subprocess
 import hashlib
@@ -173,7 +173,11 @@ class userManager:
             quotas['quotainfo'].append({'name':'vnode', 'hint':'how many containers the user can have, e.g. 8'})
             quotafile.write(json.dumps(quotas))
             quotafile.close()
-
+        
+        try:
+            UserUsage.query.all()
+        except:
+            db.create_all()
 
     def auth_local(self, username, password):
         password = hashlib.sha512(password.encode('utf-8')).hexdigest()
@@ -459,6 +463,157 @@ class userManager:
         result = {'success': 'true'}
         return result
 
+    @token_required
+    def quotaQuery(self, *args, **kwargs):
+        '''
+        Usage: quotaQuery(cur_user = token_from_auth)
+        Query the quota and usage of user
+        '''
+        cur_user = kwargs['cur_user']
+        groupname = cur_user.user_group
+        groupinfo = self.groupQuery(name = groupname)['data']
+        usage = UserUsage.query.filter_by(username = cur_user.username).first()
+        if usage == None:
+            new_usage = UserUsage(cur_user.username)
+            db.session.add(new_usage)
+            db.session.commit()
+            usageinfo = {
+                    'username': cur_user.username,
+                    'cpu': '0',
+                    'memory': '0',
+                    'disk': '0'
+                    }
+        else:
+            usageinfo = {
+                    'username': usage.username,
+                    'cpu': usage.cpu,
+                    'memory': usage.memory,
+                    'disk': usage.disk
+                    }
+        return {'success': 'true', 'quota' : groupinfo, 'usage' : usageinfo}
+   
+    @token_required
+    def usageInc(self, *args, **kwargs):
+        '''
+        Usage: usageModify(cur_user = token_from_auth, modification = data_from_form)
+        Modify the usage info of user
+        '''
+        cur_user = kwargs['cur_user']
+        modification = kwargs['modification']
+        logger.info("record usage for user:%s" % cur_user.username)
+        groupname = cur_user.user_group
+        groupinfo = self.groupQuery(name = groupname)['data']
+        usage = UserUsage.query.filter_by(username = cur_user.username).first()
+        if usage == None:
+            new_usage = UserUsage(cur_user.username)
+            db.session.add(new_usage)
+            db.session.commit()
+            usage = UserUsage.query.filter_by(username = cur_user.username).first()
+        if int(modification['cpu']) <= 0 or int(modification['memory']) <= 0 or int(modification['disk']) <= 0:
+            return [False, "cpu,memory and disk setting cannot less than zero"]
+        cpu = int(usage.cpu) + int(modification['cpu'])
+        memory = int(usage.memory) + int(modification['memory'])
+        disk = int(usage.disk) + int(modification['disk'])
+        if cpu > int(groupinfo['cpu']):
+            logger.error("cpu quota exceed, user:%s" % cur_user.username)
+            return [False, "cpu quota exceed"]
+        if memory > int(groupinfo['memory']):
+            logger.error("memory quota exceed, user:%s" % cur_user.username)
+            return [False, "memory quota exceed"]
+        if disk > int(groupinfo['disk']):
+            logger.error("disk quota exceed, user:%s" % cur_user.username)
+            return [False, "disk quota exceed"]
+        usage.cpu = str(cpu)
+        usage.memory = str(memory)
+        usage.disk = str(disk)
+        db.session.commit()
+        return [True, "distribute the resource"]
+    
+    @token_required
+    def usageRecover(self, *args, **kwargs):
+        '''
+        Usage: usageModify(cur_user = token_from_auth, modification = data_from_form)
+        Recover the usage info when create container failed
+        '''
+        cur_user = kwargs['cur_user']
+        modification = kwargs['modification']
+        logger.info("recover usage for user:%s" % cur_user.username)
+        usage = UserUsage.query.filter_by(username = cur_user.username).first()
+        if usage == None:
+            new_usage = UserUsage(cur_user.username)
+            db.session.add(new_usage)
+            db.session.commit()
+            usage = UserUsage.query.filter_by(username = cur_user.username).first()
+            return True
+        cpu = int(usage.cpu) - int(modification['cpu'])
+        memory = int(usage.memory) - int(modification['memory'])
+        disk = int(usage.disk) - int(modification['disk'])
+        if cpu < 0:
+            cpu = 0
+        if memory < 0:
+            memory = 0
+        if disk < 0:
+            disk = 0
+        usage.cpu = str(cpu)
+        usage.memory = str(memory)
+        usage.disk = str(disk)
+        db.session.commit()
+        return True
+
+    @token_required
+    def usageRelease(self, *args, **kwargs):
+        '''
+        Usage: usageModify(cur_user = token_from_auth, clustername = clustername, containername = containername, allcontainer = True or False)
+        Update usage info after user deleting container
+        '''
+        cur_user = kwargs['cur_user']
+        clustername = kwargs['clustername']
+        containername = kwargs['containername']
+        allcontainer = kwargs['allcontainer']
+        logger.info("release usage for user:%s , cluster: %s" % (cur_user.username, clustername))
+        clusterpath = fspath + "/global/users/" + cur_user.username + "/clusters/" + clustername
+        if not os.path.isfile(clusterpath):
+            logger.error("cluster file: %s not found" % clustername)
+            return False
+        infofile = open(clusterpath, 'r')
+        info = json.loads(infofile.read())
+        infofile.close()
+        cpu = 0
+        memory = 0
+        disk = 0
+        if allcontainer:
+            for container in info['containers']:
+                if 'setting' in container:
+                    cpu += int(container['setting']['cpu'])
+                    memory += int(container['setting']['memory'])
+                    disk += int(container['setting']['disk'])
+        else:
+            for container in info['containers']:
+                if container['containername'] == containername:
+                    if 'setting' in container:
+                        cpu += int(container['setting']['cpu'])
+                        memory += int(container['setting']['memory'])
+                        disk += int(container['setting']['disk'])
+        usage = UserUsage.query.filter_by(username = cur_user.username).first()
+        if usage == None:
+            new_usage = UserUsage(cur_user.username)
+            db.session.add(new_usage)
+            db.session.commit()
+            usage = UserUsage.query.filter_by(username = cur_user.username).first()
+        nowcpu = int(usage.cpu) - int(cpu)
+        nowmemory = int(usage.memory) - int(memory)
+        nowdisk = int(usage.disk) - int(disk)
+        if nowcpu < 0:
+            nowcpu = 0
+        if nowmemory < 0:
+            nowmemory = 0
+        if nowdisk < 0:
+            nowdisk = 0
+        usage.cpu = str(nowcpu)
+        usage.memory = str(nowmemory)
+        usage.disk = str(nowdisk)
+        db.session.commit()
+        return True
 
     @administration_required
     def userList(*args, **kwargs):

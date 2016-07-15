@@ -21,13 +21,13 @@ class Container(object):
         self.lxcpath = "/var/lib/lxc"
         self.imgmgr = imagemgr.ImageMgr()
 
-    def create_container(self, lxc_name, username, user_info, clustername, clusterid, containerid, hostname, ip, gateway, vlanid, image):
+    def create_container(self, lxc_name, username, setting, clustername, clusterid, containerid, hostname, ip, gateway, vlanid, image):
         logger.info("create container %s of %s for %s" %(lxc_name, clustername, username))
         try:
-            user_info = json.loads(user_info) 
-            cpu = int(user_info["data"]["groupinfo"]["cpu"]) * 100000
-            memory = user_info["data"]["groupinfo"]["memory"]
-            disk = user_info["data"]["groupinfo"]["disk"]
+            setting = json.loads(setting)
+            cpu = int(setting['cpu']) * 100000
+            memory = setting["memory"]
+            disk = setting["disk"]
             image = json.loads(image) 
             status = self.imgmgr.prepareFS(username,image,lxc_name,disk)
             if not status:
