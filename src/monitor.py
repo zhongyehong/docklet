@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import subprocess,re,os,etcdlib,psutil,math
+import subprocess,re,os,etcdlib,psutil,math,sys
 import time,threading,json,traceback,platform
 
 from log import logger
@@ -10,6 +10,8 @@ monitor_vnodes = {}
 
 workerinfo = {}
 workercinfo = {}
+containerpids = []
+pid2name = {}
 
 lastbillingtime = {}
 increment = {}
@@ -49,9 +51,12 @@ class Container_Collector(threading.Thread):
         return ((days * 24 + hours) * 60 + minutes) * 60 + seconds
 
     def collect_containerinfo(self,container_name):
+        global workerinfo
         global workercinfo
         global increment
         global lastbillingtime
+        global containerpids
+        global pid2name
         output = subprocess.check_output("sudo lxc-info -n %s" % (container_name),shell=True)
         output = output.decode('utf-8')
         parts = re.split('\n',output)
@@ -78,6 +83,9 @@ class Container_Collector(threading.Thread):
             workercinfo[container_name]['basic_info'] = basic_info
             #logger.info(basic_info)
             return False
+        if not info['PID'] in containerpids:
+            containerpids.append(info['PID'])
+            pid2name[info['PID']] = container_name
         running_time = self.get_proc_etime(int(info['PID']))
         if basic_exist and 'PID' in workercinfo[container_name]['basic_info'].keys():
             last_time = workercinfo[container_name]['basic_info']['LastTime']
@@ -219,10 +227,12 @@ class Container_Collector(threading.Thread):
 class Collector(threading.Thread):
 
     def __init__(self,test=False):
+        global workerinfo
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.interval = 1
         self.test=test
+        workerinfo['concpupercent'] = {}
         return
 
     def collect_meminfo(self):
@@ -305,17 +315,46 @@ class Collector(threading.Thread):
         osinfo['processor'] = uname.processor
         return osinfo
 
+    def collect_concpuinfo(self):
+        global workerinfo
+        global containerpids
+        global pid2name
+        l = len(containerpids)
+        if l == 0:
+            return
+        cmd = "sudo top -bn 1"
+        for pid in containerpids:
+            cmd = cmd + " -p " + pid
+        #child = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        #[stdout,errout] = child.communicate()
+        #logger.info(errout)
+        #logger.info(stdout)
+        output = ""
+        output = subprocess.check_output(cmd,shell=True)
+        output = output.decode('utf-8')
+        parts = re.split("\n",output)
+        concpupercent = workerinfo['concpupercent']
+        for line in parts[7:]:
+            if line == "":
+                continue
+            info = re.split(" +",line)
+            pid = info[1].strip()
+            cpupercent = float(info[9].strip())
+            name = pid2name[pid]
+            concpupercent[name] = cpupercent
+
     def run(self):
         global workerinfo
         workerinfo['osinfo'] = self.collect_osinfo()
         while not self.thread_stop:
             workerinfo['meminfo'] = self.collect_meminfo()
             [cpuinfo,cpuconfig] = self.collect_cpuinfo()
+            self.collect_concpuinfo()
             workerinfo['cpuinfo'] = cpuinfo
             workerinfo['cpuconfig'] = cpuconfig
             workerinfo['diskinfo'] = self.collect_diskinfo()
             workerinfo['running'] = True
-            time.sleep(self.interval)
+            #time.sleep(self.interval)
             if self.test:
                 break
             #   print(self.etcdser.getkey('/meminfo/total'))
@@ -352,7 +391,7 @@ class Master_Collector(threading.Thread):
                 try:
                     ip = self.nodemgr.rpc_to_ip(worker)
                     info = list(eval(worker.workerFetchInfo()))
-                    #logger.info(info[1])
+                    #logger.info(info[0])
                     monitor_hosts[ip] = info[0]
                     for container in info[1].keys():
                         owner = get_owner(container)
