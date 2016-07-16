@@ -138,6 +138,21 @@ class UserGroup(db.Model):
     def __repr__(self):
         return '<UserGroup %r>' % self.name
 
+class UserUsage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50))
+    cpu = db.Column(db.String(10))
+    memory = db.Column(db.String(10))
+    disk = db.Column(db.String(10))
+    
+    def __init__(self, name):
+        self.username = name
+        self.cpu = '0'
+        self.memory = '0'
+        self.disk = '0'
+    
+    def __repr__(self):
+        return '<UserUsage %r>' % self.name
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)

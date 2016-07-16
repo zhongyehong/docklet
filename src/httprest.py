@@ -141,10 +141,19 @@ def create_cluster(cur_user, user, form):
     user_info = G_usermgr.selfQuery(cur_user = cur_user)
     user_info = json.dumps(user_info)
     logger.info ("handle request : create cluster %s with image %s " % (clustername, image['name']))
-    [status, result] = G_vclustermgr.create_cluster(clustername, user, image, user_info)
+    setting = {
+            'cpu': form.get('cpuSetting'),
+            'memory': form.get('memorySetting'),
+            'disk': form.get('diskSetting')
+            }
+    [status, result] = G_usermgr.usageInc(cur_user = cur_user, modification = setting)
+    if not status:
+        return json.dumps({'success':'false', 'action':'create cluster', 'message':result})
+    [status, result] = G_vclustermgr.create_cluster(clustername, user, image, user_info, setting)
     if status:
         return json.dumps({'success':'true', 'action':'create cluster', 'message':result})
     else:
+        G_usermgr.usageRecover(cur_user = cur_user, modification = setting)
         return json.dumps({'success':'false', 'action':'create cluster', 'message':result})
 
 @app.route("/cluster/scaleout/", methods=['POST'])
@@ -160,15 +169,21 @@ def scaleout_cluster(cur_user, user, form):
     image['name'] = form.get("imagename", None)
     image['type'] = form.get("imagetype", None)
     image['owner'] = form.get("imageowner", None)
-    logger.debug("imagename:" + image['name'])
-    logger.debug("imagetype:" + image['type'])
-    logger.debug("imageowner:" + image['owner'])
     user_info = G_usermgr.selfQuery(cur_user = cur_user)
     user_info = json.dumps(user_info)
-    [status, result] = G_vclustermgr.scale_out_cluster(clustername, user, image, user_info)
+    setting = {
+            'cpu': form.get('cpuSetting'),
+            'memory': form.get('memorySetting'),
+            'disk': form.get('diskSetting')
+            }
+    [status, result] = G_usermgr.usageInc(cur_user = cur_user, modification = setting)
+    if not status:
+        return json.dumps({'success':'false', 'action':'scale out', 'message': result})
+    [status, result] = G_vclustermgr.scale_out_cluster(clustername, user, image, user_info, setting)
     if status:
         return json.dumps({'success':'true', 'action':'scale out', 'message':result})
     else:
+        G_usermgr.usageRecover(cur_user = cur_user, modification = setting)
         return json.dumps({'success':'false', 'action':'scale out', 'message':result})
 
 @app.route("/cluster/scalein/", methods=['POST'])
@@ -180,6 +195,7 @@ def scalein_cluster(cur_user, user, form):
         return json.dumps({'success':'false', 'message':'clustername is null'})
     logger.info("handle request : scale in %s" % clustername)
     containername = form.get("containername", None)
+    G_usermgr.usageRelease(cur_user = cur_user, clustername = clustername, containername = containername, allcontainer = False)
     [status, result] = G_vclustermgr.scale_in_cluster(clustername, user, containername)
     if status:
         return json.dumps({'success':'true', 'action':'scale in', 'message':result})
@@ -225,6 +241,7 @@ def delete_cluster(cur_user, user, form):
     logger.info ("handle request : delete cluster %s" % clustername)
     user_info = G_usermgr.selfQuery(cur_user=cur_user)
     user_info = json.dumps(user_info)
+    G_usermgr.usageRelease(cur_user = cur_user, clustername = clustername, containername = "all", allcontainer = True)
     [status, result] = G_vclustermgr.delete_cluster(clustername, user, user_info)
     if status:
         return json.dumps({'success':'true', 'action':'delete cluster', 'message':result})
@@ -581,6 +598,13 @@ def selfModify_user(cur_user, user, form):
     result = G_usermgr.selfModify(cur_user = cur_user, newValue = form)
     return json.dumps(result)
 
+@app.route("/user/quotaQuery/" , methods=['POST'])
+@login_required
+def quotaQuery_user(cur_user, user, form):
+    global G_usermgr
+    logger.info("handle request: user/quotaQuery/")
+    result = G_usermgr.quotaQuery(cur_user = cur_user)
+    return json.dumps(result)
 
 @app.route("/notification/list/", methods=['POST'])
 @login_required
