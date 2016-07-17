@@ -129,7 +129,8 @@ class Container_Collector(threading.Thread):
         cpu_use = {}
         cpu_use['val'] = cpu_val
         cpu_use['unit'] = cpu_unit
-        cpu_usedp = (float(cpu_val)-float(self.cpu_last[container_name]))/(self.cpu_quota[container_name]*self.interval*1.3)
+        cpu_usedp = (float(cpu_val)-float(self.cpu_last[container_name]))/(self.cpu_quota[container_name]*self.interval*1.05)
+        cpu_use['hostpercent'] = (float(cpu_val)-float(self.cpu_last[container_name]))/(self.cores_num*self.interval*1.05)
         if(cpu_usedp > 1 or cpu_usedp < 0):
             cpu_usedp = 1
         cpu_use['usedp'] = cpu_usedp
@@ -349,7 +350,7 @@ class Collector(threading.Thread):
         while not self.thread_stop:
             workerinfo['meminfo'] = self.collect_meminfo()
             [cpuinfo,cpuconfig] = self.collect_cpuinfo()
-            self.collect_concpuinfo()
+            #self.collect_concpuinfo()
             workerinfo['cpuinfo'] = cpuinfo
             workerinfo['cpuconfig'] = cpuconfig
             workerinfo['diskinfo'] = self.collect_diskinfo()
@@ -511,6 +512,15 @@ class Fetcher:
     def get_osinfo(self):
         try:
             res = self.info['osinfo']
+        except Exception as err:
+            logger.warning(traceback.format_exc())
+            logger.warning(err)
+            res = {}
+        return res
+
+    def get_concpuinfo(self):
+        try:
+            res = self.info['concpupercent']
         except Exception as err:
             logger.warning(traceback.format_exc())
             logger.warning(err)

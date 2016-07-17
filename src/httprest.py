@@ -395,6 +395,8 @@ def hosts_monitor(cur_user, user, form, com_id, issue):
         res['diskinfo'] = fetcher.get_diskinfo()
     elif issue == 'osinfo':
         res['osinfo'] = fetcher.get_osinfo()
+    #elif issue == 'concpuinfo':
+     #   res['concpuinfo'] = fetcher.get_concpuinfo()
     elif issue == 'containers':
         res['containers'] = fetcher.get_containers()
     elif issue == 'status':
