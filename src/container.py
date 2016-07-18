@@ -184,10 +184,10 @@ IP=%s
             #logger.debug ("prepare nfs for %s: %s" % (lxc_name,
                 #Ret.stdout.decode('utf-8')))
             # not sure whether should execute this 
-            #Ret = subprocess.run(["lxc-attach -n %s -- service ssh start" % lxc_name],
-            #        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            #shell=True, check=False)
-            #logger.debug(Ret.stdout.decode('utf-8'))
+            Ret = subprocess.run(["lxc-attach -n %s -- service ssh start" % lxc_name],
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            shell=True, check=False)
+            logger.debug(Ret.stdout.decode('utf-8'))
             if len(services) == 0: # master node
                 Ret = subprocess.run(["lxc-attach -n %s -- su -c %s/start_jupyter.sh" % (lxc_name, self.rundir)],
                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, check=True)
