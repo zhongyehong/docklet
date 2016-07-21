@@ -600,12 +600,28 @@ def selfModify_user(cur_user, user, form):
     result = G_usermgr.selfModify(cur_user = cur_user, newValue = form)
     return json.dumps(result)
 
-@app.route("/user/quotaQuery/" , methods=['POST'])
+@app.route("/user/usageQuery/" , methods=['POST'])
 @login_required
-def quotaQuery_user(cur_user, user, form):
+def usageQuery_user(cur_user, user, form):
     global G_usermgr
-    logger.info("handle request: user/quotaQuery/")
-    result = G_usermgr.quotaQuery(cur_user = cur_user)
+    logger.info("handle request: user/usageQuery/")
+    result = G_usermgr.usageQuery(cur_user = cur_user)
+    return json.dumps(result)
+
+@app.route("/user/lxcsettingList/", methods=['POST'])
+@login_required
+def lxcsettingList_user(cur_user, user, form):
+    global G_usermgr
+    logger.info("handle request: user/lxcsettingList/")
+    result = G_usermgr.lxcsettingList(cur_user = cur_user, form = form)
+    return json.dumps(result)
+
+@app.route("/user/chlxcsetting/", methods=['POST'])
+@login_required
+def chlxcsetting_user(cur_user, user, form):
+    global G_usermgr
+    logger.info("handle request: user/chlxcsetting/")
+    result = G_usermgr.chlxcsetting(cur_user = cur_user, form = form)
     return json.dumps(result)
 
 @app.route("/notification/list/", methods=['POST'])
@@ -861,6 +877,8 @@ if __name__ == '__main__':
             etcdclient.deldir("_lock")
 
     G_usermgr = userManager.userManager('root')
+    if mode == "new":
+        G_usermgr.initUsage()
     G_notificationmgr = notificationmgr.NotificationMgr()
 
     clusternet = env.getenv("CLUSTER_NET")
