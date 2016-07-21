@@ -12,7 +12,7 @@ class addClusterView(normalView):
     def get(self):
         result = dockletRequest.post("/image/list/")
         images = result.get("images")
-        result = dockletRequest.post("/user/quotaQuery/")
+        result = dockletRequest.post("/user/usageQuery/")
         quota = result.get("quota")
         usage = result.get("usage")
         defaultcpu = int(quota['cpu']) - int(usage['cpu'])
@@ -325,7 +325,7 @@ class configView(normalView):
             data["clustername"] = cluster
             result = dockletRequest.post("/cluster/info/",data).get("message")
             clusters_info[cluster] = result
-        result = dockletRequest.post("/user/quotaQuery/")
+        result = dockletRequest.post("/user/usageQuery/")
         quota = result.get("quota")
         usage = result.get("usage")
         defaultcpu = int(quota['cpu']) - int(usage['cpu'])

@@ -173,7 +173,15 @@ class userManager:
             quotas['quotainfo'].append({'name':'vnode', 'hint':'how many containers the user can have, e.g. 8'})
             quotafile.write(json.dumps(quotas))
             quotafile.close()
-        
+        if not os.path.exists(fspath+"/global/sys/lxc.default"):
+            settingfile = open(fspath+"/global/sys/lxc.default", 'w')
+            settings = {}
+            settings['cpu'] = "2"
+            settings["memory"] = "2000"
+            settings["disk"] = "2000"
+            settingfile.write(json.dumps(settings))
+            settingfile.close()
+
         try:
             UserUsage.query.all()
         except:
@@ -464,9 +472,9 @@ class userManager:
         return result
 
     @token_required
-    def quotaQuery(self, *args, **kwargs):
+    def usageQuery(self, *args, **kwargs):
         '''
-        Usage: quotaQuery(cur_user = token_from_auth)
+        Usage: usageQuery(cur_user = token_from_auth)
         Query the quota and usage of user
         '''
         cur_user = kwargs['cur_user']
@@ -490,7 +498,11 @@ class userManager:
                     'memory': usage.memory,
                     'disk': usage.disk
                     }
-        return {'success': 'true', 'quota' : groupinfo, 'usage' : usageinfo}
+        settingfile = open(fspath+"/global/sys/lxc.default" , 'r')
+        defaultsetting = json.loads(settingfile.read())
+        settingfile.close()
+
+        return {'success': 'true', 'quota' : groupinfo, 'usage' : usageinfo, 'default': defaultsetting }
    
     @token_required
     def usageInc(self, *args, **kwargs):
@@ -612,6 +624,18 @@ class userManager:
         usage.cpu = str(nowcpu)
         usage.memory = str(nowmemory)
         usage.disk = str(nowdisk)
+        db.session.commit()
+        return True
+    
+    def initUsage(*args, **kwargs):
+    """
+    init the usage info when start docklet with init mode
+    """
+        usages = UserUsage.query.all()
+        for usage in usages:
+            usage.cpu = "0"
+            usage.memory = "0"
+            usage.disk = "0"
         db.session.commit()
         return True
 

@@ -600,12 +600,12 @@ def selfModify_user(cur_user, user, form):
     result = G_usermgr.selfModify(cur_user = cur_user, newValue = form)
     return json.dumps(result)
 
-@app.route("/user/quotaQuery/" , methods=['POST'])
+@app.route("/user/usageQuery/" , methods=['POST'])
 @login_required
-def quotaQuery_user(cur_user, user, form):
+def usageQuery_user(cur_user, user, form):
     global G_usermgr
-    logger.info("handle request: user/quotaQuery/")
-    result = G_usermgr.quotaQuery(cur_user = cur_user)
+    logger.info("handle request: user/usageQuery/")
+    result = G_usermgr.usageQuery(cur_user = cur_user)
     return json.dumps(result)
 
 @app.route("/notification/list/", methods=['POST'])
