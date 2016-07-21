@@ -628,9 +628,9 @@ class userManager:
         return True
     
     def initUsage(*args, **kwargs):
-    """
-    init the usage info when start docklet with init mode
-    """
+        """
+        init the usage info when start docklet with init mode
+        """
         usages = UserUsage.query.all()
         for usage in usages:
             usage.cpu = "0"
@@ -920,6 +920,25 @@ class userManager:
         groupfile.write(json.dumps(groups))
         groupfile.close()
         return {"success":'true'}
+    
+    @administration_required
+    def lxcsettingList(*args, **kwargs):
+        lxcsettingfile = open(fspath+"/global/sys/lxc.default", 'r')
+        lxcsetting = json.loads(lxcsettingfile.read())
+        lxcsettingfile.close()
+        return {"success": 'true', 'data':lxcsetting}
+
+    @administration_required
+    def chlxcsetting(*args, **kwargs):
+        form = kwargs['form']
+        lxcsetting = {}
+        lxcsetting['cpu'] = form['lxcCpu']
+        lxcsetting['memory'] = form['lxcMemory']
+        lxcsetting['disk'] = form['lxcDisk']
+        lxcsettingfile = open(fspath+"/global/sys/lxc.default", 'w')
+        lxcsettingfile.write(json.dumps(lxcsetting))
+        lxcsettingfile.close()
+        return {"success": 'true'}
 
     def queryForDisplay(*args, **kwargs):
         '''

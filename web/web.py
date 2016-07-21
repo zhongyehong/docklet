@@ -331,6 +331,11 @@ def quotaadd():
 def chdefault():
     return chdefaultView.as_view()
 
+@app.route("/quota/chlxcsetting/", methods=['POST'])
+@administration_required
+def chlxcsetting():
+    return chlxcsettingView.as_view()
+
 @app.route("/group/add/", methods=['POST'])
 @administration_required
 def groupadd():

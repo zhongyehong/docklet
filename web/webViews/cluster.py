@@ -15,27 +15,31 @@ class addClusterView(normalView):
         result = dockletRequest.post("/user/usageQuery/")
         quota = result.get("quota")
         usage = result.get("usage")
-        defaultcpu = int(quota['cpu']) - int(usage['cpu'])
-        defaultmemory = int(quota['memory']) - int(usage['memory'])
-        defaultdisk = int(quota['disk']) - int(usage['disk'])
-        if defaultcpu >= 4:
-            defaultcpu = "4"
-        elif defaultcpu <= 0:
+        default = result.get("default")
+        restcpu = int(quota['cpu']) - int(usage['cpu'])
+        restmemory = int(quota['memory']) - int(usage['memory'])
+        restdisk = int(quota['disk']) - int(usage['disk'])
+        if restcpu >= int(default['cpu']):
+            defaultcpu = default['cpu']
+        elif restcpu <= 0:
             defaultcpu = "0"
         else:
-            defaultcpu = str(defaultcpu)
-        if defaultmemory >= 2000: 
-            defaultmemory = "2000"
-        elif defaultmemory <= 0:
+            defaultcpu = str(restcpu)
+
+        if restmemory >= int(default['memory']): 
+            defaultmemory = default['memory']
+        elif restmemory <= 0:
             defaultmemory = "0"
         else:
-            defaultmemory = str(defaultmemory)
-        if defaultdisk >= 2000:
-            defaultdisk = "2000"
-        elif defaultdisk <= 0:
+            defaultmemory = str(restmemory)
+
+        if restdisk >= int(default['disk']):
+            defaultdisk = default['disk']
+        elif restdisk <= 0:
             defaultdisk = "0"
         else:
-            defaultdisk = str(defaultdisk)
+            defaultdisk = str(restdisk)
+
         defaultsetting = {
                 'cpu': defaultcpu,
                 'memory': defaultmemory,
@@ -328,27 +332,31 @@ class configView(normalView):
         result = dockletRequest.post("/user/usageQuery/")
         quota = result.get("quota")
         usage = result.get("usage")
-        defaultcpu = int(quota['cpu']) - int(usage['cpu'])
-        defaultmemory = int(quota['memory']) - int(usage['memory'])
-        defaultdisk = int(quota['disk']) - int(usage['disk'])
-        if defaultcpu >= 4:
-            defaultcpu = "4"
-        elif defaultcpu <= 0:
+        default = result.get("default")
+        restcpu = int(quota['cpu']) - int(usage['cpu'])
+        restmemory = int(quota['memory']) - int(usage['memory'])
+        restdisk = int(quota['disk']) - int(usage['disk'])
+        if restcpu >= int(default['cpu']):
+            defaultcpu = default['cpu']
+        elif restcpu <= 0:
             defaultcpu = "0"
         else:
-            defaultcpu = str(defaultcpu)
-        if defaultmemory >= 2000: 
-            defaultmemory = "2000"
-        elif defaultmemory <= 0:
+            defaultcpu = str(restcpu)
+
+        if restmemory >= int(default['memory']): 
+            defaultmemory = default['memory']
+        elif restmemory <= 0:
             defaultmemory = "0"
         else:
-            defaultmemory = str(defaultmemory)
-        if defaultdisk >= 2000:
-            defaultdisk = "2000"
-        elif defaultdisk <= 0:
+            defaultmemory = str(restmemory)
+
+        if restdisk >= int(default['disk']):
+            defaultdisk = default['disk']
+        elif restdisk <= 0:
             defaultdisk = "0"
         else:
-            defaultdisk = str(defaultdisk)
+            defaultdisk = str(restdisk)
+        
         defaultsetting = {
                 'cpu': defaultcpu,
                 'memory': defaultmemory,
