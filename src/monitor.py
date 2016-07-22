@@ -3,6 +3,7 @@
 import subprocess,re,os,etcdlib,psutil,math,sys
 import time,threading,json,traceback,platform
 
+from model import db,VNode,History
 from log import logger
 
 monitor_hosts = {}
@@ -556,3 +557,17 @@ class Fetcher:
             logger.warning(err)
             res = {}
         return res
+
+class History_Manager:
+    
+    def __init__(self):
+        try:
+            VNode.query.all()
+            History.query.all()
+        except:
+            db.create_all(bind='__all__')
+
+    def getAll(self):
+        return History.query.all()
+
+    

@@ -801,6 +801,7 @@ if __name__ == '__main__':
     global G_networkmgr
     global G_clustername
     global G_sysmgr
+    global G_historymgr
     # move 'tools.loadenv' to the beginning of this file
 
     fs_path = env.getenv("FS_PREFIX")
@@ -898,6 +899,8 @@ if __name__ == '__main__':
     logger.info("imagemgr started")
     master_collector = monitor.Master_Collector(G_nodemgr)
     master_collector.start()
+    G_historymgr = monitor.History_Manager()
+    logger.info("historymgr started")
 
     logger.info("startting to listen on: ")
     masterip = env.getenv('MASTER_IP')
