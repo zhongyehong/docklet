@@ -214,6 +214,7 @@ IP=%s
         if status == 'stopped':
             logger.info("%s stopped, recover it to running" % lxc_name)
             if self.start_container(lxc_name)[0]:
+                self.historymgr.log(lxc_name,"Recover")
                 if self.start_services(lxc_name)[0]:
                     logger.info("%s recover success" % lxc_name)
                     return [True, "recover success"]
