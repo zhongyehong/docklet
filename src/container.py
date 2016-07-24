@@ -5,7 +5,7 @@ import imagemgr
 from log import logger
 import env
 from lvmtool import sys_run, check_volume
-from monitor import History_Manager
+from monitor import Container_Collector, History_Manager
 
 class Container(object):
     def __init__(self, addr, etcdclient):
@@ -138,6 +138,7 @@ IP=%s
     def delete_container(self, lxc_name):
         logger.info ("delete container:%s" % lxc_name)
         if self.imgmgr.deleteFS(lxc_name):
+            Container_Collector.billing_increment(lxc_name)
             self.historymgr.log(lxc_name,"Delete")
             logger.info("delete container %s success" % lxc_name)
             return [True, "delete container success"]

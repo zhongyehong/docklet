@@ -27,7 +27,7 @@ class Container_Collector(threading.Thread):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.interval = 2
-        self.billingtime = 3600
+        self.billingtime = 15
         self.test = test
         self.cpu_last = {}
         self.cpu_quota = {}
@@ -68,6 +68,49 @@ class Container_Collector(threading.Thread):
         minutes = int(parts[0])
         seconds = int(parts[1])
         return ((days * 24 + hours) * 60 + minutes) * 60 + seconds
+    
+    @classmethod
+    def billing_increment(self, vnode_name):
+        global increment
+        global workercinfo
+        cpu_val = '0'
+        if 'cpu_use' in workercinfo[vnode_name].keys():
+            cpu_val = workercinfo[vnode_name]['cpu_use']['val']
+        if vnode_name not in increment.keys():
+            increment[vnode_name] = {}
+            increment[vnode_name]['lastcputime'] = cpu_val
+            increment[vnode_name]['memincrement'] = 0
+        cpu_increment = float(cpu_val) - float(increment[vnode_name]['lastcputime'])
+        #logger.info("billing:"+str(cpu_increment)+" "+str(increment[container_name]['lastcputime']))
+        if cpu_increment == 0.0:
+            avemem = 0
+        else:
+            avemem = cpu_increment*float(increment[vnode_name]['memincrement'])/1800.0
+        increment[vnode_name]['lastcputime'] = cpu_val
+        increment[vnode_name]['memincrement'] = 0
+        if 'disk_use' in workercinfo[vnode_name].keys():
+            disk_quota = workercinfo[vnode_name]['disk_use']['total']
+        else:
+            disk_quota = 0
+        #logger.info("cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
+        billingval = cpu_increment/1000.0 + avemem/500000.0 + float(disk_quota)/1024.0/1024.0/2000
+        if 'basic_info' not in workercinfo[vnode_name].keys():
+            workercinfo[vnode_name]['basic_info'] = {}
+            workercinfo[vnode_name]['basic_info']['billing'] = 0
+            workercinfo[vnode_name]['basic_info']['RunningTime'] = 0
+        nowbillingval = workercinfo[vnode_name]['basic_info']['billing']
+        nowbillingval += math.ceil(billingval)
+        try:
+            vnode = VNode.query.get(vnode_name)
+            vnode.billing = nowbillingval
+            db.session.commit()
+        except Exception as err:
+            vnode = VNode(vnode_name)
+            vnode.billing = nowbillingval
+            db.session.add(vnode)
+            db.session.commit()
+            logger.warning(err)
+        workercinfo[vnode_name]['basic_info']['billing'] = nowbillingval
 
     def collect_containerinfo(self,container_name):
         global workerinfo
@@ -111,6 +154,7 @@ class Container_Collector(threading.Thread):
         basic_info['PID'] = info['PID']
         basic_info['IP'] = info['IP']
         basic_info['RunningTime'] = running_time
+        workercinfo[container_name]['basic_info'] = basic_info
 
         cpu_parts = re.split(' +',info['CPU use'])
         cpu_val = float(cpu_parts[0].strip())
@@ -184,32 +228,7 @@ class Container_Collector(threading.Thread):
         if not int(running_time/self.billingtime) == lasttime:
             #logger.info("billing:"+str(float(cpu_val)))
             lastbillingtime[container_name] = int(running_time/self.billingtime)
-            cpu_increment = float(cpu_val) - float(increment[container_name]['lastcputime'])
-            #logger.info("billing:"+str(cpu_increment)+" "+str(increment[container_name]['lastcputime']))
-            if cpu_increment == 0.0:
-                avemem = 0
-            else:
-                avemem = cpu_increment*float(increment[container_name]['memincrement'])/1800.0
-            increment[container_name]['lastcputime'] = cpu_val
-            increment[container_name]['memincrement'] = 0
-            if 'disk_use' in workercinfo[container_name].keys():
-                disk_quota = workercinfo[container_name]['disk_use']['total']
-            else:
-                disk_quota = 0
-            #logger.info("cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
-            billing = cpu_increment/1000.0 + avemem/500000.0 + float(disk_quota)/1024.0/1024.0/2000
-            basic_info['billing'] += math.ceil(billing)
-            try:
-                vnode = VNode.query.get(container_name)
-                vnode.billing = basic_info['billing']
-                db.session.commit()
-            except Exception as err:
-                vnode = VNode(container_name)
-                vnode.billing = basic_info['billing']
-                db.session.add(vnode)
-                db.session.commit()
-                logger.warning(err)
-        workercinfo[container_name]['basic_info'] = basic_info
+            self.billing_increment(container_name)
         #print(output)
         #print(parts)
         return True
@@ -610,15 +629,19 @@ class History_Manager:
         billing = 0
         cputime = 0
         runtime = 0
+        owner = get_owner(vnode_name)
         try:
-            owner = get_owner(vnode_name)
             billing = int(workercinfo[vnode_name]['basic_info']['billing'])
+        except:
+            billing = 0
+        try:
             cputime = float(workercinfo[vnode_name]['cpu_use']['val'])
+        except:
+            cputime = 0.0
+        try:    
             runtime = float(workercinfo[vnode_name]['basic_info']['RunningTime'])
         except Exception as err:
             #print(traceback.format_exc())
-            billing = 0
-            cputime = 0.0
             runtime = 0
         history = History(action,runtime,cputime,billing)
         vnode.histories.append(history)
