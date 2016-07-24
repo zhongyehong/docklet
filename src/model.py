@@ -189,10 +189,16 @@ class NotificationGroups(db.Model):
 class VNode(db.Model):
     __bind_key__ = 'history'
     name = db.Column(db.String(100), primary_key=True)
+    laststopcpuval = db.Column(db.Float)
+    laststopruntime = db.Column(db.Integer)
+    billing = db.Column(db.Integer)
     histories = db.relationship('History', backref='v_node', lazy='dynamic')
     
     def __init__(self, vnode_name):
         self.name = vnode_name
+        self.laststopcpuval = 0
+        self.billing = 0
+        self.laststopruntime = 0
 
     def __repr__(self):
         return '<Vnodes %s>' % (self.name)
@@ -203,14 +209,14 @@ class History(db.Model):
     vnode = db.Column(db.String(100), db.ForeignKey('v_node.name'))
     action = db.Column(db.String(30))
     cputime = db.Column(db.Float)
-    billings = db.Column(db.Integer)
+    billing = db.Column(db.Integer)
     actionTime = db.Column(db.DateTime)
 
-    def __init__(self, action, cputime, billings):
+    def __init__(self, action, cputime, billing):
         self.action = action
         self.cputime = cputime
-        self.billings = billings
+        self.billing = billing
         self.actionTime = datetime.now()
     
     def __repr__(self):
-        return "{\"id\":\"%d\",\"vnode\":\"%s\",\"action\":\"%s\",\"cputime\":\"%f\",\"billings\":\"%d\",\"actionTime\":\"%s\"}" % (self.id, self.vnode, self.action, self.cputime, self.billings, self.actionTime.strftime("%Y-%m-%d %H:%M:%S"))
+        return "{\"id\":\"%d\",\"vnode\":\"%s\",\"action\":\"%s\",\"cputime\":\"%f\",\"billing\":\"%d\",\"actionTime\":\"%s\"}" % (self.id, self.vnode, self.action, self.cputime, self.billing, self.actionTime.strftime("%Y-%m-%d %H:%M:%S"))

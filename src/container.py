@@ -25,7 +25,6 @@ class Container(object):
 
     def create_container(self, lxc_name, username, setting, clustername, clusterid, containerid, hostname, ip, gateway, vlanid, image):
         logger.info("create container %s of %s for %s" %(lxc_name, clustername, username))
-        self.historymgr.log(lxc_name,"Create")
         try:
             setting = json.loads(setting)
             cpu = int(setting['cpu']) * 100000
@@ -133,12 +132,13 @@ IP=%s
         except Exception as e:
             logger.error(e)
             return [False, "create container failed"]
+        self.historymgr.log(lxc_name,"Create")
         return [True, "create container success"]
 
     def delete_container(self, lxc_name):
         logger.info ("delete container:%s" % lxc_name)
-        self.historymgr.log(lxc_name,"Delete")
         if self.imgmgr.deleteFS(lxc_name):
+            self.historymgr.log(lxc_name,"Delete")
             logger.info("delete container %s success" % lxc_name)
             return [True, "delete container success"]
         else:
@@ -155,7 +155,6 @@ IP=%s
     # start container, if running, restart it
     def start_container(self, lxc_name):
         logger.info ("start container:%s" % lxc_name)
-        self.historymgr.log(lxc_name,"Start")
         #status = subprocess.call([self.libpath+"/lxc_control.sh", "start", lxc_name])
         #if int(status) == 1:
         #    logger.error ("start container %s failed" % lxc_name)
@@ -169,6 +168,7 @@ IP=%s
             subprocess.run(["lxc-start -n %s" % lxc_name],
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, check=True)
             logger.info ("start container %s success" % lxc_name)
+            self.historymgr.log(lxc_name,"Start")
             return [True, "start container success"]
         except subprocess.CalledProcessError as sube:
             logger.error('start container %s failed: %s' % (lxc_name,
@@ -229,7 +229,6 @@ IP=%s
 
     def stop_container(self, lxc_name):
         logger.info ("stop container:%s" % lxc_name)
-        self.historymgr.log(lxc_name,"Stop")
         #status = subprocess.call([self.libpath+"/lxc_control.sh", "stop", lxc_name])
         [success, status] = self.container_status(lxc_name)
         if not success:
@@ -241,6 +240,7 @@ IP=%s
             logger.error("stop container %s failed" % lxc_name)
             return [False, "stop container failed"]
         else:
+            self.historymgr.log(lxc_name,"Stop")
             logger.info("stop container %s success" % lxc_name)
             return [True, "stop container success"]
         #if int(status) == 1:

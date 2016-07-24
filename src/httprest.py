@@ -900,7 +900,7 @@ if __name__ == '__main__':
     logger.info("vclustermgr started")
     G_imagemgr = imagemgr.ImageMgr()
     logger.info("imagemgr started")
-    G_historymgr = History_Manager()
+    G_historymgr = monitor.History_Manager()
     master_collector = monitor.Master_Collector(G_nodemgr)
     master_collector.start()
     logger.info("master_collector started")
