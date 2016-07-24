@@ -592,3 +592,10 @@ class History_Manager:
         vnode.histories.append(history)
         db.session.add(history)
         db.session.commit()
+
+    def getHistory(self,vnode_name):
+        vnode = VNode.query.filter_by(name=vnode_name).first()
+        if vnode is None:
+            return []
+        else:
+            return list(eval(str(vnode.histories)))

@@ -423,6 +423,7 @@ def hosts_monitor(cur_user, user, form, com_id, issue):
 @login_required
 def vnodes_monitor(cur_user, user, form, con_id, issue):
     global G_clustername
+    global G_historymgr
     logger.info("handle request: monitor/vnodes")
     res = {}
     fetcher = monitor.Container_Fetcher(con_id)
@@ -434,6 +435,8 @@ def vnodes_monitor(cur_user, user, form, con_id, issue):
         res['disk_use'] = fetcher.get_disk_use()
     elif issue == 'basic_info':
         res['basic_info'] = fetcher.get_basic_info()
+    elif issue == 'history':
+        res['history'] = G_historymgr.getHistory(con_id)
     elif issue == 'owner':
         names = con_id.split('-')
         result = G_usermgr.query(username = names[0], cur_user = cur_user)
@@ -897,6 +900,7 @@ if __name__ == '__main__':
     logger.info("vclustermgr started")
     G_imagemgr = imagemgr.ImageMgr()
     logger.info("imagemgr started")
+    G_historymgr = History_Manager()
     master_collector = monitor.Master_Collector(G_nodemgr)
     master_collector.start()
     logger.info("master_collector started")
