@@ -423,6 +423,7 @@ def hosts_monitor(cur_user, user, form, com_id, issue):
 @login_required
 def vnodes_monitor(cur_user, user, form, con_id, issue):
     global G_clustername
+    global G_historymgr
     logger.info("handle request: monitor/vnodes")
     res = {}
     fetcher = monitor.Container_Fetcher(con_id)
@@ -434,6 +435,8 @@ def vnodes_monitor(cur_user, user, form, con_id, issue):
         res['disk_use'] = fetcher.get_disk_use()
     elif issue == 'basic_info':
         res['basic_info'] = fetcher.get_basic_info()
+    elif issue == 'history':
+        res['history'] = G_historymgr.getHistory(con_id)
     elif issue == 'owner':
         names = con_id.split('-')
         result = G_usermgr.query(username = names[0], cur_user = cur_user)
@@ -801,6 +804,7 @@ if __name__ == '__main__':
     global G_networkmgr
     global G_clustername
     global G_sysmgr
+    global G_historymgr
     # move 'tools.loadenv' to the beginning of this file
 
     fs_path = env.getenv("FS_PREFIX")
@@ -876,7 +880,7 @@ if __name__ == '__main__':
         if etcdclient.isdir("_lock")[0]:
             etcdclient.deldir("_lock")
 
-    G_usermgr = userManager.userManager('root')
+    G_usermgr = userManager.userManager('root','unias1616')
     if mode == "new":
         G_usermgr.initUsage()
     G_notificationmgr = notificationmgr.NotificationMgr()
@@ -896,8 +900,10 @@ if __name__ == '__main__':
     logger.info("vclustermgr started")
     G_imagemgr = imagemgr.ImageMgr()
     logger.info("imagemgr started")
+    G_historymgr = monitor.History_Manager()
     master_collector = monitor.Master_Collector(G_nodemgr)
     master_collector.start()
+    logger.info("master_collector started")
 
     logger.info("startting to listen on: ")
     masterip = env.getenv('MASTER_IP')

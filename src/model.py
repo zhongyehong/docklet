@@ -40,6 +40,7 @@ fsdir = env.getenv('FS_PREFIX')
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'+fsdir+'/global/sys/UserTable.db'
+app.config['SQLALCHEMY_BINDS'] = {'history': 'sqlite:///'+fsdir+'/global/sys/HistoryTable.db'}
 try:
     secret_key_file = open(env.getenv('FS_PREFIX') + '/local/token_secret_key.txt')
     app.secret_key = secret_key_file.read()
@@ -184,3 +185,40 @@ class NotificationGroups(db.Model):
 
     def __repr__(self):
         return '<Notification: %r, Group: %r>' % (self.notification_id, self.group_name)
+
+class VNode(db.Model):
+    __bind_key__ = 'history'
+    name = db.Column(db.String(100), primary_key=True)
+    laststopcpuval = db.Column(db.Float)
+    laststopruntime = db.Column(db.Integer)
+    billing = db.Column(db.Integer)
+    histories = db.relationship('History', backref='v_node', lazy='dynamic')
+    
+    def __init__(self, vnode_name):
+        self.name = vnode_name
+        self.laststopcpuval = 0
+        self.billing = 0
+        self.laststopruntime = 0
+
+    def __repr__(self):
+        return '<Vnodes %s>' % (self.name)
+
+class History(db.Model):
+    __bind_key__ = 'history'
+    id = db.Column(db.Integer, primary_key=True)
+    vnode = db.Column(db.String(100), db.ForeignKey('v_node.name'))
+    action = db.Column(db.String(30))
+    runningtime = db.Column(db.Integer)
+    cputime = db.Column(db.Float)
+    billing = db.Column(db.Integer)
+    actionTime = db.Column(db.DateTime)
+
+    def __init__(self, action, runningtime, cputime, billing):
+        self.action = action
+        self.runningtime = runningtime
+        self.cputime = cputime
+        self.billing = billing
+        self.actionTime = datetime.now()
+    
+    def __repr__(self):
+        return "{\"id\":\"%d\",\"vnode\":\"%s\",\"action\":\"%s\",\"runningtime\":\"%d\",\"cputime\":\"%f\",\"billing\":\"%d\",\"actionTime\":\"%s\"}" % (self.id, self.vnode, self.action, self.runningtime, self.cputime, self.billing, self.actionTime.strftime("%Y-%m-%d %H:%M:%S"))

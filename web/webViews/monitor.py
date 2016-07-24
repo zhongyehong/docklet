@@ -44,6 +44,19 @@ class statusRealtimeView(normalView):
         basic_info = result.get('monitor').get('basic_info')
         return self.render(self.template_path, node_name = self.node_name, user = session['username'], container = basic_info)
 
+class historyView(normalView):
+    template_path = "monitor/history.html"
+    vnode_name = ""
+    
+    @classmethod
+    def get(self):
+        data = {
+            "user": session['username'],
+        }
+        result = dockletRequest.post('/monitor/vnodes/%s/history/'%(self.vnode_name), data)
+        history = result.get('monitor').get('history')
+        return self.render(self.template_path, vnode_name = self.vnode_name, user = session['username'], history = history)
+
 class hostsRealtimeView(normalView):
     template_path = "monitor/hostsRealtime.html"
     com_ip = ""

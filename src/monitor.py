@@ -3,6 +3,7 @@
 import subprocess,re,os,etcdlib,psutil,math,sys
 import time,threading,json,traceback,platform
 
+from model import db,VNode,History
 from log import logger
 
 monitor_hosts = {}
@@ -13,12 +14,16 @@ workercinfo = {}
 containerpids = []
 pid2name = {}
 
+laststopcpuval = {}
+laststopruntime = {}
 lastbillingtime = {}
 increment = {}
 
 class Container_Collector(threading.Thread):
 
     def __init__(self,test=False):
+        global laststopcpuval
+        global workercinfo
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.interval = 2
@@ -28,6 +33,20 @@ class Container_Collector(threading.Thread):
         self.cpu_quota = {}
         self.mem_quota = {}
         self.cores_num = int(subprocess.getoutput("grep processor /proc/cpuinfo | wc -l"))
+        containers = self.list_container()
+        for container in containers:
+            if not container == '':
+                try:
+                    vnode = VNode.query.get(container)
+                    laststopcpuval[container] = vnode.laststopcpuval
+                    laststopruntime[container] = vnode.laststopruntime
+                    workercinfo[container] = {}
+                    workercinfo[container]['basic_info'] = {}
+                    workercinfo[container]['basic_info']['billing'] = vnode.billing
+                    workercinfo[container]['basic_info']['RunningTime'] = vnode.laststopruntime
+                except:
+                    laststopcpuval[container] = 0
+                    laststopruntime[container] = 0
         return
 
     def list_container(self):
@@ -57,6 +76,8 @@ class Container_Collector(threading.Thread):
         global lastbillingtime
         global containerpids
         global pid2name
+        global laststopcpuval
+        global laststopruntime
         output = subprocess.check_output("sudo lxc-info -n %s" % (container_name),shell=True)
         output = output.decode('utf-8')
         parts = re.split('\n',output)
@@ -67,7 +88,6 @@ class Container_Collector(threading.Thread):
             basic_info = workercinfo[container_name]['basic_info']
         else:
             basic_info['RunningTime'] = 0
-            basic_info['LastTime'] = 0
             basic_info['billing'] = 0
         for part in parts:
             if not part == '':
@@ -87,20 +107,13 @@ class Container_Collector(threading.Thread):
             containerpids.append(info['PID'])
             pid2name[info['PID']] = container_name
         running_time = self.get_proc_etime(int(info['PID']))
-        if basic_exist and 'PID' in workercinfo[container_name]['basic_info'].keys():
-            last_time = workercinfo[container_name]['basic_info']['LastTime']
-            if not info['PID'] == workercinfo[container_name]['basic_info']['PID']:
-                last_time = workercinfo[container_name]['basic_info']['RunningTime']
-        else:
-            last_time = 0
-        basic_info['LastTime'] = last_time
-        running_time += last_time
+        running_time += laststopruntime[container_name]
         basic_info['PID'] = info['PID']
         basic_info['IP'] = info['IP']
         basic_info['RunningTime'] = running_time
 
         cpu_parts = re.split(' +',info['CPU use'])
-        cpu_val = cpu_parts[0].strip()
+        cpu_val = float(cpu_parts[0].strip())
         cpu_unit = cpu_parts[1].strip()
         if not container_name in self.cpu_last.keys():
             confpath = "/var/lib/lxc/%s/config"%(container_name)
@@ -127,6 +140,12 @@ class Container_Collector(threading.Thread):
                 return False
             self.cpu_last[container_name] = 0 
         cpu_use = {}
+        lastval = 0
+        try:
+            lastval = laststopcpuval[container_name]
+        except:
+            logger.warning(traceback.format_exc())   
+        cpu_val += lastval
         cpu_use['val'] = cpu_val
         cpu_use['unit'] = cpu_unit
         cpu_usedp = (float(cpu_val)-float(self.cpu_last[container_name]))/(self.cpu_quota[container_name]*self.interval*1.05)
@@ -139,7 +158,7 @@ class Container_Collector(threading.Thread):
         
         if container_name not in increment.keys():
             increment[container_name] = {}
-            increment[container_name]['lastcputime'] = 0
+            increment[container_name]['lastcputime'] = cpu_val
             increment[container_name]['memincrement'] = 0
 
         mem_parts = re.split(' +',info['Memory use'])
@@ -158,13 +177,10 @@ class Container_Collector(threading.Thread):
         mem_use['usedp'] = mem_usedp
         workercinfo[container_name]['mem_use'] = mem_use
         
-        lasttime = 0
-        if container_name in lastbillingtime.keys():
-            lasttime = lastbillingtime[container_name]
-        else:
-            lasttime = 0
-            lastbillingtime[container_name] = 0
-        #logger.info(running_time)
+        if not container_name in lastbillingtime.keys():
+            lastbillingtime[container_name] = int(running_time/self.billingtime)
+        lasttime = lastbillingtime[container_name]
+        #logger.info(lasttime)
         if not int(running_time/self.billingtime) == lasttime:
             #logger.info("billing:"+str(float(cpu_val)))
             lastbillingtime[container_name] = int(running_time/self.billingtime)
@@ -183,6 +199,16 @@ class Container_Collector(threading.Thread):
             #logger.info("cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
             billing = cpu_increment/1000.0 + avemem/500000.0 + float(disk_quota)/1024.0/1024.0/2000
             basic_info['billing'] += math.ceil(billing)
+            try:
+                vnode = VNode.query.get(container_name)
+                vnode.billing = basic_info['billing']
+                db.session.commit()
+            except Exception as err:
+                vnode = VNode(container_name)
+                vnode.billing = basic_info['billing']
+                db.session.add(vnode)
+                db.session.commit()
+                logger.warning(err)
         workercinfo[container_name]['basic_info'] = basic_info
         #print(output)
         #print(parts)
@@ -403,6 +429,8 @@ class Master_Collector(threading.Thread):
                     logger.warning(traceback.format_exc())
                     logger.warning(err)
             time.sleep(2)
+            #logger.info(History.query.all())
+            #logger.info(VNode.query.all())
         return
 
     def stop(self):
@@ -556,3 +584,56 @@ class Fetcher:
             logger.warning(err)
             res = {}
         return res
+
+class History_Manager:
+    
+    def __init__(self):
+        try:
+            VNode.query.all()
+            History.query.all()
+        except:
+            db.create_all(bind='__all__')
+
+    def getAll(self):
+        return History.query.all()
+    
+    def log(self,vnode_name,action):
+        global workercinfo
+        global laststopcpuval
+        res = VNode.query.filter_by(name=vnode_name).first()
+        if res is None:
+            vnode = VNode(vnode_name)
+            vnode.histories = []
+            db.session.add(vnode)
+            db.session.commit()
+        vnode = VNode.query.get(vnode_name)
+        billing = 0
+        cputime = 0
+        runtime = 0
+        try:
+            owner = get_owner(vnode_name)
+            billing = int(workercinfo[vnode_name]['basic_info']['billing'])
+            cputime = float(workercinfo[vnode_name]['cpu_use']['val'])
+            runtime = float(workercinfo[vnode_name]['basic_info']['RunningTime'])
+        except Exception as err:
+            #print(traceback.format_exc())
+            billing = 0
+            cputime = 0.0
+            runtime = 0
+        history = History(action,runtime,cputime,billing)
+        vnode.histories.append(history)
+        if action == 'Stop' or action == 'Create':
+            laststopcpuval[vnode_name] = cputime
+            vnode.laststopcpuval = cputime
+            laststopruntime[vnode_name] = runtime
+            vnode.laststopruntime = runtime
+        db.session.add(history)
+        db.session.commit()
+
+    def getHistory(self,vnode_name):
+        vnode = VNode.query.filter_by(name=vnode_name).first()
+        if vnode is None:
+            return []
+        else:
+            res = History.query.filter_by(vnode=vnode_name).all()
+            return list(eval(str(res)))
