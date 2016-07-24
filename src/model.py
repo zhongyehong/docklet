@@ -206,12 +206,11 @@ class History(db.Model):
     billings = db.Column(db.Integer)
     actionTime = db.Column(db.DateTime)
 
-    def __init__(self, vnode_name, isToStart, cputime, billings):
-        self.vnode = vnode_name
-        self.isToStart = isToStart
+    def __init__(self, action, cputime, billings):
+        self.action = action
         self.cputime = cputime
         self.billings = billings
-        self.actionTime = datetime.utcnow()
+        self.actionTime = datetime.now()
     
     def __repr__(self):
-        return "{\"id\":\"%d\",\"vnode\":\"%s\",\"isToStart\":\"%r\",\"cputime\":\"%f\",\"billings\":\"%d\",\"actionTime\":\"%s\"}" % (self.id, self.vnode, self.isToStart, self.cputime, self.billings, self.actionTime)
+        return "{\"id\":\"%d\",\"vnode\":\"%s\",\"action\":\"%s\",\"cputime\":\"%f\",\"billings\":\"%d\",\"actionTime\":\"%s\"}" % (self.id, self.vnode, self.action, self.cputime, self.billings, self.actionTime.strftime("%Y-%m-%d %H:%M:%S"))

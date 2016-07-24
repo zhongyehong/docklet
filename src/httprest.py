@@ -877,7 +877,7 @@ if __name__ == '__main__':
         if etcdclient.isdir("_lock")[0]:
             etcdclient.deldir("_lock")
 
-    G_usermgr = userManager.userManager('root')
+    G_usermgr = userManager.userManager('root','unias1616')
     if mode == "new":
         G_usermgr.initUsage()
     G_notificationmgr = notificationmgr.NotificationMgr()
@@ -899,8 +899,7 @@ if __name__ == '__main__':
     logger.info("imagemgr started")
     master_collector = monitor.Master_Collector(G_nodemgr)
     master_collector.start()
-    G_historymgr = monitor.History_Manager()
-    logger.info("historymgr started")
+    logger.info("master_collector started")
 
     logger.info("startting to listen on: ")
     masterip = env.getenv('MASTER_IP')

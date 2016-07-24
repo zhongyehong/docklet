@@ -404,6 +404,8 @@ class Master_Collector(threading.Thread):
                     logger.warning(traceback.format_exc())
                     logger.warning(err)
             time.sleep(2)
+            #logger.info(History.query.all())
+            #logger.info(VNode.query.all())
         return
 
     def stop(self):
@@ -569,5 +571,24 @@ class History_Manager:
 
     def getAll(self):
         return History.query.all()
-
     
+    def log(self,vnode_name,action):
+        global monitor_vnodes
+        res = VNode.query.filter_by(name=vnode_name).first()
+        if res is None:
+            vnode = VNode(vnode_name)
+            vnode.histories = []
+            db.session.add(vnode)
+            db.session.commit()
+        vnode = VNode.query.get(vnode_name)
+        try:
+            owner = get_owner(vnode_name)
+            billings = int(monitor_vnodes[owner][vnode_name]['basic_info']['billings'])
+            cputime = float(monitor_vnodes[owner][vnode_name]['basic_info']['cpu_use']['val'])
+        except:
+            billings = 0
+            cputime = 0.0
+        history = History(action,cputime,billings)
+        vnode.histories.append(history)
+        db.session.add(history)
+        db.session.commit()
