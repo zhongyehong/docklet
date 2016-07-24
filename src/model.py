@@ -208,15 +208,17 @@ class History(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     vnode = db.Column(db.String(100), db.ForeignKey('v_node.name'))
     action = db.Column(db.String(30))
+    runningtime = db.Column(db.Integer)
     cputime = db.Column(db.Float)
     billing = db.Column(db.Integer)
     actionTime = db.Column(db.DateTime)
 
-    def __init__(self, action, cputime, billing):
+    def __init__(self, action, runningtime, cputime, billing):
         self.action = action
+        self.runningtime = runningtime
         self.cputime = cputime
         self.billing = billing
         self.actionTime = datetime.now()
     
     def __repr__(self):
-        return "{\"id\":\"%d\",\"vnode\":\"%s\",\"action\":\"%s\",\"cputime\":\"%f\",\"billing\":\"%d\",\"actionTime\":\"%s\"}" % (self.id, self.vnode, self.action, self.cputime, self.billing, self.actionTime.strftime("%Y-%m-%d %H:%M:%S"))
+        return "{\"id\":\"%d\",\"vnode\":\"%s\",\"action\":\"%s\",\"runningtime\":\"%d\",\"cputime\":\"%f\",\"billing\":\"%d\",\"actionTime\":\"%s\"}" % (self.id, self.vnode, self.action, self.runningtime, self.cputime, self.billing, self.actionTime.strftime("%Y-%m-%d %H:%M:%S"))

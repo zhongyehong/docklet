@@ -27,7 +27,7 @@ class Container_Collector(threading.Thread):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.interval = 2
-        self.billingtime = 3600
+        self.billingtime = 30
         self.test = test
         self.cpu_last = {}
         self.cpu_quota = {}
@@ -620,7 +620,7 @@ class History_Manager:
             billing = 0
             cputime = 0.0
             runtime = 0
-        history = History(action,cputime,billing)
+        history = History(action,runtime,cputime,billing)
         vnode.histories.append(history)
         if action == 'Stop' or action == 'Create':
             laststopcpuval[vnode_name] = cputime

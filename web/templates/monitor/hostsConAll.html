@@ -112,7 +112,7 @@
        		}
 
        		$.post(url+"/cpu_use/",{},function(data){
-		       	var val = data.monitor.cpu_use.val;
+		       	var val = (data.monitor.cpu_use.val).toFixed(2);
 			    var unit = data.monitor.cpu_use.unit;
                 var hostpercent = data.monitor.cpu_use.hostpercent;
                 var percent = (hostpercent*100).toFixed(2);

@@ -29,7 +29,7 @@ function processCpuData(data)
     if(is_running)
     {
 	    cpu_usedp = data.monitor.cpu_use.usedp;
-	    var val = data.monitor.cpu_use.val;
+	    var val = (data.monitor.cpu_use.val).toFixed(2);
 	    var unit = data.monitor.cpu_use.unit;
         var quota = data.monitor.cpu_use.quota.cpu;
         var quotaout = "("+quota;

@@ -1,0 +1,69 @@
+{% extends 'base_AdminLTE.html' %}
+
+{% block title %}Docklet | History{% endblock %}
+
+{% block panel_title %}History for <div id='node_name'>{{ vnode_name }}</div>{% endblock %}
+
+{% block panel_list %}
+<ol class="breadcrumb">
+  <li>
+      <a href="/dashboard/"><i class="fa fa-dashboard"></i>Home</a>
+  </li>
+  <li>
+      <a href='/vclusters/'>VClusterStatus</a>
+  </li>
+  <li class="active">
+      <strong>History</strong>
+  </li>
+</ol>
+{% endblock %}
+
+{% block css_src %}
+<link href="/static/dist/css/flotconfig.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+<div class="col-md-12">
+<div class="box box-info">
+     <div class="box-header with-border">
+       <h3 class="box-title">History of {{ vnode_name }}</h3>
+
+       <div class="box-tools pull-right">
+         <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+         </button>
+         <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+       </div>
+     </div>
+            <div class="ibox-body table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                    <tr>
+                        <th>History ID</th>
+                        <th>Action</th>
+                        <th>Running Time</th>
+                        <th>Cpu Time</th>
+                        <th>Billing</th>
+                        <th>Action Time</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                      {% for record in history %}
+                      <tr>
+                      <th>{{ record['id'] }}</th>
+                      <th>{{ record['action'] }}</th>
+                      <th>{{ record['runningtime'] }} seconds</th>
+                      <th>{{ record['cputime'] }} seconds</th>
+                      <th>{{ record['billing'] }} beans</th>
+                      <th>{{ record['actionTime'] }}</th>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
