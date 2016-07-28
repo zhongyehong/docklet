@@ -1,3 +1,17 @@
+v0.2.8,  Jul 17, 2016
+--------------------
+
+**Bug Fix**
+  * [#119] version display error
+
+**Improvement**
+  * [#52] give user a total quota, let themselves decide how to use quota
+  * [#72] recording the user's historical resource usage
+  * [#85] Making workers's state consistent with master
+  * [#88] setting config file in admin panel
+  * [#96] Web notifications
+  * [#113] Recovery : after poweroff, just recover container, not recover service
+
 v0.2.7,  May 17, 2016
 --------------------
 
