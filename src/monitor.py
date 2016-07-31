@@ -3,7 +3,7 @@
 import subprocess,re,os,etcdlib,psutil,math,sys
 import time,threading,json,traceback,platform
 
-from model import db,VNode,History
+from model import db,VNode,History,User
 from log import logger
 
 monitor_hosts = {}
@@ -111,6 +111,15 @@ class Container_Collector(threading.Thread):
             db.session.commit()
             logger.warning(err)
         workercinfo[vnode_name]['basic_info']['billing'] = nowbillingval
+        owner_name = get_owner(vnode_name)
+        owner = User.query.filter_by(username=owner_name).first()
+        if owner is None:
+            logger.warning("Error!!! Billing User %s doesn't exist!" % (owner_name))
+        else:
+            logger.info("Billing User:"+str(owner))
+            owner.beans -= math.ceil(billingval)
+            db.session.commit()
+            logger.info("Billing User:"+str(owner))
 
     def collect_containerinfo(self,container_name):
         global workerinfo

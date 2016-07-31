@@ -72,7 +72,7 @@ class User(db.Model):
     register_date = db.Column(db.String(10))
     user_group = db.Column(db.String(50))
     auth_method = db.Column(db.String(10))
-
+    beans = db.Column(db.Integer)
 
     def __init__(self, username, password, avatar="default.png", nickname = "", description = "", status = "init",
                     e_mail = "" , student_number = "", department = "", truename = "", tel="", date = None, usergroup = "primary"
@@ -92,6 +92,7 @@ class User(db.Model):
         self.department = department
         self.truename = truename
         self.tel = tel
+        self.beans = 1000
         if (date != None):
             self.register_date = date
         else:
@@ -100,7 +101,8 @@ class User(db.Model):
         self.auth_method = auth_method
 
     def __repr__(self):
-        return '<User %r>' % self.username
+        #return '<User %r>' % (self.username)
+        return '<User %r beans %r>' % (self.username,self.beans)
 
     #token will expire after 3600s
     def generate_auth_token(self, expiration = 3600):
@@ -119,7 +121,6 @@ class User(db.Model):
             return None # invalid token
         user = User.query.get(data['id'])
         return user
-
 
 class UserGroup(db.Model):
     id = db.Column(db.Integer, primary_key=True)
