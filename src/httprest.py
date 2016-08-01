@@ -880,7 +880,7 @@ if __name__ == '__main__':
         if etcdclient.isdir("_lock")[0]:
             etcdclient.deldir("_lock")
 
-    G_usermgr = userManager.userManager('root','unias1616')
+    G_usermgr = userManager.userManager('root')
     if mode == "new":
         G_usermgr.initUsage()
     G_notificationmgr = notificationmgr.NotificationMgr()
