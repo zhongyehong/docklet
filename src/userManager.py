@@ -82,7 +82,7 @@ def send_activated_email(to_address, username):
                <br><br>
                <p> <a href='http://docklet.unias.org'>Docklet Team</a>, SEI, PKU</p>
             ''' % (env.getenv("PORTAL_URL"), env.getenv("PORTAL_URL"))
-    text += '<p>'+  str(datetime.utcnow()) + '</p>'
+    text += '<p>'+  str(datetime.now()) + '</p>'
     text += '</html>'
     subject = 'Docklet account activated'
     msg = MIMEMultipart()
@@ -107,7 +107,7 @@ def send_remind_activating_email(username):
                <br/><br/>
                <p> Docklet Team, SEI, PKU</p>
             ''' % (username, env.getenv("PORTAL_URL"), env.getenv("PORTAL_URL"))
-    text += '<p>'+  str(datetime.utcnow()) + '</p>'
+    text += '<p>'+  str(datetime.now()) + '</p>'
     text += '</html>'
     subject = 'An activating request in Docklet has been sent'
     msg = MIMEMultipart()
@@ -312,14 +312,14 @@ class userManager:
 
     def set_nfs_quota_bygroup(self,groupname, quota):
         if not data_quota == "True":
-            return 
-        users = User.query.filter_by(user_group = groupname).all()  
+            return
+        users = User.query.filter_by(user_group = groupname).all()
         for user in users:
             self.set_nfs_quota(user.username, quota)
 
     def set_nfs_quota(self, username, quota):
         if not data_quota == "True":
-            return 
+            return
         nfspath = "/users/%s/data" % username
         try:
             cmd = data_quota_cmd % (nfspath,quota+"GB")
@@ -590,6 +590,13 @@ class userManager:
         will send an e-mail when status is changed from 'applying' to 'normal'
         Usage: modify(newValue = dict_from_form, cur_user = token_from_auth)
         '''
+        if ( kwargs['newValue'].get('Instruction', '') == 'Activate'):
+            user_modify = User.query.filter_by(id = kwargs['newValue'].get('ID', None)).first()
+            user_modify.status = 'normal'
+            send_activated_email(user_modify.e_mail, user_modify.username)
+            db.session.commit()
+            return {"success": "true"}
+
         user_modify = User.query.filter_by(username = kwargs['newValue'].get('username', None)).first()
         if (user_modify == None):
 
@@ -607,11 +614,12 @@ class userManager:
         if (user_modify.status == 'applying' and form.get('status', '') == 'normal'):
             send_activated_email(user_modify.e_mail, user_modify.username)
         user_modify.status = form.get('status', '')
-        if (form.get('password', '') != ''):
-            new_password = form.get('password','')
-            new_password = hashlib.sha512(new_password.encode('utf-8')).hexdigest()
-            user_modify.password = new_password
+        #if (form.get('password', '') != ''):
+            #new_password = form.get('password','')
+            #new_password = hashlib.sha512(new_password.encode('utf-8')).hexdigest()
+            #user_modify.password = new_password
             #self.chpassword(cur_user = user_modify, password = form.get('password','no_password'))
+        #modify password in another function now
 
         db.session.commit()
         res = self.groupQuery(name=user_modify.user_group)

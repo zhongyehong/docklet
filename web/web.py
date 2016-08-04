@@ -317,6 +317,11 @@ def useradd():
 def usermodify():
     return usermodifyView.as_view()
 
+@app.route("/user/change/", methods=['POST'])
+@administration_required
+def userchange():
+    return usermodifyView.as_view()
+
 @app.route("/quota/add/", methods=['POST'])
 @administration_required
 def quotaadd():
@@ -493,4 +498,4 @@ if __name__ == '__main__':
         elif opt in ("-p", "--port"):
             webport = int(arg)
 
-    app.run(host = webip, port = webport, threaded=True)
+    app.run(host = webip, port = webport, threaded=True,)

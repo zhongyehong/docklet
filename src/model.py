@@ -94,7 +94,7 @@ class User(db.Model):
         if (date != None):
             self.register_date = date
         else:
-            self.register_date = datetime.utcnow()
+            self.register_date = datetime.now()
         self.user_group = usergroup
         self.auth_method = auth_method
 
