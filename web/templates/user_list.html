@@ -133,10 +133,10 @@
                                     <input type = "text" placeholder="Enter Telephone Number" class="form-control" name="tel" id="mTel">
                                   </div>
 
-                                  <div class="form-group">
+                                  <!--div class="form-group">
                                     <label>Password</label>
                                     <input type="password" placeholder="Enter Password" class="form-control" name="password" id="mPassword">
-                                  </div>
+                                  </div-->
 
                                   <div class="form-group">
                                     <label>User Group</label>
@@ -194,7 +194,12 @@
       "columnDefs": [
             {
                 "render": function ( data, type, row ) {
-                    return '<a class="btn btn-info btn-sm" data-toggle="modal" data-target="#ModifyUserModal" onClick="javascript:setFormUser(' + row[0] + ');">' + 'Edit' + '</a>';
+                    str='<a class="btn btn-info btn-xs" data-toggle="modal" data-target="#ModifyUserModal" onClick="javascript:setFormUser(' + row[0] + ');">' + 'Edit' + '</a>';
+                    if (row[6]=='applying')
+                    {
+                      str=str + '<a class="btn btn-danger btn-xs" onClick="javascript:setActivateUser(' + row[0] + ');">' + 'Activate' + '</a>';
+                    }
+                    return str;
                 },
                 "targets": 8
             },
@@ -247,6 +252,16 @@
         $("#mUserGroup").val(result.group);
         $("#mAuthMethod").val(result.auth_method);
         $("#mDescription").val(result.description);
+      });
+    }
+    function setActivateUser(arg){
+      $.post("/user/change/",
+      {
+        ID: arg,
+        Instruction: "Activate",
+      },
+      function(data,status){
+        location.reload();
       });
     }
 </script>
