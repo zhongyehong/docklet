@@ -88,7 +88,6 @@
 				                 <th>Disk Usage</th>
 				                 <th>Billing</th>
 				                 <th>Summary</th>
-                                 <th>History</th>
                              </tr>
                              </thead>
                              <tbody>
@@ -109,7 +108,6 @@
                                  <td id='{{cluster}}_{{ loop.index }}_disk'>--</td>
                                  <td id='{{cluster}}_{{ loop.index }}_billing'>--</td>
                                  <td><a class="btn btn-info btn-xs" href='/vclusters/{{ cluster }}/{{ container['containername'] }}/'>Realtime</a></td>
-                                 <td><a class="btn btn-info btn-xs" href='/vclusters/{{ cluster }}/{{ container['containername'] }}/history/'>History</a></td>
 			     </tr>
                              {% endfor %}
                              </tbody>

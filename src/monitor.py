@@ -637,3 +637,10 @@ class History_Manager:
         else:
             res = History.query.filter_by(vnode=vnode_name).all()
             return list(eval(str(res)))
+
+    def getCreatedVNodes(self,owner):
+        vnodes = VNode.query.filter(VNode.name.startswith(owner)).all()
+        res = []
+        for vnode in vnodes:
+            res.append(vnode.name)
+        return res

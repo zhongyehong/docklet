@@ -263,11 +263,17 @@ def statusRealtime(vcluster_name,node_name):
     statusRealtimeView.node_name = node_name
     return statusRealtimeView.as_view()
 
-@app.route("/vclusters/<vcluster_name>/<vnode_name>/history/", methods=['GET'])
-@login_required
-def history(vcluster_name,vnode_name):
-    historyView.vnode_name = vnode_name
+@app.route("/history/", methods=['GET'])
+#@login_required
+def history():
     return historyView.as_view()
+
+
+@app.route("/history/<vnode_name>/", methods=['GET'])
+@login_required
+def historyVNode(vnode_name):
+    historyVNodeView.vnode_name = vnode_name
+    return historyVNodeView.as_view()
 
 @app.route("/monitor/hosts/<comid>/<infotype>/", methods=['POST'])
 @app.route("/monitor/vnodes/<comid>/<infotype>/", methods=['POST'])

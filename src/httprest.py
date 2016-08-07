@@ -451,14 +451,22 @@ def vnodes_monitor(cur_user, user, form, con_id, issue):
     return json.dumps({'success':'true', 'monitor':res})
 
 
-@app.route("/monitor/user/quotainfo/", methods=['POST'])
+@app.route("/monitor/user/<issue>/", methods=['POST'])
 @login_required
-def user_quotainfo_monitor(cur_user, user, form):
+def user_quotainfo_monitor(cur_user, user, form,issue):
     global G_usermgr
-    logger.info("handle request: monitor/user/quotainfo/")
-    user_info = G_usermgr.selfQuery(cur_user = cur_user)
-    quotainfo = user_info['data']['groupinfo']
-    return json.dumps({'success':'true', 'quotainfo':quotainfo})
+    global G_historymgr
+    if issue == 'quotainfo':        
+        logger.info("handle request: monitor/user/quotainfo/")
+        user_info = G_usermgr.selfQuery(cur_user = cur_user)
+        quotainfo = user_info['data']['groupinfo']
+        return json.dumps({'success':'true', 'quotainfo':quotainfo})
+    elif issue == 'createdvnodes':
+        logger.info("handle request: monitor/user/createdvnodes/")
+        res = G_historymgr.getCreatedVNodes(user)
+        return json.dumps({'success':'true', 'createdvnodes':res})
+    else:
+        return json.dumps({'success':'false', 'message':"Unspported Method!"})
 
 @app.route("/monitor/listphynodes/", methods=['POST'])
 @login_required
