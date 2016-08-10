@@ -263,11 +263,17 @@ def statusRealtime(vcluster_name,node_name):
     statusRealtimeView.node_name = node_name
     return statusRealtimeView.as_view()
 
-@app.route("/vclusters/<vcluster_name>/<vnode_name>/history/", methods=['GET'])
-@login_required
-def history(vcluster_name,vnode_name):
-    historyView.vnode_name = vnode_name
+@app.route("/history/", methods=['GET'])
+#@login_required
+def history():
     return historyView.as_view()
+
+
+@app.route("/history/<vnode_name>/", methods=['GET'])
+@login_required
+def historyVNode(vnode_name):
+    historyVNodeView.vnode_name = vnode_name
+    return historyVNodeView.as_view()
 
 @app.route("/monitor/hosts/<comid>/<infotype>/", methods=['POST'])
 @app.route("/monitor/vnodes/<comid>/<infotype>/", methods=['POST'])
@@ -325,6 +331,11 @@ def useradd():
 @app.route("/user/modify/", methods=['POST'])
 @administration_required
 def usermodify():
+    return usermodifyView.as_view()
+
+@app.route("/user/change/", methods=['POST'])
+@administration_required
+def userchange():
     return usermodifyView.as_view()
 
 @app.route("/quota/add/", methods=['POST'])
@@ -545,4 +556,4 @@ if __name__ == '__main__':
         elif opt in ("-p", "--port"):
             webport = int(arg)
 
-    app.run(host = webip, port = webport, threaded=True)
+    app.run(host = webip, port = webport, threaded=True,)

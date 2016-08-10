@@ -96,7 +96,7 @@ class User(db.Model):
         if (date != None):
             self.register_date = date
         else:
-            self.register_date = datetime.utcnow()
+            self.register_date = datetime.now()
         self.user_group = usergroup
         self.auth_method = auth_method
 
@@ -186,6 +186,20 @@ class NotificationGroups(db.Model):
 
     def __repr__(self):
         return '<Notification: %r, Group: %r>' % (self.notification_id, self.group_name)
+
+class UserNotificationPair(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    userName = db.Column(db.String(10))
+    notifyId = db.Column(db.Integer)
+    isRead = db.Column(db.Integer)
+
+    def __init__(self, username, notifyid):
+        self.userName = username
+        self.notifyId = notifyid
+        self.isRead = 0
+
+    def __repr__(self):
+        return '<UserName: %r, NotifyId: %r>' % (self.userName, self.notifyId)
 
 class VNode(db.Model):
     __bind_key__ = 'history'
