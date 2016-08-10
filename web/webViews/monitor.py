@@ -46,6 +46,18 @@ class statusRealtimeView(normalView):
 
 class historyView(normalView):
     template_path = "monitor/history.html"
+    
+    @classmethod
+    def get(self):
+        data = {
+            "user": session['username'],
+        }
+        result = dockletRequest.post('/monitor/user/createdvnodes/', data)
+        vnodes = result.get('createdvnodes')
+        return self.render(self.template_path, user = session['username'],vnodes = vnodes)
+
+class historyVNodeView(normalView):
+    template_path = "monitor/historyVNode.html"
     vnode_name = ""
     
     @classmethod
