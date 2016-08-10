@@ -91,7 +91,7 @@
                 <p>
                   {{ mysession['nickname'] }}
                   <small>{{ mysession['description'] }}</small>
-                  <small>10000 <img src="/static/img/bean.png" /></small>
+                  <small>{{ beans }} <img src="/static/img/bean.png" /></small>
                 </p>
               </li>
               <!-- Menu Body -->
@@ -134,7 +134,7 @@
           <!-- Status -->
           <a href="#"><i class="fa fa-circle text-success"></i> {{ mysession['status']}}</a>
           <!-- Beans -->
-          <a href="#"><i><img src="/static/img/bean.png" /></i> 10000</a>
+          <a href="#"><i><img src="/static/img/bean.png" /></i> {{ beans }}</a>
         </div>
       </div>
 

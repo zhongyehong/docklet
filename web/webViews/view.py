@@ -1,4 +1,5 @@
 from flask import render_template, request, abort, session
+from webViews.dockletrequest import dockletRequest
 
 import os, inspect
 this_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
@@ -36,4 +37,6 @@ class normalView():
         self.mysession = dict(session)
         kwargs['mysession'] = self.mysession
         kwargs['version'] = version
+        result = dockletRequest.post("/user/selfQuery/",{})
+        kwargs['beans'] = result.get("data").get("beans")
         return render_template(*args, **kwargs)
