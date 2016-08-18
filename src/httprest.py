@@ -53,6 +53,17 @@ def login_required(func):
 
     return wrapper
 
+def beans_check(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        user = args[0]
+        if user.beans <= 0:
+            return json.dumps({'success':'false','message':'user\'s beans are less than or equal to zero!'})
+        else:
+            return func(*args, **kwargs)
+
+    return wrapper
+
 @app.route("/login/", methods=['POST'])
 def login():
     global G_usermgr
@@ -128,6 +139,7 @@ def register():
 
 @app.route("/cluster/create/", methods=['POST'])
 @login_required
+@beans_check
 def create_cluster(cur_user, user, form):
     global G_usermgr
     global G_vclustermgr
@@ -158,6 +170,7 @@ def create_cluster(cur_user, user, form):
 
 @app.route("/cluster/scaleout/", methods=['POST'])
 @login_required
+@beans_check
 def scaleout_cluster(cur_user, user, form):
     global G_usermgr
     global G_vclustermgr
@@ -204,6 +217,7 @@ def scalein_cluster(cur_user, user, form):
 
 @app.route("/cluster/start/", methods=['POST'])
 @login_required
+@beans_check
 def start_cluster(cur_user, user, form):
     global G_vclustermgr
     clustername = form.get('clustername', None)
