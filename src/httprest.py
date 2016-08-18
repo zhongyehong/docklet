@@ -223,7 +223,7 @@ def stop_cluster(cur_user, user, form):
     clustername = form.get('clustername', None)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
-    logger.info ("handle request : start cluster %s" % clustername)
+    logger.info ("handle request : stop cluster %s" % clustername)
     [status, result] = G_vclustermgr.stop_cluster(clustername, user)
     if status:
         return json.dumps({'success':'true', 'action':'stop cluster', 'message':result})
@@ -272,6 +272,19 @@ def list_cluster(cur_user, user, form):
         return json.dumps({'success':'true', 'action':'list cluster', 'clusters':clusterlist})
     else:
         return json.dumps({'success':'false', 'action':'list cluster', 'message':clusterlist})
+
+@app.route("/cluster/stopall/",methods=['POST'])
+@login_required
+def stopall_cluster(cur_user, user, form):
+    global G_vclustermgr
+    logger.info ("handle request : stop all clusters for %s" % user)
+    [status, clusterlist] = G_vclustermgr.list_clusters(user)
+    if status:
+        for cluster in clusterlist:
+            G_vclustermgr.stop_cluster(cluster,user)
+        return json.dumps({'success':'true', 'action':'stop all cluster'})
+    else:
+        return json.dumps({'success':'false', 'action':'stop all cluster', 'message':clusterlist})
 
 @app.route("/cluster/flush/", methods=['POST'])
 @login_required
@@ -908,10 +921,6 @@ if __name__ == '__main__':
     logger.info("vclustermgr started")
     G_imagemgr = imagemgr.ImageMgr()
     logger.info("imagemgr started")
-    G_historymgr = monitor.History_Manager()
-    master_collector = monitor.Master_Collector(G_nodemgr)
-    master_collector.start()
-    logger.info("master_collector started")
 
     logger.info("startting to listen on: ")
     masterip = env.getenv('MASTER_IP')
@@ -920,6 +929,11 @@ if __name__ == '__main__':
     masterport = env.getenv('MASTER_PORT')
     logger.info("using MASTER_PORT %d", int(masterport))
 
+    G_historymgr = monitor.History_Manager()
+    master_collector = monitor.Master_Collector(G_nodemgr,ipaddr+":"+str(masterport))
+    master_collector.start()
+    logger.info("master_collector started")
+    
     # server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
     logger.info("starting master server")
 

@@ -5,6 +5,8 @@ import time,threading,json,traceback,platform
 
 from model import db,VNode,History,User
 from log import logger
+from httplib2 import Http
+from urllib.parse import urlencode
 
 monitor_hosts = {}
 monitor_vnodes = {}
@@ -13,6 +15,7 @@ workerinfo = {}
 workercinfo = {}
 containerpids = []
 pid2name = {}
+G_masterip = ""
 
 laststopcpuval = {}
 laststopruntime = {}
@@ -70,9 +73,10 @@ class Container_Collector(threading.Thread):
         return ((days * 24 + hours) * 60 + minutes) * 60 + seconds
     
     @classmethod
-    def billing_increment(self, vnode_name):
+    def billing_increment(cls,vnode_name):
         global increment
         global workercinfo
+        global G_masterip
         cpu_val = '0'
         if 'cpu_use' in workercinfo[vnode_name].keys():
             cpu_val = workercinfo[vnode_name]['cpu_use']['val']
@@ -116,10 +120,18 @@ class Container_Collector(threading.Thread):
         if owner is None:
             logger.warning("Error!!! Billing User %s doesn't exist!" % (owner_name))
         else:
-            logger.info("Billing User:"+str(owner))
+            #logger.info("Billing User:"+str(owner))
             owner.beans -= math.ceil(billingval)
             db.session.commit()
-            logger.info("Billing User:"+str(owner))
+            #logger.info("Billing User:"+str(owner))
+            if owner.beans <= 0:
+                logger.info("The beans of User(" + str(owner) + ") are less than or equal to zero, the container("+vnode_name+") will be stopped.")
+                token = owner.generate_auth_token()
+                form = {'token':token}
+                header = {'Content-Type':'application/x-www-form-urlencoded'}
+                http = Http()
+                [resp,content] = http.request("http://"+G_masterip+"/cluster/stopall/","POST",urlencode(form),headers = header)
+                logger.info("response from master:"+content.decode('utf-8'))
 
     def collect_containerinfo(self,container_name):
         global workerinfo
@@ -418,9 +430,11 @@ class Collector(threading.Thread):
     def stop(self):
         self.thread_stop = True
 
-def workerFetchInfo():
+def workerFetchInfo(master_ip):
     global workerinfo
     global workercinfo
+    global G_masterip
+    G_masterip = master_ip
     return str([workerinfo, workercinfo])
 
 def get_owner(container_name):
@@ -429,10 +443,11 @@ def get_owner(container_name):
 
 class Master_Collector(threading.Thread):
 
-    def __init__(self,nodemgr):
+    def __init__(self,nodemgr,master_ip):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.nodemgr = nodemgr
+        self.master_ip = master_ip
         return
 
     def run(self):
@@ -445,7 +460,7 @@ class Master_Collector(threading.Thread):
             for worker in workers:
                 try:
                     ip = self.nodemgr.rpc_to_ip(worker)
-                    info = list(eval(worker.workerFetchInfo()))
+                    info = list(eval(worker.workerFetchInfo(self.master_ip)))
                     #logger.info(info[0])
                     monitor_hosts[ip] = info[0]
                     for container in info[1].keys():
