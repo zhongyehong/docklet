@@ -101,8 +101,7 @@ class User(db.Model):
         self.auth_method = auth_method
 
     def __repr__(self):
-        #return '<User %r>' % (self.username)
-        return '<User %r beans %r>' % (self.username,self.beans)
+        return '<User %r>' % (self.username)
 
     #token will expire after 3600s
     def generate_auth_token(self, expiration = 3600):
