@@ -30,7 +30,7 @@ class Container_Collector(threading.Thread):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.interval = 2
-        self.billingtime = 15
+        self.billingtime = 3600
         self.test = test
         self.cpu_last = {}
         self.cpu_quota = {}
