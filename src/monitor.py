@@ -78,6 +78,8 @@ class Container_Collector(threading.Thread):
         global workercinfo
         global G_masterip
         cpu_val = '0'
+        if vnode_name not in workercinfo.keys():
+            return
         if 'cpu_use' in workercinfo[vnode_name].keys():
             cpu_val = workercinfo[vnode_name]['cpu_use']['val']
         if vnode_name not in increment.keys():
