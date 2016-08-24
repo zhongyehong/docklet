@@ -269,6 +269,18 @@ def statusRealtime(vcluster_name,node_name):
     statusRealtimeView.node_name = node_name
     return statusRealtimeView.as_view()
 
+@app.route("/history/", methods=['GET'])
+#@login_required
+def history():
+    return historyView.as_view()
+
+
+@app.route("/history/<vnode_name>/", methods=['GET'])
+@login_required
+def historyVNode(vnode_name):
+    historyVNodeView.vnode_name = vnode_name
+    return historyVNodeView.as_view()
+
 @app.route("/monitor/hosts/<comid>/<infotype>/", methods=['POST'])
 @app.route("/monitor/vnodes/<comid>/<infotype>/", methods=['POST'])
 @login_required
@@ -327,6 +339,11 @@ def useradd():
 def usermodify():
     return usermodifyView.as_view()
 
+@app.route("/user/change/", methods=['POST'])
+@administration_required
+def userchange():
+    return usermodifyView.as_view()
+
 @app.route("/quota/add/", methods=['POST'])
 @administration_required
 def quotaadd():
@@ -336,6 +353,11 @@ def quotaadd():
 @administration_required
 def chdefault():
     return chdefaultView.as_view()
+
+@app.route("/quota/chlxcsetting/", methods=['POST'])
+@administration_required
+def chlxcsetting():
+    return chlxcsettingView.as_view()
 
 @app.route("/group/add/", methods=['POST'])
 @administration_required
@@ -540,4 +562,4 @@ if __name__ == '__main__':
         elif opt in ("-p", "--port"):
             webport = int(arg)
 
-    app.run(host = webip, port = webport, threaded=True)
+    app.run(host = webip, port = webport, threaded=True,)

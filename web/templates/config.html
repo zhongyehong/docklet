@@ -107,6 +107,37 @@
 									{% endfor %}
 								</tbody>
 							</table>
+ 	                    	<div class="hr-line-dashed"></div>
+                                 <div class="panel-group" id="accordion">
+                                     <div class="panel panel-default">
+                                         <div class="panel-heading">
+                                             <h4 class="panel-title">
+                                                 <a data-toggle="collapse" data-panel="#accordion" href="#collapseOne">
+                                                     show advanced options
+                                                 </a>
+                                             </h4>
+                                         </div>
+                                         <div id="collapseOne" class="panel-collapse collapse">
+                                             <div class="panel-body">
+				                                 <div class="form-group">
+                                                     <label class="control-label">CPU</label>
+                                                     <div ><input type="number" class="form-control" name="cpuSetting" id="cpuSetting" value = {{defaultsetting['cpu']}}  /> {{usage['cpu']}}CORE/{{quota['cpu']}}CORE
+                                                     </div>
+                                                 </div>
+				                                 <div class="form-group">
+                                                     <label class="control-label">MEMORY</label>
+                                                     <div ><input type="number" class="form-control" name="memorySetting" id="memorySetting" value = {{defaultsetting['memory']}}  /> {{usage['memory']}}MB/{{quota['memory']}}MB
+                                                     </div>
+                                                 </div>
+				                                 <div class="form-group">
+                                                     <label class="control-label">DISK</label>
+                                                     <div><input type="number" class="form-control" name="diskSetting" id="diskSetting" value= {{defaultsetting['disk']}}  /> {{usage['disk']}} MB/{{quota['disk']}}MB
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
 						<div class="modal-footer">
                                                		<button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
                                                		<button type="submit" class="btn btn-success">Add</button>

@@ -1,7 +1,7 @@
 import json
 
 from log import logger
-from model import db, Notification, NotificationGroups, User
+from model import db, Notification, NotificationGroups, User, UserNotificationPair
 from userManager import administration_required, token_required
 import smtplib
 from email.mime.text import MIMEText
@@ -19,6 +19,10 @@ class NotificationMgr:
             db.create_all()
         try:
             NotificationGroups.query.all()
+        except:
+            db.create_all()
+        try:
+            UserNotificationPair.query.all()
         except:
             db.create_all()
         logger.info("Notification Manager init done!")
@@ -102,6 +106,16 @@ class NotificationMgr:
         db.session.commit()
         if 'sendMail' in form:
             self.mail_notification(notify.id)
+        users = User.query.all()
+        for user in users:
+            user_group = user.user_group
+            for group_name in group_names:
+                if user_group == group_name:
+                    tempPair = UserNotificationPair(user.username, notify.id)
+                    db.session.add(tempPair)
+                    break;
+        db.session.commit()
+
         return {"success": 'true'}
 
     @administration_required
@@ -158,36 +172,62 @@ class NotificationMgr:
             db.session.delete(notify_groups)
         db.session.delete(notify)
         db.session.commit()
+        temppairs = UserNotificationPair.query.filter_by(notifyId=notify_id).all()
+        for temppair in temppairs:
+            db.session.delete(temppair)
+        db.session.commit()
         return {"success": 'true'}
 
     @token_required
     def query_self_notification_simple_infos(self, *args, **kwargs):
         user = kwargs['cur_user']
+        username = user.username
         notifies = self.query_user_notifications(user)
         notify_simple_infos = []
         for notify in notifies:
             if notify is None or notify.status != 'open':
                 continue
+            notifyid = notify.id
+            temppair = UserNotificationPair.query.filter_by(userName=username, notifyId=notifyid).first()
+            if temppair == None:
+                isRead = 0
+                temppair = UserNotificationPair(username, notifyid)
+                db.session.add(temppair)
+                db.session.commit()
+            else:
+                isRead = temppair.isRead
             notify_simple_infos.append({
                 'id': notify.id,
                 'title': notify.title,
-                'create_date': notify.create_date
+                'create_date': notify.create_date,
+                'isRead': isRead
             })
         return {'success': 'true', 'data': notify_simple_infos}
 
     @token_required
     def query_self_notifications_infos(self, *args, **kwargs):
         user = kwargs['cur_user']
+        username = user.username
         notifies = self.query_user_notifications(user)
         notify_infos = []
         for notify in notifies:
             if notify is None or notify.status != 'open':
                 continue
+            notifyid = notify.id
+            temppair = UserNotificationPair.query.filter_by(userName=username, notifyId=notifyid).first()
+            if temppair == None:
+                temppair = UserNotificationPair(username, notifyid)
+                db.session.add(temppair)
+            isRead = 1
+            temppair.isRead = 1
+            db.session.add(temppair)
+            db.session.commit()
             notify_infos.append({
                 'id': notify.id,
                 'title': notify.title,
                 'content': notify.content,
-                'create_date': notify.create_date
+                'create_date': notify.create_date,
+                'isRead': isRead
             })
         return {'success': 'true', 'data': notify_infos}
 
@@ -208,6 +248,10 @@ class NotificationMgr:
             'content': notify.content,
             'create_date': notify.create_date
         }
+        usernotifypair = UserNotificationPair.query.filter_by(userName=user.username, notifyId=notify.id).first()
+        usernotifypair.isRead = 1
+        db.session.add(usernotifypair)
+        db.session.commit()
         if notify.status != 'open':
             notify_info['title'] = 'This notification is not available'
             notify_info['content'] = 'Sorry, it seems that the administrator has closed this notification.'

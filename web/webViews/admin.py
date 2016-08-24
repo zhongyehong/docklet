@@ -15,7 +15,8 @@ class adminView(normalView):
         defaultgroup = result["default"]
         parms = dockletRequest.post('/system/parmList/')
         rootimage = dockletRequest.post('/image/list/').get('images')
-        return self.render(self.template_path, groups = groups, quotas = quotas, defaultgroup = defaultgroup, parms = parms, root_image = rootimage['private'])
+        lxcsetting = dockletRequest.post('/user/lxcsettingList/')['data']
+        return self.render(self.template_path, groups = groups, quotas = quotas, defaultgroup = defaultgroup, parms = parms, lxcsetting = lxcsetting, root_image = rootimage['private'])
 
 class groupaddView(normalView):
     @classmethod
@@ -63,6 +64,12 @@ class chdefaultView(normalView):
     @classmethod
     def post(self):
         dockletRequest.post('/user/chdefault/', request.form)
+        return redirect('/admin/')
+
+class chlxcsettingView(normalView):
+    @classmethod
+    def post(self):
+        dockletRequest.post('/user/chlxcsetting/', request.form)
         return redirect('/admin/')
 
 class groupdelView(normalView):

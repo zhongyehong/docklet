@@ -7,7 +7,7 @@ Warning: in some early versions, "token" stand for the instance of class model.U
 Original author: Liu Peidong
 '''
 
-from model import db, User, UserGroup, Notification
+from model import db, User, UserGroup, Notification, UserUsage
 from functools import wraps
 import os, subprocess
 import hashlib
@@ -82,7 +82,7 @@ def send_activated_email(to_address, username):
                <br><br>
                <p> <a href='http://docklet.unias.org'>Docklet Team</a>, SEI, PKU</p>
             ''' % (env.getenv("PORTAL_URL"), env.getenv("PORTAL_URL"))
-    text += '<p>'+  str(datetime.utcnow()) + '</p>'
+    text += '<p>'+  str(datetime.now()) + '</p>'
     text += '</html>'
     subject = 'Docklet account activated'
     msg = MIMEMultipart()
@@ -107,7 +107,7 @@ def send_remind_activating_email(username):
                <br/><br/>
                <p> Docklet Team, SEI, PKU</p>
             ''' % (username, env.getenv("PORTAL_URL"), env.getenv("PORTAL_URL"))
-    text += '<p>'+  str(datetime.utcnow()) + '</p>'
+    text += '<p>'+  str(datetime.now()) + '</p>'
     text += '</html>'
     subject = 'An activating request in Docklet has been sent'
     msg = MIMEMultipart()
@@ -173,7 +173,19 @@ class userManager:
             quotas['quotainfo'].append({'name':'vnode', 'hint':'how many containers the user can have, e.g. 8'})
             quotafile.write(json.dumps(quotas))
             quotafile.close()
+        if not os.path.exists(fspath+"/global/sys/lxc.default"):
+            settingfile = open(fspath+"/global/sys/lxc.default", 'w')
+            settings = {}
+            settings['cpu'] = "2"
+            settings["memory"] = "2000"
+            settings["disk"] = "2000"
+            settingfile.write(json.dumps(settings))
+            settingfile.close()
 
+        try:
+            UserUsage.query.all()
+        except:
+            db.create_all()
 
     def auth_local(self, username, password):
         password = hashlib.sha512(password.encode('utf-8')).hexdigest()
@@ -312,14 +324,14 @@ class userManager:
 
     def set_nfs_quota_bygroup(self,groupname, quota):
         if not data_quota == "True":
-            return 
-        users = User.query.filter_by(user_group = groupname).all()  
+            return
+        users = User.query.filter_by(user_group = groupname).all()
         for user in users:
             self.set_nfs_quota(user.username, quota)
 
     def set_nfs_quota(self, username, quota):
         if not data_quota == "True":
-            return 
+            return
         nfspath = "/users/%s/data" % username
         try:
             cmd = data_quota_cmd % (nfspath,quota+"GB")
@@ -459,6 +471,173 @@ class userManager:
         result = {'success': 'true'}
         return result
 
+    @token_required
+    def usageQuery(self, *args, **kwargs):
+        '''
+        Usage: usageQuery(cur_user = token_from_auth)
+        Query the quota and usage of user
+        '''
+        cur_user = kwargs['cur_user']
+        groupname = cur_user.user_group
+        groupinfo = self.groupQuery(name = groupname)['data']
+        usage = UserUsage.query.filter_by(username = cur_user.username).first()
+        if usage == None:
+            new_usage = UserUsage(cur_user.username)
+            db.session.add(new_usage)
+            db.session.commit()
+            usageinfo = {
+                    'username': cur_user.username,
+                    'cpu': '0',
+                    'memory': '0',
+                    'disk': '0'
+                    }
+        else:
+            usageinfo = {
+                    'username': usage.username,
+                    'cpu': usage.cpu,
+                    'memory': usage.memory,
+                    'disk': usage.disk
+                    }
+        settingfile = open(fspath+"/global/sys/lxc.default" , 'r')
+        defaultsetting = json.loads(settingfile.read())
+        settingfile.close()
+
+        return {'success': 'true', 'quota' : groupinfo, 'usage' : usageinfo, 'default': defaultsetting }
+   
+    @token_required
+    def usageInc(self, *args, **kwargs):
+        '''
+        Usage: usageModify(cur_user = token_from_auth, modification = data_from_form)
+        Modify the usage info of user
+        '''
+        cur_user = kwargs['cur_user']
+        modification = kwargs['modification']
+        logger.info("record usage for user:%s" % cur_user.username)
+        groupname = cur_user.user_group
+        groupinfo = self.groupQuery(name = groupname)['data']
+        usage = UserUsage.query.filter_by(username = cur_user.username).first()
+        if usage == None:
+            new_usage = UserUsage(cur_user.username)
+            db.session.add(new_usage)
+            db.session.commit()
+            usage = UserUsage.query.filter_by(username = cur_user.username).first()
+        if int(modification['cpu']) <= 0 or int(modification['memory']) <= 0 or int(modification['disk']) <= 0:
+            return [False, "cpu,memory and disk setting cannot less than zero"]
+        cpu = int(usage.cpu) + int(modification['cpu'])
+        memory = int(usage.memory) + int(modification['memory'])
+        disk = int(usage.disk) + int(modification['disk'])
+        if cpu > int(groupinfo['cpu']):
+            logger.error("cpu quota exceed, user:%s" % cur_user.username)
+            return [False, "cpu quota exceed"]
+        if memory > int(groupinfo['memory']):
+            logger.error("memory quota exceed, user:%s" % cur_user.username)
+            return [False, "memory quota exceed"]
+        if disk > int(groupinfo['disk']):
+            logger.error("disk quota exceed, user:%s" % cur_user.username)
+            return [False, "disk quota exceed"]
+        usage.cpu = str(cpu)
+        usage.memory = str(memory)
+        usage.disk = str(disk)
+        db.session.commit()
+        return [True, "distribute the resource"]
+    
+    @token_required
+    def usageRecover(self, *args, **kwargs):
+        '''
+        Usage: usageModify(cur_user = token_from_auth, modification = data_from_form)
+        Recover the usage info when create container failed
+        '''
+        cur_user = kwargs['cur_user']
+        modification = kwargs['modification']
+        logger.info("recover usage for user:%s" % cur_user.username)
+        usage = UserUsage.query.filter_by(username = cur_user.username).first()
+        if usage == None:
+            new_usage = UserUsage(cur_user.username)
+            db.session.add(new_usage)
+            db.session.commit()
+            usage = UserUsage.query.filter_by(username = cur_user.username).first()
+            return True
+        cpu = int(usage.cpu) - int(modification['cpu'])
+        memory = int(usage.memory) - int(modification['memory'])
+        disk = int(usage.disk) - int(modification['disk'])
+        if cpu < 0:
+            cpu = 0
+        if memory < 0:
+            memory = 0
+        if disk < 0:
+            disk = 0
+        usage.cpu = str(cpu)
+        usage.memory = str(memory)
+        usage.disk = str(disk)
+        db.session.commit()
+        return True
+
+    @token_required
+    def usageRelease(self, *args, **kwargs):
+        '''
+        Usage: usageModify(cur_user = token_from_auth, clustername = clustername, containername = containername, allcontainer = True or False)
+        Update usage info after user deleting container
+        '''
+        cur_user = kwargs['cur_user']
+        clustername = kwargs['clustername']
+        containername = kwargs['containername']
+        allcontainer = kwargs['allcontainer']
+        logger.info("release usage for user:%s , cluster: %s" % (cur_user.username, clustername))
+        clusterpath = fspath + "/global/users/" + cur_user.username + "/clusters/" + clustername
+        if not os.path.isfile(clusterpath):
+            logger.error("cluster file: %s not found" % clustername)
+            return False
+        infofile = open(clusterpath, 'r')
+        info = json.loads(infofile.read())
+        infofile.close()
+        cpu = 0
+        memory = 0
+        disk = 0
+        if allcontainer:
+            for container in info['containers']:
+                if 'setting' in container:
+                    cpu += int(container['setting']['cpu'])
+                    memory += int(container['setting']['memory'])
+                    disk += int(container['setting']['disk'])
+        else:
+            for container in info['containers']:
+                if container['containername'] == containername:
+                    if 'setting' in container:
+                        cpu += int(container['setting']['cpu'])
+                        memory += int(container['setting']['memory'])
+                        disk += int(container['setting']['disk'])
+        usage = UserUsage.query.filter_by(username = cur_user.username).first()
+        if usage == None:
+            new_usage = UserUsage(cur_user.username)
+            db.session.add(new_usage)
+            db.session.commit()
+            usage = UserUsage.query.filter_by(username = cur_user.username).first()
+        nowcpu = int(usage.cpu) - int(cpu)
+        nowmemory = int(usage.memory) - int(memory)
+        nowdisk = int(usage.disk) - int(disk)
+        if nowcpu < 0:
+            nowcpu = 0
+        if nowmemory < 0:
+            nowmemory = 0
+        if nowdisk < 0:
+            nowdisk = 0
+        usage.cpu = str(nowcpu)
+        usage.memory = str(nowmemory)
+        usage.disk = str(nowdisk)
+        db.session.commit()
+        return True
+    
+    def initUsage(*args, **kwargs):
+        """
+        init the usage info when start docklet with init mode
+        """
+        usages = UserUsage.query.all()
+        for usage in usages:
+            usage.cpu = "0"
+            usage.memory = "0"
+            usage.disk = "0"
+        db.session.commit()
+        return True
 
     @administration_required
     def userList(*args, **kwargs):
@@ -590,6 +769,13 @@ class userManager:
         will send an e-mail when status is changed from 'applying' to 'normal'
         Usage: modify(newValue = dict_from_form, cur_user = token_from_auth)
         '''
+        if ( kwargs['newValue'].get('Instruction', '') == 'Activate'):
+            user_modify = User.query.filter_by(id = kwargs['newValue'].get('ID', None)).first()
+            user_modify.status = 'normal'
+            send_activated_email(user_modify.e_mail, user_modify.username)
+            db.session.commit()
+            return {"success": "true"}
+
         user_modify = User.query.filter_by(username = kwargs['newValue'].get('username', None)).first()
         if (user_modify == None):
 
@@ -607,11 +793,12 @@ class userManager:
         if (user_modify.status == 'applying' and form.get('status', '') == 'normal'):
             send_activated_email(user_modify.e_mail, user_modify.username)
         user_modify.status = form.get('status', '')
-        if (form.get('password', '') != ''):
-            new_password = form.get('password','')
-            new_password = hashlib.sha512(new_password.encode('utf-8')).hexdigest()
-            user_modify.password = new_password
+        #if (form.get('password', '') != ''):
+            #new_password = form.get('password','')
+            #new_password = hashlib.sha512(new_password.encode('utf-8')).hexdigest()
+            #user_modify.password = new_password
             #self.chpassword(cur_user = user_modify, password = form.get('password','no_password'))
+        #modify password in another function now
 
         db.session.commit()
         res = self.groupQuery(name=user_modify.user_group)
@@ -741,6 +928,25 @@ class userManager:
         groupfile.write(json.dumps(groups))
         groupfile.close()
         return {"success":'true'}
+    
+    @administration_required
+    def lxcsettingList(*args, **kwargs):
+        lxcsettingfile = open(fspath+"/global/sys/lxc.default", 'r')
+        lxcsetting = json.loads(lxcsettingfile.read())
+        lxcsettingfile.close()
+        return {"success": 'true', 'data':lxcsetting}
+
+    @administration_required
+    def chlxcsetting(*args, **kwargs):
+        form = kwargs['form']
+        lxcsetting = {}
+        lxcsetting['cpu'] = form['lxcCpu']
+        lxcsetting['memory'] = form['lxcMemory']
+        lxcsetting['disk'] = form['lxcDisk']
+        lxcsettingfile = open(fspath+"/global/sys/lxc.default", 'w')
+        lxcsettingfile.write(json.dumps(lxcsetting))
+        lxcsettingfile.close()
+        return {"success": 'true'}
 
     def queryForDisplay(*args, **kwargs):
         '''

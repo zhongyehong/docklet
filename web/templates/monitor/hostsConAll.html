@@ -43,6 +43,7 @@
                                  <th>PID</th>
                                  <th>IP Address</th>
 				                 <th>Cpu used</th>
+                                 <th>%Cpu</th>
                                  <th>Mem used</th>
                                  <th>Summary</th>
                              </tr>
@@ -55,16 +56,17 @@
                                  <td>{{ container['owner']['username'] }}</td>
                                  <td>{{ container['owner']['truename'] }}</td>
                                  {% if container['State'] == 'STOPPED' %}
-                                 <td><div id='{{ loop.index }}_state' class="label label-danger">Stopped</div></td>
-                                 <td id='{{ loop.index }}_pid'>--</td>
-                                 <td id='{{ loop.index }}_ip'>--</td>
+                                 <td><div id='{{ container['Name'] }}_state' class="label label-danger">Stopped</div></td>
+                                 <td id='{{ container['Name'] }}_pid'>--</td>
+                                 <td id='{{ container['Name'] }}_ip'>--</td>
                                  {% else %}
-                                 <td><div id='{{ loop.index }}_state' class="label label-primary">Running</div></td>
-                                 <td id='{{ loop.index }}_pid'>{{ container['PID'] }}</td>
-                                 <td id='{{ loop.inde }}_ip'>{{ container['IP'] }}</td>
+                                 <td><div id='{{ container['Name'] }}_state' class="label label-primary">Running</div></td>
+                                 <td id='{{ container['Name'] }}_pid'>{{ container['PID'] }}</td>
+                                 <td id='{{ container['Name'] }}_ip'>{{ container['IP'] }}</td>
                                  {% endif %}
-                                 <td id='{{ loop.index }}_cpu'>--</td>
-                                 <td id='{{ loop.index }}_mem'>--</td>
+                                 <td id='{{ container['Name'] }}_cpu'>--</td>
+                                 <td id='{{ container['Name'] }}_cpupercent'>--</td>
+                                 <td id='{{ container['Name'] }}_mem'>--</td>
                                  <td><a class="btn btn-info btn-xs"
                                          href='/vclusters/root/{{
                                          container['Name'] }}/'>Realtime</a></td>
@@ -82,43 +84,47 @@
 
 {% block script_src %}
 <script type='text/javascript'>
-   function update(url,index)
+   function update(url,name)
    {
 
        $.post(url+"/basic_info/",{},function(data){
 		var state = data.monitor.basic_info.State;
 		if(state == 'RUNNING')
        		{
-           	    var tmp = $("#"+index+"_state");
+           	    var tmp = $("#"+name+"_state");
                     tmp.removeClass();
 	            tmp.addClass("label label-primary");
 	   	    tmp.html("Running");
-		    $("#"+index+"_pid").html(data.monitor.basic_info.PID);
-		    $("#"+index+"_ip").html(data.monitor.basic_info.IP);
+		    $("#"+name+"_pid").html(data.monitor.basic_info.PID);
+		    $("#"+name+"_ip").html(data.monitor.basic_info.IP);
        		}
        		else if(state == 'STOPPED')
        		{
-           	    var tmp = $("#"+index+"_state");
+           	    var tmp = $("#"+name+"_state");
            	    tmp.removeClass();
 	   	    tmp.addClass("label label-danger");
 	   	    tmp.html("Stopped");
-		    $("#"+index+"_pid").html('--');
-		    $("#"+index+"_ip").html('--');
-		    $("#"+index+"_cpu").html('--');
-		    $("#"+index+"_mem").html('--');
+		    $("#"+name+"_pid").html('--');
+		    $("#"+name+"_ip").html('--');
+		    $("#"+name+"_cpu").html('--');
+		    $("#"+name+"_mem").html('--');
 		    return;
        		}
 
        		$.post(url+"/cpu_use/",{},function(data){
-		       	var val = data.monitor.cpu_use.val;
-			var unit = data.monitor.cpu_use.unit;
-		       	$("#"+index+"_cpu").html(val +" "+ unit);
+		       	var val = (data.monitor.cpu_use.val).toFixed(2);
+			    var unit = data.monitor.cpu_use.unit;
+                var hostpercent = data.monitor.cpu_use.hostpercent;
+                var percent = (hostpercent*100).toFixed(2);
+		       	$("#"+name+"_cpu").html(val +" "+ unit);
+		       	$("#"+name+"_cpupercent").html(percent);
 		       	},"json");
+
 
        		$.post(url+"/mem_use/",{},function(data){
 		       	var val = data.monitor.mem_use.val;
-			var unit = data.monitor.mem_use.unit
-		       	$("#"+index+"_mem").html(val+" "+unit);
+			    var unit = data.monitor.mem_use.unit
+		       	$("#"+name+"_mem").html(val+" "+unit);
 		       	},"json");
 
        		},"json");
@@ -131,10 +137,18 @@
 
 	{% for container in containerslist %}
         url = url0 + '{{ container['Name'] }}';
-   	update(url,'{{ loop.index }}');
+   	update(url,'{{ container['Name'] }}');
 	{% endfor %}
+        url =  "http://" + host + "/monitor/hosts/" + "{{  com_ip }}";
+    /*$.post(url+"/concpuinfo/",{},function(data){
+		var info = data.monitor.concpuinfo;
+		for(container in info)
+        {
+		    $("#"+container+"_cpupercent").html(info[container]);		       	
+        }
+		},"json");*/
    }
-   setInterval(updateAll,5000);
+   setInterval(updateAll,4000);
 
 </script>
 {% endblock %}

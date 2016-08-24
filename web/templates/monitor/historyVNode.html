@@ -1,0 +1,82 @@
+{% extends 'base_AdminLTE.html' %}
+
+{% block title %}Docklet | History{% endblock %}
+
+{% block panel_title %}History of <div id='node_name'>{{ vnode_name }}</div>{% endblock %}
+
+{% block panel_list %}
+<ol class="breadcrumb">
+  <li>
+      <a href="/dashboard/"><i class="fa fa-dashboard"></i>Home</a>
+  </li>
+  <li>
+      <a href='/history/'>History</a>
+  </li>
+  <li class="active">
+      <strong>History of Vnode</strong>
+  </li>
+</ol>
+{% endblock %}
+
+{% block css_src %}
+<link href="/static/dist/css/flotconfig.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+<div class="col-md-12">
+<div class="box box-info">
+     <div class="box-header with-border">
+       <h3 class="box-title">History</h3>
+       <div class="box-tools pull-right">
+         <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+         </button>
+         <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+       </div>
+     </div>
+                 <div class="box-body">
+                     <table class="table table-striped table-bordered table-hover table-image" >
+                        <thead>
+                    	<tr>
+                        <th>History ID</th>
+                        <th>Action</th>
+                        <th>Running Time</th>
+                        <th>Cpu Time</th>
+                        <th>Billing</th>
+                        <th>Action Time</th>
+                    	</tr>
+                    	</thead>
+                    <tbody>
+                      {% for record in history %}
+                      <tr>
+                      <th>{{ record['id'] }}</th>
+                      <th>{{ record['action'] }}</th>
+                      <th>{{ record['runningtime'] }} seconds</th>
+                      <th>{{ record['cputime'] }} seconds</th>
+                      <th>{{ record['billing'] }} beans</th>
+                      <th>{{ record['actionTime'] }}</th>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+		  </table>
+		</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script_src %}
+
+<script src="http://cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.js"></script>
+<script src="http://cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.js"></script>
+<script src="http://cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
+
+<script>
+         $(document).ready(function() {
+            $(".table-image").DataTable();
+         });
+
+ </script>
+
+{% endblock %}
+

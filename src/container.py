@@ -5,6 +5,7 @@ import imagemgr
 from log import logger
 import env
 from lvmtool import sys_run, check_volume
+from monitor import History_Manager
 
 class Container(object):
     def __init__(self, addr, etcdclient):
@@ -20,14 +21,15 @@ class Container(object):
 
         self.lxcpath = "/var/lib/lxc"
         self.imgmgr = imagemgr.ImageMgr()
+        self.historymgr = History_Manager()
 
-    def create_container(self, lxc_name, username, user_info, clustername, clusterid, containerid, hostname, ip, gateway, vlanid, image):
+    def create_container(self, lxc_name, username, setting, clustername, clusterid, containerid, hostname, ip, gateway, vlanid, image):
         logger.info("create container %s of %s for %s" %(lxc_name, clustername, username))
         try:
-            user_info = json.loads(user_info) 
-            cpu = int(user_info["data"]["groupinfo"]["cpu"]) * 100000
-            memory = user_info["data"]["groupinfo"]["memory"]
-            disk = user_info["data"]["groupinfo"]["disk"]
+            setting = json.loads(setting)
+            cpu = int(setting['cpu']) * 100000
+            memory = setting["memory"]
+            disk = setting["disk"]
             image = json.loads(image) 
             status = self.imgmgr.prepareFS(username,image,lxc_name,disk)
             if not status:
@@ -130,11 +132,13 @@ IP=%s
         except Exception as e:
             logger.error(e)
             return [False, "create container failed"]
+        self.historymgr.log(lxc_name,"Create")
         return [True, "create container success"]
 
     def delete_container(self, lxc_name):
         logger.info ("delete container:%s" % lxc_name)
         if self.imgmgr.deleteFS(lxc_name):
+            self.historymgr.log(lxc_name,"Delete")
             logger.info("delete container %s success" % lxc_name)
             return [True, "delete container success"]
         else:
@@ -164,6 +168,7 @@ IP=%s
             subprocess.run(["lxc-start -n %s" % lxc_name],
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, check=True)
             logger.info ("start container %s success" % lxc_name)
+            self.historymgr.log(lxc_name,"Start")
             return [True, "start container success"]
         except subprocess.CalledProcessError as sube:
             logger.error('start container %s failed: %s' % (lxc_name,
@@ -184,10 +189,10 @@ IP=%s
             #logger.debug ("prepare nfs for %s: %s" % (lxc_name,
                 #Ret.stdout.decode('utf-8')))
             # not sure whether should execute this 
-            #Ret = subprocess.run(["lxc-attach -n %s -- service ssh start" % lxc_name],
-            #        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            #shell=True, check=False)
-            #logger.debug(Ret.stdout.decode('utf-8'))
+            Ret = subprocess.run(["lxc-attach -n %s -- service ssh start" % lxc_name],
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            shell=True, check=False)
+            logger.debug(Ret.stdout.decode('utf-8'))
             if len(services) == 0: # master node
                 Ret = subprocess.run(["lxc-attach -n %s -- su -c %s/start_jupyter.sh" % (lxc_name, self.rundir)],
                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, check=True)
@@ -219,6 +224,7 @@ IP=%s
         if status == 'stopped':
             logger.info("%s stopped, recover it to running" % lxc_name)
             if self.start_container(lxc_name)[0]:
+                self.historymgr.log(lxc_name,"Recover")
                 if self.start_services(lxc_name)[0]:
                     logger.info("%s recover success" % lxc_name)
                     return [True, "recover success"]
@@ -245,6 +251,7 @@ IP=%s
             logger.error("stop container %s failed" % lxc_name)
             return [False, "stop container failed"]
         else:
+            self.historymgr.log(lxc_name,"Stop")
             logger.info("stop container %s success" % lxc_name)
             return [True, "stop container success"]
         #if int(status) == 1:

@@ -141,10 +141,19 @@ def create_cluster(cur_user, user, form):
     user_info = G_usermgr.selfQuery(cur_user = cur_user)
     user_info = json.dumps(user_info)
     logger.info ("handle request : create cluster %s with image %s " % (clustername, image['name']))
-    [status, result] = G_vclustermgr.create_cluster(clustername, user, image, user_info)
+    setting = {
+            'cpu': form.get('cpuSetting'),
+            'memory': form.get('memorySetting'),
+            'disk': form.get('diskSetting')
+            }
+    [status, result] = G_usermgr.usageInc(cur_user = cur_user, modification = setting)
+    if not status:
+        return json.dumps({'success':'false', 'action':'create cluster', 'message':result})
+    [status, result] = G_vclustermgr.create_cluster(clustername, user, image, user_info, setting)
     if status:
         return json.dumps({'success':'true', 'action':'create cluster', 'message':result})
     else:
+        G_usermgr.usageRecover(cur_user = cur_user, modification = setting)
         return json.dumps({'success':'false', 'action':'create cluster', 'message':result})
 
 @app.route("/cluster/scaleout/", methods=['POST'])
@@ -160,15 +169,21 @@ def scaleout_cluster(cur_user, user, form):
     image['name'] = form.get("imagename", None)
     image['type'] = form.get("imagetype", None)
     image['owner'] = form.get("imageowner", None)
-    logger.debug("imagename:" + image['name'])
-    logger.debug("imagetype:" + image['type'])
-    logger.debug("imageowner:" + image['owner'])
     user_info = G_usermgr.selfQuery(cur_user = cur_user)
     user_info = json.dumps(user_info)
-    [status, result] = G_vclustermgr.scale_out_cluster(clustername, user, image, user_info)
+    setting = {
+            'cpu': form.get('cpuSetting'),
+            'memory': form.get('memorySetting'),
+            'disk': form.get('diskSetting')
+            }
+    [status, result] = G_usermgr.usageInc(cur_user = cur_user, modification = setting)
+    if not status:
+        return json.dumps({'success':'false', 'action':'scale out', 'message': result})
+    [status, result] = G_vclustermgr.scale_out_cluster(clustername, user, image, user_info, setting)
     if status:
         return json.dumps({'success':'true', 'action':'scale out', 'message':result})
     else:
+        G_usermgr.usageRecover(cur_user = cur_user, modification = setting)
         return json.dumps({'success':'false', 'action':'scale out', 'message':result})
 
 @app.route("/cluster/scalein/", methods=['POST'])
@@ -180,6 +195,7 @@ def scalein_cluster(cur_user, user, form):
         return json.dumps({'success':'false', 'message':'clustername is null'})
     logger.info("handle request : scale in %s" % clustername)
     containername = form.get("containername", None)
+    G_usermgr.usageRelease(cur_user = cur_user, clustername = clustername, containername = containername, allcontainer = False)
     [status, result] = G_vclustermgr.scale_in_cluster(clustername, user, containername)
     if status:
         return json.dumps({'success':'true', 'action':'scale in', 'message':result})
@@ -225,6 +241,7 @@ def delete_cluster(cur_user, user, form):
     logger.info ("handle request : delete cluster %s" % clustername)
     user_info = G_usermgr.selfQuery(cur_user=cur_user)
     user_info = json.dumps(user_info)
+    G_usermgr.usageRelease(cur_user = cur_user, clustername = clustername, containername = "all", allcontainer = True)
     [status, result] = G_vclustermgr.delete_cluster(clustername, user, user_info)
     if status:
         return json.dumps({'success':'true', 'action':'delete cluster', 'message':result})
@@ -386,6 +403,8 @@ def hosts_monitor(cur_user, user, form, com_id, issue):
         res['diskinfo'] = fetcher.get_diskinfo()
     elif issue == 'osinfo':
         res['osinfo'] = fetcher.get_osinfo()
+    #elif issue == 'concpuinfo':
+     #   res['concpuinfo'] = fetcher.get_concpuinfo()
     elif issue == 'containers':
         res['containers'] = fetcher.get_containers()
     elif issue == 'status':
@@ -412,6 +431,7 @@ def hosts_monitor(cur_user, user, form, com_id, issue):
 @login_required
 def vnodes_monitor(cur_user, user, form, con_id, issue):
     global G_clustername
+    global G_historymgr
     logger.info("handle request: monitor/vnodes")
     res = {}
     fetcher = monitor.Container_Fetcher(con_id)
@@ -423,6 +443,8 @@ def vnodes_monitor(cur_user, user, form, con_id, issue):
         res['disk_use'] = fetcher.get_disk_use()
     elif issue == 'basic_info':
         res['basic_info'] = fetcher.get_basic_info()
+    elif issue == 'history':
+        res['history'] = G_historymgr.getHistory(con_id)
     elif issue == 'owner':
         names = con_id.split('-')
         result = G_usermgr.query(username = names[0], cur_user = cur_user)
@@ -437,14 +459,22 @@ def vnodes_monitor(cur_user, user, form, con_id, issue):
     return json.dumps({'success':'true', 'monitor':res})
 
 
-@app.route("/monitor/user/quotainfo/", methods=['POST'])
+@app.route("/monitor/user/<issue>/", methods=['POST'])
 @login_required
-def user_quotainfo_monitor(cur_user, user, form):
+def user_quotainfo_monitor(cur_user, user, form,issue):
     global G_usermgr
-    logger.info("handle request: monitor/user/quotainfo/")
-    user_info = G_usermgr.selfQuery(cur_user = cur_user)
-    quotainfo = user_info['data']['groupinfo']
-    return json.dumps({'success':'true', 'quotainfo':quotainfo})
+    global G_historymgr
+    if issue == 'quotainfo':        
+        logger.info("handle request: monitor/user/quotainfo/")
+        user_info = G_usermgr.selfQuery(cur_user = cur_user)
+        quotainfo = user_info['data']['groupinfo']
+        return json.dumps({'success':'true', 'quotainfo':quotainfo})
+    elif issue == 'createdvnodes':
+        logger.info("handle request: monitor/user/createdvnodes/")
+        res = G_historymgr.getCreatedVNodes(user)
+        return json.dumps({'success':'true', 'createdvnodes':res})
+    else:
+        return json.dumps({'success':'false', 'message':"Unspported Method!"})
 
 @app.route("/monitor/listphynodes/", methods=['POST'])
 @login_required
@@ -589,6 +619,29 @@ def selfModify_user(cur_user, user, form):
     result = G_usermgr.selfModify(cur_user = cur_user, newValue = form)
     return json.dumps(result)
 
+@app.route("/user/usageQuery/" , methods=['POST'])
+@login_required
+def usageQuery_user(cur_user, user, form):
+    global G_usermgr
+    logger.info("handle request: user/usageQuery/")
+    result = G_usermgr.usageQuery(cur_user = cur_user)
+    return json.dumps(result)
+
+@app.route("/user/lxcsettingList/", methods=['POST'])
+@login_required
+def lxcsettingList_user(cur_user, user, form):
+    global G_usermgr
+    logger.info("handle request: user/lxcsettingList/")
+    result = G_usermgr.lxcsettingList(cur_user = cur_user, form = form)
+    return json.dumps(result)
+
+@app.route("/user/chlxcsetting/", methods=['POST'])
+@login_required
+def chlxcsetting_user(cur_user, user, form):
+    global G_usermgr
+    logger.info("handle request: user/chlxcsetting/")
+    result = G_usermgr.chlxcsetting(cur_user = cur_user, form = form)
+    return json.dumps(result)
 
 @app.route("/notification/list/", methods=['POST'])
 @login_required
@@ -767,6 +820,7 @@ if __name__ == '__main__':
     global G_networkmgr
     global G_clustername
     global G_sysmgr
+    global G_historymgr
     # move 'tools.loadenv' to the beginning of this file
 
     fs_path = env.getenv("FS_PREFIX")
@@ -843,6 +897,8 @@ if __name__ == '__main__':
             etcdclient.deldir("_lock")
 
     G_usermgr = userManager.userManager('root')
+    if mode == "new":
+        G_usermgr.initUsage()
     G_notificationmgr = notificationmgr.NotificationMgr()
 
     clusternet = env.getenv("CLUSTER_NET")
@@ -860,8 +916,10 @@ if __name__ == '__main__':
     logger.info("vclustermgr started")
     G_imagemgr = imagemgr.ImageMgr()
     logger.info("imagemgr started")
+    G_historymgr = monitor.History_Manager()
     master_collector = monitor.Master_Collector(G_nodemgr)
     master_collector.start()
+    logger.info("master_collector started")
 
     logger.info("startting to listen on: ")
     masterip = env.getenv('MASTER_IP')
