@@ -23,6 +23,7 @@ import os,sys,subprocess,time,re,datetime,threading
 from log import logger
 import env
 from lvmtool import *
+import updatebase
 
 class ImageMgr():
     #def sys_call(self,command):
@@ -236,7 +237,7 @@ class ImageMgr():
             sys_run("rm -f %s" % public_imgpath+"."+image+".description", True)
         except Exception as e:
             logger.error(e)
-    
+    """
     def update_basefs(self,image):
         imgpath = self.imgpath + "private/root/"
         layer = self.NFS_PREFIX + "/local/volume/update_base"
@@ -269,33 +270,33 @@ class ImageMgr():
         except Exception as e:
             logger.error(e)
         return True
-
     """ 
+
     def update_basefs(self,image):
         imgpath = self.imgpath + "private/root/"
+        basefs = self.NFS_PREFIX+"/local/basefs/"
         try:
             logger.info("start updating base image")
-            sys_run("rsync -a %s/ %s/" % (imgpath+image, self.NFS_PREFIX+"/local/basefs"))
+            updatebase.aufs_update_base(imgpath+image, basefs)
             logger.info("update base image success")
         except Exception as e:
             logger.error(e)
         return True
-    """
     
     def update_base_image(self, user, vclustermgr, image):
         if not user == "root":
             logger.info("only root can update base image")
-        vclustermgr.stop_allclusters()
-        vclustermgr.detach_allclusters()
+        #vclustermgr.stop_allclusters()
+        #vclustermgr.detach_allclusters()
         workers = vclustermgr.nodemgr.get_rpcs()
         logger.info("update base image in all workers")
         for worker in workers:
             worker.update_basefs(image)
         logger.info("update base image success")
-        vclustermgr.mount_allclusters()
-        logger.info("mount all cluster success")
-        vclustermgr.recover_allclusters()
-        logger.info("recover all cluster success")
+        #vclustermgr.mount_allclusters()
+        #logger.info("mount all cluster success")
+        #vclustermgr.recover_allclusters()
+        #logger.info("recover all cluster success")
         return [True, "update base image"]
 
     def get_image_info(self, user, image, imagetype):
