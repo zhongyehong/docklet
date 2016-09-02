@@ -503,7 +503,7 @@ class userManager:
         settingfile.close()
 
         return {'success': 'true', 'quota' : groupinfo, 'usage' : usageinfo, 'default': defaultsetting }
-   
+
     @token_required
     def usageInc(self, *args, **kwargs):
         '''
@@ -540,7 +540,7 @@ class userManager:
         usage.disk = str(disk)
         db.session.commit()
         return [True, "distribute the resource"]
-    
+
     @token_required
     def usageRecover(self, *args, **kwargs):
         '''
@@ -626,7 +626,7 @@ class userManager:
         usage.disk = str(nowdisk)
         db.session.commit()
         return True
-    
+
     def initUsage(*args, **kwargs):
         """
         init the usage info when start docklet with init mode
@@ -773,6 +773,14 @@ class userManager:
             user_modify = User.query.filter_by(id = kwargs['newValue'].get('ID', None)).first()
             user_modify.status = 'normal'
             send_activated_email(user_modify.e_mail, user_modify.username)
+            db.session.commit()
+            return {"success": "true"}
+
+        if ( kwargs['newValue'].get('password', '') != ''):
+            user_modify = User.query.filter_by(username = kwargs['newValue'].get('username', None)).first()
+            new_password = kwargs['newValue'].get('password','')
+            new_password = hashlib.sha512(new_password.encode('utf-8')).hexdigest()
+            user_modify.password = new_password
             db.session.commit()
             return {"success": "true"}
 
@@ -928,7 +936,7 @@ class userManager:
         groupfile.write(json.dumps(groups))
         groupfile.close()
         return {"success":'true'}
-    
+
     @administration_required
     def lxcsettingList(*args, **kwargs):
         lxcsettingfile = open(fspath+"/global/sys/lxc.default", 'r')
