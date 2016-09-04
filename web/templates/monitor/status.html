@@ -137,7 +137,7 @@
 		       	$("#"+index+"_disk").html(usedp+"%<br/>"+detail);
 		       	},"json");
             $("#"+index+"_time").html(data.monitor.basic_info.RunningTime+"s")
-            $("#"+index+"_billing").html(data.monitor.basic_info.billing+" beans")
+            $("#"+index+"_billing").html(data.monitor.basic_info.billing+" <img src='/static/img/bean.png' />")
 
 		var state = data.monitor.basic_info.State;
 		    if(state == 'RUNNING')

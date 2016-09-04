@@ -368,6 +368,7 @@ class userManager:
                     "register_date" : "%s"%(user.register_date),
                     "group" : user.user_group,
                     "description" : user.description,
+                    "beans" : user.beans,
                 },
                 "token": user
             }
@@ -395,6 +396,7 @@ class userManager:
                 "tel" : user.tel,
                 "register_date" : "%s"%(user.register_date),
                 "group" : user.user_group,
+                "beans" : user.beans,
             },
             "token": user
         }
@@ -437,6 +439,7 @@ class userManager:
                 "register_date" : "%s"%(user.register_date),
                 "group" : user.user_group,
                 "groupinfo": group,
+                "beans" : user.beans,
             },
         }
         return result

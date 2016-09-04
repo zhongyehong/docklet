@@ -361,7 +361,7 @@ class VclusterMgr(object):
         infofile = open(self.fspath+"/global/users/"+username+"/clusters/"+clustername, 'w')
         infofile.write(json.dumps(info))
         infofile.close()
-        return [True, "start cluster"]
+        return [True, "stop cluster"]
 
     def list_clusters(self, user):
         if not os.path.exists(self.fspath+"/global/users/"+user+"/clusters"):
