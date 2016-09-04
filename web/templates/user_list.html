@@ -190,6 +190,11 @@
                                     <input type="password" placeholder="Enter Password" class="form-control" name="password" id="mpPassword">
                                   </div>
                                </form>
+                               <div class="form-group">
+                                 <label>Retype Password</label>
+                                 <input type="password" placeholder="Enter Password" class="form-control" id="mpPassword2">
+                               </div>
+                               <p style="color:red" id="notCorrectFlag"></p>
 
                        </div>
                        <div class="modal-footer">
@@ -267,7 +272,14 @@
         document.getElementById("modifyUserForm").submit();
     }
     function sendChpassword(){
-        document.getElementById("chpasswordForm").submit();
+        if ($("#mpPassword").val() == $("#mpPassword2").val())
+        {
+          document.getElementById("chpasswordForm").submit();
+        }
+        else
+        {
+          $("#notCorrectFlag").html("Two passwords are not identical");
+        }
     }
     function sendModifyGroup(){
         document.getElementById("modifyGroupForm").submit();
