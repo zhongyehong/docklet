@@ -235,6 +235,12 @@ def deleteImage(image):
     deleteImageView.image = image
     return deleteImageView.as_view()
 
+@app.route("/image/updatebase/<image>/", methods=['GET'])
+@login_required
+def updatebaseImage(image):
+    updatebaseImageView.image = image
+    return updatebaseImageView.as_view()
+
 @app.route("/hosts/", methods=['GET'])
 @administration_required
 def hosts():
