@@ -397,7 +397,7 @@ class VclusterMgr(object):
         infofile = open(self.fspath+"/global/users/"+username+"/clusters/"+clustername, 'w')
         infofile.write(json.dumps(info))
         infofile.close()
-        return [True, "start cluster"]
+        return [True, "stop cluster"]
     
     def detach_cluster(self, clustername, username):
         [status, info] = self.get_clusterinfo(clustername, username)

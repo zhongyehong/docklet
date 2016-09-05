@@ -3,8 +3,10 @@
 import subprocess,re,os,etcdlib,psutil,math,sys
 import time,threading,json,traceback,platform
 
-from model import db,VNode,History
+from model import db,VNode,History,User
 from log import logger
+from httplib2 import Http
+from urllib.parse import urlencode
 
 monitor_hosts = {}
 monitor_vnodes = {}
@@ -13,6 +15,7 @@ workerinfo = {}
 workercinfo = {}
 containerpids = []
 pid2name = {}
+G_masterip = ""
 
 laststopcpuval = {}
 laststopruntime = {}
@@ -68,6 +71,69 @@ class Container_Collector(threading.Thread):
         minutes = int(parts[0])
         seconds = int(parts[1])
         return ((days * 24 + hours) * 60 + minutes) * 60 + seconds
+    
+    @classmethod
+    def billing_increment(cls,vnode_name):
+        global increment
+        global workercinfo
+        global G_masterip
+        cpu_val = '0'
+        if vnode_name not in workercinfo.keys():
+            return
+        if 'cpu_use' in workercinfo[vnode_name].keys():
+            cpu_val = workercinfo[vnode_name]['cpu_use']['val']
+        if vnode_name not in increment.keys():
+            increment[vnode_name] = {}
+            increment[vnode_name]['lastcputime'] = cpu_val
+            increment[vnode_name]['memincrement'] = 0
+        cpu_increment = float(cpu_val) - float(increment[vnode_name]['lastcputime'])
+        #logger.info("billing:"+str(cpu_increment)+" "+str(increment[container_name]['lastcputime']))
+        if cpu_increment == 0.0:
+            avemem = 0
+        else:
+            avemem = cpu_increment*float(increment[vnode_name]['memincrement'])/1800.0
+        increment[vnode_name]['lastcputime'] = cpu_val
+        increment[vnode_name]['memincrement'] = 0
+        if 'disk_use' in workercinfo[vnode_name].keys():
+            disk_quota = workercinfo[vnode_name]['disk_use']['total']
+        else:
+            disk_quota = 0
+        #logger.info("cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
+        billingval = cpu_increment/1000.0 + avemem/500000.0 + float(disk_quota)/1024.0/1024.0/2000
+        if 'basic_info' not in workercinfo[vnode_name].keys():
+            workercinfo[vnode_name]['basic_info'] = {}
+            workercinfo[vnode_name]['basic_info']['billing'] = 0
+            workercinfo[vnode_name]['basic_info']['RunningTime'] = 0
+        nowbillingval = workercinfo[vnode_name]['basic_info']['billing']
+        nowbillingval += math.ceil(billingval)
+        try:
+            vnode = VNode.query.get(vnode_name)
+            vnode.billing = nowbillingval
+            db.session.commit()
+        except Exception as err:
+            vnode = VNode(vnode_name)
+            vnode.billing = nowbillingval
+            db.session.add(vnode)
+            db.session.commit()
+            logger.warning(err)
+        workercinfo[vnode_name]['basic_info']['billing'] = nowbillingval
+        owner_name = get_owner(vnode_name)
+        owner = User.query.filter_by(username=owner_name).first()
+        if owner is None:
+            logger.warning("Error!!! Billing User %s doesn't exist!" % (owner_name))
+        else:
+            #logger.info("Billing User:"+str(owner))
+            owner.beans -= math.ceil(billingval)
+            db.session.commit()
+            #logger.info("Billing User:"+str(owner))
+            if owner.beans <= 0:
+                logger.info("The beans of User(" + str(owner) + ") are less than or equal to zero, the container("+vnode_name+") will be stopped.")
+                token = owner.generate_auth_token()
+                form = {'token':token}
+                header = {'Content-Type':'application/x-www-form-urlencoded'}
+                http = Http()
+                [resp,content] = http.request("http://"+G_masterip+"/cluster/stopall/","POST",urlencode(form),headers = header)
+                logger.info("response from master:"+content.decode('utf-8'))
 
     def collect_containerinfo(self,container_name):
         global workerinfo
@@ -111,6 +177,7 @@ class Container_Collector(threading.Thread):
         basic_info['PID'] = info['PID']
         basic_info['IP'] = info['IP']
         basic_info['RunningTime'] = running_time
+        workercinfo[container_name]['basic_info'] = basic_info
 
         cpu_parts = re.split(' +',info['CPU use'])
         cpu_val = float(cpu_parts[0].strip())
@@ -184,32 +251,7 @@ class Container_Collector(threading.Thread):
         if not int(running_time/self.billingtime) == lasttime:
             #logger.info("billing:"+str(float(cpu_val)))
             lastbillingtime[container_name] = int(running_time/self.billingtime)
-            cpu_increment = float(cpu_val) - float(increment[container_name]['lastcputime'])
-            #logger.info("billing:"+str(cpu_increment)+" "+str(increment[container_name]['lastcputime']))
-            if cpu_increment == 0.0:
-                avemem = 0
-            else:
-                avemem = cpu_increment*float(increment[container_name]['memincrement'])/1800.0
-            increment[container_name]['lastcputime'] = cpu_val
-            increment[container_name]['memincrement'] = 0
-            if 'disk_use' in workercinfo[container_name].keys():
-                disk_quota = workercinfo[container_name]['disk_use']['total']
-            else:
-                disk_quota = 0
-            #logger.info("cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
-            billing = cpu_increment/1000.0 + avemem/500000.0 + float(disk_quota)/1024.0/1024.0/2000
-            basic_info['billing'] += math.ceil(billing)
-            try:
-                vnode = VNode.query.get(container_name)
-                vnode.billing = basic_info['billing']
-                db.session.commit()
-            except Exception as err:
-                vnode = VNode(container_name)
-                vnode.billing = basic_info['billing']
-                db.session.add(vnode)
-                db.session.commit()
-                logger.warning(err)
-        workercinfo[container_name]['basic_info'] = basic_info
+            self.billing_increment(container_name)
         #print(output)
         #print(parts)
         return True
@@ -390,9 +432,11 @@ class Collector(threading.Thread):
     def stop(self):
         self.thread_stop = True
 
-def workerFetchInfo():
+def workerFetchInfo(master_ip):
     global workerinfo
     global workercinfo
+    global G_masterip
+    G_masterip = master_ip
     return str([workerinfo, workercinfo])
 
 def get_owner(container_name):
@@ -401,10 +445,11 @@ def get_owner(container_name):
 
 class Master_Collector(threading.Thread):
 
-    def __init__(self,nodemgr):
+    def __init__(self,nodemgr,master_ip):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.nodemgr = nodemgr
+        self.master_ip = master_ip
         return
 
     def run(self):
@@ -417,7 +462,7 @@ class Master_Collector(threading.Thread):
             for worker in workers:
                 try:
                     ip = self.nodemgr.rpc_to_ip(worker)
-                    info = list(eval(worker.workerFetchInfo()))
+                    info = list(eval(worker.workerFetchInfo(self.master_ip)))
                     #logger.info(info[0])
                     monitor_hosts[ip] = info[0]
                     for container in info[1].keys():
@@ -610,15 +655,19 @@ class History_Manager:
         billing = 0
         cputime = 0
         runtime = 0
+        owner = get_owner(vnode_name)
         try:
-            owner = get_owner(vnode_name)
             billing = int(workercinfo[vnode_name]['basic_info']['billing'])
+        except:
+            billing = 0
+        try:
             cputime = float(workercinfo[vnode_name]['cpu_use']['val'])
+        except:
+            cputime = 0.0
+        try:    
             runtime = float(workercinfo[vnode_name]['basic_info']['RunningTime'])
         except Exception as err:
             #print(traceback.format_exc())
-            billing = 0
-            cputime = 0.0
             runtime = 0
         history = History(action,runtime,cputime,billing)
         vnode.histories.append(history)

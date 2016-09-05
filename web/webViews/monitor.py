@@ -8,9 +8,7 @@ class statusView(normalView):
 
     @classmethod
     def get(self):
-        data = {
-            "user": session['username'],
-        }
+        data = {}
         result = dockletRequest.post('/cluster/list/', data)
         clusters = result.get('clusters')
         result = dockletRequest.post('/monitor/user/quotainfo/', data)

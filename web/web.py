@@ -502,6 +502,7 @@ def not_authorized(error):
 
 @app.errorhandler(500)
 def internal_server_error(error):
+    logger.error(error)
     if "username" in session:
         if "500" in session and "500_title" in session:
             reason = session['500']
