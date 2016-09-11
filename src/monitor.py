@@ -691,5 +691,6 @@ class History_Manager:
         vnodes = VNode.query.filter(VNode.name.startswith(owner)).all()
         res = []
         for vnode in vnodes:
-            res.append(vnode.name)
+            tmp = {"name":vnode.name,"billing":vnode.billing}
+            res.append(tmp)
         return res
