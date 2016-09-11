@@ -23,7 +23,7 @@ import os
 import http.server, cgi, json, sys, shutil
 from socketserver import ThreadingMixIn
 import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr
-import userManager
+import userManager,beansapplicationmgr
 import monitor,traceback
 import threading
 import sysmgr
@@ -512,6 +512,23 @@ def listphynodes_monitor(cur_user, user, form):
     res['allnodes'] = G_nodemgr.get_allnodes()
     return json.dumps({'success':'true', 'monitor':res})
 
+@app.route("/beans/<issue>/", methods=['POST'])
+@login_required
+def beans_apply(cur_user,user,form,issue):
+    global G_applicationmgr
+    if issue == 'apply':
+        number = form.get("number",None)
+        reason = form.get("reason",None)
+        if number is None or reason is None:
+            return json.dumps({'success':'false', 'message':'Number and reason can\'t be null.'})
+        G_applicationmgr.apply(user,number,reason)
+        return json.dumps({'success':'True'})
+    elif issue == 'applymsgs':
+        applymsgs = G_applicationmgr.query(user)
+        return json.dumps({'success':'True','applymsgs':str(applymsgs)})
+    else:
+        return json.dumps({'success':'false','message':'Unsupported URL!'})
+
 
 @app.route("/user/modify/", methods=['POST'])
 @login_required
@@ -848,6 +865,7 @@ if __name__ == '__main__':
     global G_clustername
     global G_sysmgr
     global G_historymgr
+    global G_applicationmgr
     # move 'tools.loadenv' to the beginning of this file
 
     fs_path = env.getenv("FS_PREFIX")
@@ -955,6 +973,7 @@ if __name__ == '__main__':
     master_collector = monitor.Master_Collector(G_nodemgr,ipaddr+":"+str(masterport))
     master_collector.start()
     logger.info("master_collector started")
+    G_applicationmgr = beansapplicationmgr.ApplicationMgr()
     
     # server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
     logger.info("starting master server")
