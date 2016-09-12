@@ -663,6 +663,7 @@ class userManager:
                     "%s"%(user.register_date),
                     user.status,
                     user.user_group,
+                    user.beans,
                     '',
             ]
             result["data"].append(userinfo)
