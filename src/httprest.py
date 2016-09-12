@@ -525,7 +525,7 @@ def beans_apply(cur_user,user,form,issue):
         return json.dumps({'success':'True'})
     elif issue == 'applymsgs':
         applymsgs = G_applicationmgr.query(user)
-        return json.dumps({'success':'True','applymsgs':str(applymsgs)})
+        return json.dumps({'success':'True','applymsgs':applymsgs})
     else:
         return json.dumps({'success':'false','message':'Unsupported URL!'})
 

@@ -33,6 +33,7 @@ from webViews.dockletrequest import dockletRequest
 from webViews.cluster import *
 from webViews.admin import *
 from webViews.monitor import *
+from webViews.beansapplication import *
 from webViews.authenticate.auth import login_required, administration_required,activated_required
 from webViews.authenticate.register import registerView
 from webViews.authenticate.login import loginView, logoutView
@@ -290,6 +291,11 @@ def monitor_request(comid,infotype):
     }
     result = dockletRequest.post(request.path, data)
     return json.dumps(result)
+
+@app.route("/beans/application/", methods=['GET'])
+@login_required
+def beansapplication():
+    return beansapplicationView.as_view()
 
 '''@app.route("/monitor/User/", methods=['GET'])
 @administration_required
