@@ -9,9 +9,16 @@ class ApplicationMgr:
             db.create_all()
 
     def apply(self,username,number,reason):
+        if int(number) < 100 or int(number) > 5000:
+            return [False, "Number field must be between 100 and 5000!"]
+        applymsgs = ApplyMsg.query.filter_by(username=username).all()
+        lasti = len(applymsgs) - 1
+        if applymsgs[lasti].status == "Processing":
+            return [False, "You already have a processing application, please be patient."] 
         applymsg = ApplyMsg(username,number,reason)
         db.session.add(applymsg)
         db.session.commit()
+        return [True,""]
     
     def query(self,username):
         applymsgs = ApplyMsg.query.filter_by(username=username).all()

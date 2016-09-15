@@ -297,6 +297,11 @@ def monitor_request(comid,infotype):
 def beansapplication():
     return beansapplicationView.as_view()
 
+@app.route("/beans/apply/", methods=['POST'])
+@login_required
+def beansapply():
+    return beansapplyView.as_view()
+
 '''@app.route("/monitor/User/", methods=['GET'])
 @administration_required
 def monitorUserAll():

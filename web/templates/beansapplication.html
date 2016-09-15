@@ -16,14 +16,16 @@
 {% endblock %}
 
 {% block css_src %}
-<link href="/static/dist/css/flotconfig.css" rel="stylesheet">
+<link href="//cdn.bootcss.com/datatables/1.10.11/css/dataTables.bootstrap.min.css" rel="stylesheet">
+<link href="//cdn.bootcss.com/datatables/1.10.11/css/jquery.dataTables_themeroller.css" rel="stylesheet">
+<link href="/static/dist/css/modalconfig.css" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
 <div class="row">
 <div class="col-md-12">
 <div class="box box-info">
-<div class="box-header with-border">
+    <div class="box-header with-border">
        <h3 class="box-title">All Applications</h3>
        <div class="box-tools pull-right">
          <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
@@ -31,7 +33,41 @@
          <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
        </div>
      </div>
-                 <div class="box-body">
+       <div class="box-body">
+       <p>
+       <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#AddApplication"><i class="fa fa-plus"></i> Add Application</button>
+       </p>
+	<div class="modal inmodal" id="AddApplication" tabindex="-1" role="dialog" aria-hidden="true">
+             <div class="modal-dialog">
+             <div class="modal-content animated fadeIn">
+                     <div class="modal-header">
+                         <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                         <i class="fa fa-plus modal-icon"></i>
+                         <h4 class="modal-title">Apply for more beans.</h4>
+                         <small class="font-bold">Application Requirements: <br/>1.Your beans are less than 1000.<br/> 2.No application is on "processing".</small>
+                     </div>
+                     <div class="modal-body">
+                       <form action="/beans/apply/" method="POST" id="beansapplyForm">
+                          <div class="form-group">
+                            <label>Number</label><small class="font-bold"> How many beans do you need?</small>
+                            <input type="number" class="form-control" placeholder="100-5000" name="number" id="number" min="100" max="5000"/>
+                          </div>
+                          <div class="form-group">
+                            <label>Reason</label>
+                            <textarea class="form-control" name="reason" cols="28" rows="5" onKeyDown="textCounter(reason,remLen,300);" onKeyUp="textCounter(reason,remLen,300);" placeholder="Please describe what you will do in your workspace with the beans."></textarea>
+			     You could only input <input name="remLen" type="text" value="300" size="3" readonly="readonly"> more characters.
+                          </div>
+                     
+                     <div class="modal-footer">
+                         <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
+                         <button type="submit" class="btn btn-primary">Submit</button>
+                     </div>
+                       </form>
+                     </div>
+             </div>
+             </div>
+           </div>
+                   <div class="table table-responsive">
                      <table class="table table-striped table-bordered table-hover table-image" >
                         <thead>
                     	<tr>
@@ -54,9 +90,10 @@
                       {% endfor %}
                     </tbody>
 		  </table>
-		</div>
+                </div>
+	  </div>
         </div>
-    </div>
+</div>
 </div>
 {% endblock %}
 
@@ -70,7 +107,13 @@
          $(document).ready(function() {
             $(".table-image").DataTable();
          });
-
+function textCounter(field,countfield,maxlimit)
+{
+   if(field.value.length > maxlimit)
+       field.value = field.value.substring(0,maxlimit);
+   else
+       countfield.value = maxlimit - field.value.length;
+}
  </script>
 
 {% endblock %}

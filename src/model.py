@@ -245,7 +245,7 @@ class ApplyMsg(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(10))
     number = db.Column(db.Integer)
-    reason = db.Column(db.String(200))
+    reason = db.Column(db.String(600))
     status = db.Column(db.String(10))
     
     def __init__(self,username, number, reason):

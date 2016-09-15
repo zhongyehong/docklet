@@ -521,11 +521,14 @@ def beans_apply(cur_user,user,form,issue):
         reason = form.get("reason",None)
         if number is None or reason is None:
             return json.dumps({'success':'false', 'message':'Number and reason can\'t be null.'})
-        G_applicationmgr.apply(user,number,reason)
-        return json.dumps({'success':'True'})
+        [success,message] = G_applicationmgr.apply(user,number,reason)
+        if not success:
+            return json.dumps({'success':'false', 'message':message})
+        else:
+            return json.dumps({'success':'true'})
     elif issue == 'applymsgs':
         applymsgs = G_applicationmgr.query(user)
-        return json.dumps({'success':'True','applymsgs':applymsgs})
+        return json.dumps({'success':'true','applymsgs':applymsgs})
     else:
         return json.dumps({'success':'false','message':'Unsupported URL!'})
 
