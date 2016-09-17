@@ -241,7 +241,7 @@ class History(db.Model):
         return "{\"id\":\"%d\",\"vnode\":\"%s\",\"action\":\"%s\",\"runningtime\":\"%d\",\"cputime\":\"%f\",\"billing\":\"%d\",\"actionTime\":\"%s\"}" % (self.id, self.vnode, self.action, self.runningtime, self.cputime, self.billing, self.actionTime.strftime("%Y-%m-%d %H:%M:%S"))
 
 class ApplyMsg(db.Model):
-    __bind_key_ = 'beansapplication'
+    __bind_key__ = 'beansapplication'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(10))
     number = db.Column(db.Integer)

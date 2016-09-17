@@ -9,11 +9,14 @@ class ApplicationMgr:
             db.create_all()
 
     def apply(self,username,number,reason):
+        user = User.query.filter_by(username=username).first()
+        if user.beans >= 1000:
+            return [False, "Your beans must be less than 1000."]
         if int(number) < 100 or int(number) > 5000:
             return [False, "Number field must be between 100 and 5000!"]
         applymsgs = ApplyMsg.query.filter_by(username=username).all()
         lasti = len(applymsgs) - 1
-        if applymsgs[lasti].status == "Processing":
+        if lasti >= 0 and applymsgs[lasti].status == "Processing":
             return [False, "You already have a processing application, please be patient."] 
         applymsg = ApplyMsg(username,number,reason)
         db.session.add(applymsg)
