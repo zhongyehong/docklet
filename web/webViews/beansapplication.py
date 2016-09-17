@@ -31,3 +31,19 @@ class beansapplyView(normalView):
     @classmethod    
     def get(self):
         return self.post()
+
+class beansadminView(normalView):
+    msgid = ""
+    cmd = ""
+    template_path = "error.html"
+
+    @classmethod
+    def get(self):
+        data = {"msgid":self.msgid}
+        result = dockletRequest.post('/beans/admin/'+self.cmd+"/",data)
+        success = result.get("success")
+        if success == "true":
+            return redirect("/user/list/")
+        else:
+            return self.render(self.template_path, message = result.get("message"))
+

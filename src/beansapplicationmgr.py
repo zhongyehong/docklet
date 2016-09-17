@@ -1,4 +1,5 @@
 from model import db,User,ApplyMsg
+from userManager import administration_required
 
 class ApplicationMgr:
     
@@ -10,7 +11,7 @@ class ApplicationMgr:
 
     def apply(self,username,number,reason):
         user = User.query.filter_by(username=username).first()
-        if user.beans >= 1000:
+        if user is not None and user.beans >= 1000:
             return [False, "Your beans must be less than 1000."]
         if int(number) < 100 or int(number) > 5000:
             return [False, "Number field must be between 100 and 5000!"]
@@ -26,23 +27,30 @@ class ApplicationMgr:
     def query(self,username):
         applymsgs = ApplyMsg.query.filter_by(username=username).all()
         return list(eval(str(applymsgs)))
-
-    def queryUnRead(self):
+    
+    @administration_required
+    def queryUnRead(self,*,cur_user):
         applymsgs = ApplyMsg.query.filter_by(status="Processing").all()
-        return list(eval(str(applymsgs)))
+        msgs = list(eval(str(applymsgs)))
+        return {"success":"true","applymsgs":msgs}
 
-    def agree(self,msgid):
-        try:
-            applymsg = ApplyMsg.query.get(msgid)
-        except:
-            return
+    @administration_required
+    def agree(self,msgid,*,cur_user):
+        applymsg = ApplyMsg.query.get(msgid)
+        if applymsg is None:
+            return {"success":"false","message":"Application doesn\'t exist."}
         applymsg.status = "Agreed"
+        user = User.query.filter_by(username=applymsg.username).first()
+        if user is not None:
+            user.beans += applymsg.number
         db.session.commit()
-
-    def reject(self,msgid):
-        try:
-            applymsg = ApplyMsg.query.get(msgid)
-        except:
-            return
+        return {"success":"true"}
+    
+    @administration_required
+    def reject(self,msgid,*,cur_user):
+        applymsg = ApplyMsg.query.get(msgid)
+        if applymsg is None:
+            return {"success":"false","message":"Application doesn\'t exist."}
         applymsg.status = "Rejected"
         db.session.commit()
+        return {"success":"true"}

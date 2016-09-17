@@ -302,13 +302,22 @@ def beansapplication():
 def beansapply():
     return beansapplyView.as_view()
 
+@app.route("/beans/admin/<msgid>/<cmd>/", methods=['GET'])
+@login_required
+@administration_required
+def beansadmin(msgid,cmd):
+    beansadminView.msgid = msgid
+    if cmd == "agree" or cmd == "reject":
+        beansadminView.cmd = cmd
+        return beansadminView.as_view()
+    else:
+        return redirect("/user/list/")
+
 '''@app.route("/monitor/User/", methods=['GET'])
 @administration_required
 def monitorUserAll():
     return monitorUserAllView.as_view()
 '''
-
-
 
 @app.route("/user/list/", methods=['GET', 'POST'])
 @administration_required

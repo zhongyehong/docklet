@@ -532,6 +532,27 @@ def beans_apply(cur_user,user,form,issue):
     else:
         return json.dumps({'success':'false','message':'Unsupported URL!'})
 
+@app.route("/beans/admin/<issue>/", methods=['POST'])
+@login_required
+def beans_admin(cur_user,user,form,issue):
+    global G_applicationmgr
+    if issue == 'applymsgs':
+        result = G_applicationmgr.queryUnRead(cur_user = cur_user)
+        return json.dumps(result)
+    elif issue == 'agree':
+        msgid = form.get("msgid",None)
+        if msgid is None:
+            return json.dumps({'success':'false', 'message':'msgid can\'t be null.'})
+        result = G_applicationmgr.agree(msgid, cur_user = cur_user)
+        return json.dumps(result)
+    elif issue == 'reject':
+        msgid = form.get("msgid",None)
+        if msgid is None:
+            return json.dumps({'success':'false', 'message':'msgid can\'t be null.'})
+        result = G_applicationmgr.reject(msgid, cur_user = cur_user)
+        return json.dumps(result)
+    else:
+        return json.dumps({'success':'false','message':'Unsupported URL!'})
 
 @app.route("/user/modify/", methods=['POST'])
 @login_required
