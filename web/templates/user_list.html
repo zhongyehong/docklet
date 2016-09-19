@@ -162,15 +162,45 @@
 
                                     </textarea>
                                   </div>
-
+                                </form>
                        </div>
                        <div class="modal-footer">
                            <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
                            <button type="button" class="btn btn-primary" onClick="javascript:sendModifyUser();">Submit</button>
                        </div>
-               </div>
-               </div>
-           </div>
+                     </div>
+                     </div>
+                 </div>
+                 <div class="modal inmodal" id="ChpasswordModal" tabindex="-1" role="dialog" aria-hidden="true">
+                     <div class="modal-dialog">
+                     <div class="modal-content animated fadeIn">
+                             <div class="modal-header">
+                                 <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                                 <i class="fa fa-laptop modal-icon"></i>
+                                 <h4 class="modal-title">Changing Password</h4>
+                             </div>
+                             <div class="modal-body">
+                               <form action="/user/change/" method="POST" id="chpasswordForm">
+                                  <div class="form-group">
+                                    <label>User Name</label>
+                                    <input type = "text" placeholder="Enter Username" class="form-control" name="username" id="mpUsername" readonly="readonly">
+                                  </div>
+
+                                  <div class="form-group">
+                                    <label>Password</label>
+                                    <input type="password" placeholder="Enter Password" class="form-control" name="password" id="mpPassword">
+                                  </div>
+                               </form>
+
+                       </div>
+                       <div class="modal-footer">
+                           <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
+                           <button type="button" class="btn btn-primary" onClick="javascript:sendChpassword();">Submit</button>
+                       </div>
+                     </div>
+                     </div>
+                 </div>
+
          </table>
        </div>
 
@@ -242,6 +272,10 @@
                     {
                       str=str + '<a class="btn btn-danger btn-xs" onClick="javascript:setActivateUser(' + row[0] + ');">' + 'Activate' + '</a>';
                     }
+                    else
+                    {
+                      str=str + '<a class="btn btn-primary btn-xs" data-toggle="modal" data-target="#ChpasswordModal" onClick="javascript:setFormChpassword(\'' + row[1] + '\');">' + 'Chpassword' + '</a>';
+                    }
                     return str;
                 },
                 "targets": 9
@@ -275,6 +309,9 @@
     function sendModifyUser(){
         document.getElementById("modifyUserForm").submit();
     }
+    function sendChpassword(){
+        document.getElementById("chpasswordForm").submit();
+    }
     function sendModifyGroup(){
         document.getElementById("modifyGroupForm").submit();
     }
@@ -296,6 +333,9 @@
         $("#mAuthMethod").val(result.auth_method);
         $("#mDescription").val(result.description);
       });
+    }
+    function setFormChpassword(arg){
+      $("#mpUsername").val(arg);
     }
     function setActivateUser(arg){
       $.post("/user/change/",
