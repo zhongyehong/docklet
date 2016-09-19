@@ -32,11 +32,13 @@
        </div>
      </div>
                  <div class="box-body">
+                   <div class="table table-responsive">
                      <table class="table table-striped table-bordered table-hover table-image" >
                         <thead>
                     	<tr>
                         <th>NO</th>
-                        <th>VNode Name</th>
+                        <th>VNode name</th>
+                        <th>Last billing</th>
                         <th>History</th>
                     	</tr>
                     	</thead>
@@ -44,13 +46,15 @@
                       {% for vnode in vnodes %}
                       <tr>
                       <th>{{ loop.index }}</th>
-                      <th>{{ vnode }}</th>
-                      <td><a class="btn btn-info btn-xs" href='/history/{{ vnode }}'>History</a></td>
+                      <th>{{ vnode.name }}</th>
+                      <th>{{ vnode.billing }} beans</th>
+                      <td><a class="btn btn-info btn-xs" href='/history/{{ vnode.name }}'>History</a></td>
                       </tr>
                       {% endfor %}
                     </tbody>
 		  </table>
-		</div>
+                 </div>
+	     </div>
         </div>
     </div>
 </div>

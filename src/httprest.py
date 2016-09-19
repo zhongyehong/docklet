@@ -23,7 +23,7 @@ import os
 import http.server, cgi, json, sys, shutil
 from socketserver import ThreadingMixIn
 import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr
-import userManager
+import userManager,beansapplicationmgr
 import monitor,traceback
 import threading
 import sysmgr
@@ -512,6 +512,47 @@ def listphynodes_monitor(cur_user, user, form):
     res['allnodes'] = G_nodemgr.get_allnodes()
     return json.dumps({'success':'true', 'monitor':res})
 
+@app.route("/beans/<issue>/", methods=['POST'])
+@login_required
+def beans_apply(cur_user,user,form,issue):
+    global G_applicationmgr
+    if issue == 'apply':
+        number = form.get("number",None)
+        reason = form.get("reason",None)
+        if number is None or reason is None:
+            return json.dumps({'success':'false', 'message':'Number and reason can\'t be null.'})
+        [success,message] = G_applicationmgr.apply(user,number,reason)
+        if not success:
+            return json.dumps({'success':'false', 'message':message})
+        else:
+            return json.dumps({'success':'true'})
+    elif issue == 'applymsgs':
+        applymsgs = G_applicationmgr.query(user)
+        return json.dumps({'success':'true','applymsgs':applymsgs})
+    else:
+        return json.dumps({'success':'false','message':'Unsupported URL!'})
+
+@app.route("/beans/admin/<issue>/", methods=['POST'])
+@login_required
+def beans_admin(cur_user,user,form,issue):
+    global G_applicationmgr
+    if issue == 'applymsgs':
+        result = G_applicationmgr.queryUnRead(cur_user = cur_user)
+        return json.dumps(result)
+    elif issue == 'agree':
+        msgid = form.get("msgid",None)
+        if msgid is None:
+            return json.dumps({'success':'false', 'message':'msgid can\'t be null.'})
+        result = G_applicationmgr.agree(msgid, cur_user = cur_user)
+        return json.dumps(result)
+    elif issue == 'reject':
+        msgid = form.get("msgid",None)
+        if msgid is None:
+            return json.dumps({'success':'false', 'message':'msgid can\'t be null.'})
+        result = G_applicationmgr.reject(msgid, cur_user = cur_user)
+        return json.dumps(result)
+    else:
+        return json.dumps({'success':'false','message':'Unsupported URL!'})
 
 @app.route("/user/modify/", methods=['POST'])
 @login_required
@@ -848,6 +889,7 @@ if __name__ == '__main__':
     global G_clustername
     global G_sysmgr
     global G_historymgr
+    global G_applicationmgr
     # move 'tools.loadenv' to the beginning of this file
 
     fs_path = env.getenv("FS_PREFIX")
@@ -955,6 +997,7 @@ if __name__ == '__main__':
     master_collector = monitor.Master_Collector(G_nodemgr,ipaddr+":"+str(masterport))
     master_collector.start()
     logger.info("master_collector started")
+    G_applicationmgr = beansapplicationmgr.ApplicationMgr()
     
     # server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
     logger.info("starting master server")
