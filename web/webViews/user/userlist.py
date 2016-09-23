@@ -9,7 +9,8 @@ class userlistView(normalView):
     @classmethod
     def get(self):
         groups = dockletRequest.post('/user/groupNameList/')["groups"]
-        return self.render(self.template_path, groups = groups)
+        applications = dockletRequest.post('/beans/admin/applymsgs/').get("applymsgs")
+        return self.render(self.template_path, groups = groups, applications = applications)
 
     @classmethod
     def post(self):

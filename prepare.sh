@@ -28,7 +28,7 @@ fi
 # install packages that docklet needs (in ubuntu)
 # some packages' name maybe different in debian
 apt-get install -y cgmanager lxc lxcfs lxc-templates lvm2 bridge-utils curl exim4 openssh-server openvswitch-switch 
-apt-get install -y python3 python3-netifaces python3-flask python3-flask-sqlalchemy python3-pampy
+apt-get install -y python3 python3-netifaces python3-flask python3-flask-sqlalchemy python3-pampy python3-httplib2
 apt-get install -y python3-psutil
 apt-get install -y python3-lxc
 apt-get install -y python3-requests python3-suds

@@ -40,7 +40,10 @@ fsdir = env.getenv('FS_PREFIX')
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'+fsdir+'/global/sys/UserTable.db'
-app.config['SQLALCHEMY_BINDS'] = {'history': 'sqlite:///'+fsdir+'/global/sys/HistoryTable.db'}
+app.config['SQLALCHEMY_BINDS'] = {
+    'history': 'sqlite:///'+fsdir+'/global/sys/HistoryTable.db',
+    'beansapplication': 'sqlite:///'+fsdir+'/global/sys/BeansApplication.db'
+    }
 try:
     secret_key_file = open(env.getenv('FS_PREFIX') + '/local/token_secret_key.txt')
     app.secret_key = secret_key_file.read()
@@ -92,7 +95,7 @@ class User(db.Model):
         self.department = department
         self.truename = truename
         self.tel = tel
-        self.beans = 10000
+        self.beans = 100
         if (date != None):
             self.register_date = date
         else:
@@ -236,3 +239,20 @@ class History(db.Model):
     
     def __repr__(self):
         return "{\"id\":\"%d\",\"vnode\":\"%s\",\"action\":\"%s\",\"runningtime\":\"%d\",\"cputime\":\"%f\",\"billing\":\"%d\",\"actionTime\":\"%s\"}" % (self.id, self.vnode, self.action, self.runningtime, self.cputime, self.billing, self.actionTime.strftime("%Y-%m-%d %H:%M:%S"))
+
+class ApplyMsg(db.Model):
+    __bind_key__ = 'beansapplication'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(10))
+    number = db.Column(db.Integer)
+    reason = db.Column(db.String(600))
+    status = db.Column(db.String(10))
+    
+    def __init__(self,username, number, reason):
+        self.username = username
+        self.number = number
+        self.reason = reason
+        self.status = "Processing"
+
+    def __repr__(self):
+        return "{\"id\":\"%d\", \"username\":\"%s\", \"number\": \"%d\", \"reason\":\"%s\", \"status\":\"%s\"}" % (self.id, self.username, self.number, self.reason, self.status)
