@@ -247,12 +247,14 @@ class ApplyMsg(db.Model):
     number = db.Column(db.Integer)
     reason = db.Column(db.String(600))
     status = db.Column(db.String(10))
+    time = db.Column(db.DateTime(10))
     
     def __init__(self,username, number, reason):
         self.username = username
         self.number = number
         self.reason = reason
         self.status = "Processing"
+        self.time = datetime.now()
 
     def __repr__(self):
-        return "{\"id\":\"%d\", \"username\":\"%s\", \"number\": \"%d\", \"reason\":\"%s\", \"status\":\"%s\"}" % (self.id, self.username, self.number, self.reason, self.status)
+        return "{\"id\":\"%d\", \"username\":\"%s\", \"number\": \"%d\", \"reason\":\"%s\", \"status\":\"%s\", \"time\":\"%s\"}" % (self.id, self.username, self.number, self.reason, self.status, self.time.strftime("%Y-%m-%d %H:%M:%S"))

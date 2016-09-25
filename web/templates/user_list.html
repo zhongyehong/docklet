@@ -227,6 +227,7 @@
                         <th>Application ID</th>
                         <th>Username</th>
                         <th>Number</th>
+                        <th>Submission Time</th>
                         <th>Reason</th>
                         <th>Command</th>
                     	</tr>
@@ -237,6 +238,7 @@
                       <td>{{ application.id }}</td>
                       <td>{{ application.username }}</td>
                       <td>{{ application.number }} beans</td>
+                      <td>{{ application.time }}</td>
                       <td>{{ application.reason }}</td>
                       <td><a class="btn btn-xs btn-info" href="/beans/admin/{{ application.id }}/agree/">Agree</a>&nbsp;&nbsp;&nbsp;&nbsp;  
                           <a class="btn btn-xs btn-danger" href="/beans/admin/{{ application.id }}/reject/">Reject</a></td>
