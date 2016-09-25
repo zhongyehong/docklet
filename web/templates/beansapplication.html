@@ -35,7 +35,7 @@
      </div>
        <div class="box-body">
        <p>
-       <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#AddApplication"><i class="fa fa-plus"></i> Add Application</button>
+       <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#AddApplication"><i class="fa fa-plus"></i> Apply For Beans</button>
        </p>
 	<div class="modal inmodal" id="AddApplication" tabindex="-1" role="dialog" aria-hidden="true">
              <div class="modal-dialog">
@@ -74,6 +74,7 @@
                         <th>Application ID</th>
                         <th>Username</th>
                         <th>Number</th>
+                        <th>Submission Time</th>
                         <th>Reason</th>
                         <th>Status</th>
                     	</tr>
@@ -83,7 +84,8 @@
                       <tr>
                       <td>{{ application.id }}</td>
                       <td>{{ application.username }}</td>
-                      <td>{{ application.number }} beans</td>
+                      <td>{{ application.number }} <img src='/static/img/bean.png'></td>
+                      <td>{{ application.time }}</td>
                       <td>{{ application.reason }}</td>
                       <td>{{ application.status }}</td>
                       </tr>
