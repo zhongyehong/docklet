@@ -10,6 +10,7 @@ if [ $# -eq 0 ] ; then
     exit 1
 fi
 
+etcd_1=$1
 index=1
 while [ $# -gt 0 ] ; do
     h="etcd_$index" 
@@ -30,7 +31,6 @@ done
 
 # -initial-cluster-state        :  new means join a new cluster; existing means join an existing cluster
 #                               :  new not means clear 
-
 
 etcd --name etcd_1 \
      --initial-advertise-peer-urls http://$etcd_1:2380 \
