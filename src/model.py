@@ -75,7 +75,7 @@ class User(db.Model):
     register_date = db.Column(db.String(10))
     user_group = db.Column(db.String(50))
     auth_method = db.Column(db.String(10))
-    beans = db.Column(db.Integer)
+#    beans = db.Column(db.Integer)
 
     def __init__(self, username, password, avatar="default.png", nickname = "", description = "", status = "init",
                     e_mail = "" , student_number = "", department = "", truename = "", tel="", date = None, usergroup = "primary"
@@ -95,7 +95,7 @@ class User(db.Model):
         self.department = department
         self.truename = truename
         self.tel = tel
-        self.beans = 100
+#        self.beans = 1000
         if (date != None):
             self.register_date = date
         else:
