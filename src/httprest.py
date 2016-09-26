@@ -998,7 +998,7 @@ if __name__ == '__main__':
     master_collector.start()
     logger.info("master_collector started")
     G_applicationmgr = beansapplicationmgr.ApplicationMgr()
-    approvalrbt = beansapplicationmgr.ApprovalRobot(120)
+    approvalrbt = beansapplicationmgr.ApprovalRobot()
     approvalrbt.start()
     
     # server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
