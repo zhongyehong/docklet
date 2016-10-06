@@ -109,13 +109,18 @@ class Container_Collector(threading.Thread):
         try:
             vnode = VNode.query.get(vnode_name)
             vnode.billing = nowbillingval
-            db.session.commit()
         except Exception as err:
             vnode = VNode(vnode_name)
             vnode.billing = nowbillingval
             db.session.add(vnode)
-            db.session.commit()
             logger.warning(err)
+        try:
+            db.session.commit()
+        except Exception as err:
+            db.session.rollback()
+            logger.warning(traceback.format_exc())
+            logger.warning(err)
+            raise
         workercinfo[vnode_name]['basic_info']['billing'] = nowbillingval
         owner_name = get_owner(vnode_name)
         owner = User.query.filter_by(username=owner_name).first()
