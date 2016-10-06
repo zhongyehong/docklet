@@ -59,7 +59,7 @@ class Container_Collector(threading.Thread):
         return containers
 
     def get_proc_etime(self,pid):
-        fmt = subprocess.getoutput("ps -A -opid,etime | grep '^ *%d' | awk '{print $NF}'" % pid).strip()
+        fmt = subprocess.getoutput("ps -A -opid,etime | grep '^ *%d ' | awk '{print $NF}'" % pid).strip()
         if fmt == '':
             return -1
         parts = fmt.split('-')
