@@ -42,14 +42,37 @@ def login_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         global G_usermgr
-        logger.info ("get request, path: %s" % request.path)
         token = request.form.get("token", None)
         if (token == None):
+            logger.info ("get request without token, path: %s" % request.path)
             return json.dumps({'success':'false', 'message':'user or key is null'})
         cur_user = G_usermgr.auth_token(token)
         if (cur_user == None):
+            logger.info ("get request with an invalid token, path: %s" % request.path)
             return json.dumps({'success':'false', 'message':'token failed or expired', 'Unauthorized': 'True'})
+        logger.info ("get request, user: %s, path: %s" % (cur_user.username, request.path))
         return func(cur_user, cur_user.username, request.form, *args, **kwargs)
+
+    return wrapper
+
+def inside_ip_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        global G_usermgr
+        global G_vclustermgr
+        #cur_user = G_usermgr.find_by_ip(request.remote_addr)
+        cur_user = G_usermgr.auth_token(G_usermgr.auth('liupd', 'iamlpd')['data']['token'])
+        if (cur_user == None):
+            logger.info ("get request with an invalid ip, path: %s" % request.path)
+            return json.dumps({'success':'false', 'message':'invalid ip address', 'Unauthorized': 'True'})
+        #cluster_info = G_vclustermgr.find_by_ip(cur_user.username, request.remote_addr)
+        cluster_filename = '/opt/docklet/global/users/liupd/clusters/asdf'
+        cluster_file = open(cluster_filename,'r')
+        cluster_info = json.loads(cluster_file.read())
+        cluster_file.close()
+        cluster_info['name'] = 'asdf'
+        logger.info ("get request with ip, user: %s, ip: %s ,path: %s" % (cur_user.username, request.remote_addr, request.path))
+        return func(cur_user, cluster_info, request.form, *args, **kwargs)
 
     return wrapper
 
@@ -162,6 +185,7 @@ def scaleout_cluster(cur_user, user, form):
     global G_usermgr
     global G_vclustermgr
     clustername = form.get('clustername', None)
+    logger.info ("scaleout: %s" % form)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
     logger.info("handle request : scale out %s" % clustername)
@@ -456,7 +480,7 @@ def vnodes_monitor(cur_user, user, form, con_id, issue):
 def user_quotainfo_monitor(cur_user, user, form,issue):
     global G_usermgr
     global G_historymgr
-    if issue == 'quotainfo':        
+    if issue == 'quotainfo':
         logger.info("handle request: monitor/user/quotainfo/")
         user_info = G_usermgr.selfQuery(cur_user = cur_user)
         quotainfo = user_info['data']['groupinfo']
@@ -776,6 +800,35 @@ def resetall_system(cur_user, user, form):
     else:
         return json.dumps({'success':'false', 'message': message})
     return json.dumps(result)
+
+@app.route("/inside/cluster/scaleout/", methods=['POST'])
+@inside_ip_required
+def inside_cluster_scalout(cur_user, cluster_info, form):
+    global G_usermgr
+    global G_vclustermgr
+    clustername = cluster_info['name']
+    logger.info("handle request : scale out %s" % clustername)
+    image = {}
+    image['name'] = form.get("imagename", None)
+    image['type'] = form.get("imagetype", None)
+    image['owner'] = form.get("imageowner", None)
+    user_info = G_usermgr.selfQuery(cur_user = cur_user)
+    user = user_info['data']['username']
+    user_info = json.dumps(user_info)
+    setting = {
+            'cpu': form.get('cpuSetting'),
+            'memory': form.get('memorySetting'),
+            'disk': form.get('diskSetting')
+            }
+    [status, result] = G_usermgr.usageInc(cur_user = cur_user, modification = setting)
+    if not status:
+        return json.dumps({'success':'false', 'action':'scale out', 'message': result})
+    [status, result] = G_vclustermgr.scale_out_cluster(clustername, user, image, user_info, setting)
+    if status:
+        return json.dumps({'success':'true', 'action':'scale out', 'message':result})
+    else:
+        G_usermgr.usageRecover(cur_user = cur_user, modification = setting)
+        return json.dumps({'success':'false', 'action':'scale out', 'message':result})
 
 @app.errorhandler(500)
 def internal_server_error(error):
