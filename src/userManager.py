@@ -440,6 +440,7 @@ class userManager:
                 "group" : user.user_group,
                 "groupinfo": group,
                 "beans" : user.beans,
+                "auth_method": user.auth_method,
             },
         }
         return result
@@ -467,6 +468,12 @@ class userManager:
             user.e_mail = value
         elif (name == 'tel'):
             user.tel = value
+        elif (name == 'password'):
+            old_password = hashlib.sha512(form.get('old_value', '').encode('utf-8')).hexdigest()
+            if (user.password != old_password):
+                result = {'success': 'false'}
+                return result
+            user.password = hashlib.sha512(value.encode('utf-8')).hexdigest()
         else:
             result = {'success': 'false'}
             return result
