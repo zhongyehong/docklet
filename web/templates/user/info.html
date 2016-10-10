@@ -4,6 +4,7 @@
 
 {% block css_src %}
 <link href="//cdn.bootcss.com/x-editable/1.5.1/bootstrap3-editable/css/bootstrap-editable.css" rel="stylesheet">
+<link href="/static/dist/css/modalconfig.css" rel="stylesheet">
 {% endblock %}
 
 {% block panel_title %}Detail for User Infomation{% endblock %}
@@ -71,12 +72,12 @@
                         <td>Telephone</td>
                         <td><a href="#" id="tel" data-type="text" data-pk="1" data-url="/user/info/" data-title="Enter telephone number">{{ info['tel'] }}</a></td>
                     </tr>
-                    <!--
+                    {% if info['auth_method'] == 'local' %}
                     <tr>
                         <td>password</td>
                         <td>
                           <div class="col-md-12" >
-                            <button type="button" class="btn btn-white btn-xs btn-block" data-toggle="modal" data-target="#ChpasswordModal"> Change Password</button>
+                            <button type="button" class="btn btn-primary btn-xs btn-block" data-toggle="modal" data-target="#ChpasswordModal"> Change Password</button>
                           </div>
                           <div class="modal inmodal" id="ChpasswordModal" tabindex="-1" role="dialog" aria-hidden="true">
                               <div class="modal-dialog">
@@ -89,25 +90,26 @@
                                       </div>
                                       <div class="modal-body">
 
-                                           <form action="/group/add/" method="POST" id="ChpasswordForm">
+                                           <form action="/user/info/" method="POST" id="ChpasswordForm">
                                              <div class="form-group">
                                                <label>Old password</label>
-                                               <input type = "password" placeholder="Enter old password" class="form-control" name="o_password">
+                                               <input type = "password" placeholder="Enter old password" class="form-control" name="o_password" id="o_password">
                                              </div>
                                              <div class="form-group">
                                                <label>New password</label>
-                                               <input type = "password" placeholder="Enter new password" class="form-control" name="n_password">
+                                               <input type = "password" placeholder="Enter new password" class="form-control" name="n_password" id = "n_password">
                                              </div>
                                              <div class="form-group">
                                                <label>Verify</label>
-                                               <input type = "password" placeholder="Enter new password again" class="form-control" name="v_password">
+                                               <input type = "password" placeholder="Enter new password again" class="form-control" name="v_password" id = "v_password">
                                              </div>
+                                            <p style="color:red" id="notCorrectFlag"></p>
                                            </form>
 
                                       </div>
                                       <div class="modal-footer">
                                           <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
-                                          <button type="button" class="btn btn-primary" onClick="javascript:sendAddGroup();">Submit</button>
+                                          <button type="button" class="btn btn-primary" onClick="javascript:sendChpassword();">Submit</button>
                                       </div>
                                   </div>
                               </div>
@@ -115,7 +117,8 @@
                         </td>
 
                     </tr>
-                    -->
+                    {% endif %}
+
 
                   </table>
             </div>
@@ -248,6 +251,33 @@ $(document).ready(function(){
     */
 
   });
+  function sendChpassword(){
+      if ($("#n_password").val() == $("#v_password").val())
+      {
+        $.post("/user/info/",
+        {
+          name: 'password',
+          value: $("#n_password").val(),
+          old_value : $("#o_password").val()
+        },
+        function(data,status){
+          var result = eval("("+data+")");
+          if (result.success == 'true')
+          {
+            location.reload();
+          }
+          else
+          {
+            $("#notCorrectFlag").html("Cannot modify your password");
+          }
+        });
+      }
+      else
+      {
+        $("#notCorrectFlag").html("Two passwords are not identical");
+      }
+    }
+
 
 
   </script>
