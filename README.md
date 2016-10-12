@@ -65,7 +65,7 @@ First copy docklet.conf.template to get docklet.conf.
 Pay attention to the following settings:
 
 - NETWORK_DEVICE : the network interface to use. 
-- ETCD : the etcd server address. For distributed muli hosts
+- ETCD : the etcd server address. For distributed multi hosts
   environment, it should be one of the ETCD public server address.
   For single host environment, the default value should be OK.
 - STORAGE : using disk or file to storage persistent data, for
@@ -127,7 +127,7 @@ The master logs are in **FS_PREFIX/local/log/docklet-master.log** and
 Worker needs a basefs image to create containers.
 
 You can create such an image with `lxc-create -n test -t download`, 
-then copy the rootfs to **FS_PREFIX/local**, and renamed `rootfs` 
+then copy the rootfs to **FS_PREFIX/local**, and rename `rootfs` 
 to `basefs`.
 
 Note the `jupyerhub` package must be installed for this image.  And the 
@@ -138,9 +138,9 @@ You can check and run `tools/update-basefs.sh` to update basefs.
 
 Run `bin/docklet-worker start`, will start worker in background.
 
-You can check the daemon status by running `bin/docklet-worker status`
+You can check the daemon status by running `bin/docklet-worker status`.
 
-The log is in **FS_PREFIX/local/log/docklet-worker.log**
+The log is in **FS_PREFIX/local/log/docklet-worker.log**.
 
 Currently, the worker must be run after the master has been started.
 
