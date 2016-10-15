@@ -134,7 +134,7 @@ class Container_Collector(threading.Thread):
             if owner.beans <= 0:
                 logger.info("The beans of User(" + str(owner) + ") are less than or equal to zero, the container("+vnode_name+") will be stopped.")
                 token = owner.generate_auth_token()
-                form = {'token':token}
+                form = {'username':owner.username}
                 header = {'Content-Type':'application/x-www-form-urlencoded'}
                 http = Http()
                 [resp,content] = http.request("http://"+G_masterip+"/cluster/stopall/","POST",urlencode(form),headers = header)

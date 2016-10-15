@@ -87,6 +87,26 @@ def beans_check(func):
 #
 #     return wrapper
 
+def worker_ip_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+       global G_nodemgr
+       workers = G_nodemgr.get_rpcs()
+       ip = request.remote_addr
+       flag = False
+       for worker in workers:
+           workerip = G_nodemgr.rpc_to_ip(worker)
+           #logger.info(str(ip) + " " + str(workerip))
+           if ip == '127.0.0.1' or ip == '0.0.0.0' or ip == workerip:
+                flag = True
+                break
+       if not flag:
+           return json.dumps({'success':'false','message':'Worker\'s ip is required!'})
+       else:
+           return func(*args, **kwargs)
+
+    return wrapper
+
 @app.route("/login/", methods=['POST'])
 def login():
     global G_usermgr
@@ -312,9 +332,12 @@ def list_cluster(cur_user, user, form):
         return json.dumps({'success':'false', 'action':'list cluster', 'message':clusterlist})
 
 @app.route("/cluster/stopall/",methods=['POST'])
-@login_required
-def stopall_cluster(cur_user, user, form):
+@worker_ip_required
+def stopall_cluster():
     global G_vclustermgr
+    user = request.form.get('username',None)
+    if user is None:
+        return json.dumps({'success':'false', 'message':'User is required!'})
     logger.info ("handle request : stop all clusters for %s" % user)
     [status, clusterlist] = G_vclustermgr.list_clusters(user)
     if status:
