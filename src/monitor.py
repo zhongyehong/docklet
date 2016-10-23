@@ -35,6 +35,7 @@ increment = {}
 email_from_address = env.getenv('EMAIL_FROM_ADDRESS')
 
 def send_beans_email(to_address, username, beans):
+    global email_from_address
     logger.info("Send email to "+to_address+" to remind of beans and username="+username+" and beans="+str(beans))
     if (email_from_address in ['\'\'', '\"\"', '']):
         return

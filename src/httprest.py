@@ -60,7 +60,7 @@ def beans_check(func):
     def wrapper(*args, **kwargs):
         user = args[0]
         if user.beans <= 0:
-            return json.dumps({'success':'false','message':'user\'s beans are less than or equal to zero!'})
+            return json.dumps({'success':'false','message':'user\'s beans are less than or equal to 0! Please apply for more beans by clicking the \'apply\' button or the beans icon on the left side.'})
         else:
             return func(*args, **kwargs)
 
