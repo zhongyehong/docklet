@@ -136,7 +136,11 @@
 			    var detail = "("+used.toFixed(2)+"MiB/"+total.toFixed(2)+"MiB)";
 		       	$("#"+index+"_disk").html(usedp+"%<br/>"+detail);
 		       	},"json");
-            $("#"+index+"_time").html(data.monitor.basic_info.RunningTime+"s")
+            var total = parseInt(data.monitor.basic_info.RunningTime);
+            var hour = Math.floor(total / 3600);
+            var min = Math.floor(total % 3600 / 60);
+            var secs = Math.floor(total % 3600 % 60);
+            $("#"+index+"_time").html(hour+"h "+min+"m "+secs+"s")
             $("#"+index+"_billing").html(data.monitor.basic_info.billing+" <img src='/static/img/bean.png' />")
 
 		var state = data.monitor.basic_info.State;
@@ -197,6 +201,7 @@
 	{% endfor %}
 	{% endfor %}
    }
+   updateAll()
    setInterval(updateAll,5000);
 
 </script>
