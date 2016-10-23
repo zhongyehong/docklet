@@ -115,7 +115,7 @@ class Container_Collector(threading.Thread):
         return ((days * 24 + hours) * 60 + minutes) * 60 + seconds
     
     @classmethod
-    def billing_increment(cls,vnode_name):
+    def billing_increment(cls,vnode_name,isreal=True):
         global increment
         global workercinfo
         global G_masterip
@@ -124,7 +124,7 @@ class Container_Collector(threading.Thread):
         global c_disk
         cpu_val = '0'
         if vnode_name not in workercinfo.keys():
-            return
+            return 0
         if 'cpu_use' in workercinfo[vnode_name].keys():
             cpu_val = workercinfo[vnode_name]['cpu_use']['val']
         if vnode_name not in increment.keys():
@@ -137,20 +137,22 @@ class Container_Collector(threading.Thread):
             avemem = 0
         else:
             avemem = cpu_increment*float(increment[vnode_name]['memincrement'])/1800.0
-        increment[vnode_name]['lastcputime'] = cpu_val
-        increment[vnode_name]['memincrement'] = 0
         if 'disk_use' in workercinfo[vnode_name].keys():
             disk_quota = workercinfo[vnode_name]['disk_use']['total']
         else:
             disk_quota = 0
         #logger.info("cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
-        billingval = cpu_increment/a_cpu + avemem/b_mem + float(disk_quota)/1024.0/1024.0/c_disk
+        billingval = math.ceil(cpu_increment/a_cpu + avemem/b_mem + float(disk_quota)/1024.0/1024.0/c_disk)
+        if not isreal:
+            return math.ceil(billingval)
+        increment[vnode_name]['lastcputime'] = cpu_val
+        increment[vnode_name]['memincrement'] = 0
         if 'basic_info' not in workercinfo[vnode_name].keys():
             workercinfo[vnode_name]['basic_info'] = {}
             workercinfo[vnode_name]['basic_info']['billing'] = 0
             workercinfo[vnode_name]['basic_info']['RunningTime'] = 0
         nowbillingval = workercinfo[vnode_name]['basic_info']['billing']
-        nowbillingval += math.ceil(billingval)
+        nowbillingval += billingval
         try:
             vnode = VNode.query.get(vnode_name)
             vnode.billing = nowbillingval
@@ -174,7 +176,7 @@ class Container_Collector(threading.Thread):
         else:
             #logger.info("Billing User:"+str(owner))
             oldbeans = owner.beans
-            owner.beans -= math.ceil(billingval)
+            owner.beans -= billingval
             #logger.info(str(oldbeans) + " " + str(owner.beans))
             if oldbeans > 0 and owner.beans <= 0 or oldbeans >= 100 and owner.beans < 100 or oldbeans >= 500 and owner.beans < 500 or oldbeans >= 1000 and owner.beans < 1000:
                 send_beans_email(owner.e_mail,owner.username,owner.beans)
@@ -193,6 +195,7 @@ class Container_Collector(threading.Thread):
                 http = Http()
                 [resp,content] = http.request("http://"+G_masterip+"/cluster/stopall/","POST",urlencode(form),headers = header)
                 logger.info("response from master:"+content.decode('utf-8'))
+        return billingval
 
     def collect_containerinfo(self,container_name):
         global workerinfo
@@ -302,6 +305,7 @@ class Container_Collector(threading.Thread):
         mem_usedp = float(mem_val) / self.mem_quota[container_name]
         mem_use['usedp'] = mem_usedp
         workercinfo[container_name]['mem_use'] = mem_use
+        workercinfo[container_name]['basic_info']['billing_this_hour'] = self.billing_increment(container_name,False)
         
         if not container_name in lastbillingtime.keys():
             lastbillingtime[container_name] = int(running_time/self.billingtime)
