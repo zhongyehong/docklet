@@ -2,11 +2,21 @@
 
 import subprocess,re,os,etcdlib,psutil,math,sys
 import time,threading,json,traceback,platform
+import env
+from datetime import datetime
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.header import Header
 
 from model import db,VNode,History,User
 from log import logger
 from httplib2 import Http
 from urllib.parse import urlencode
+
+a_cpu = 1000
+b_mem = 4000000
+c_disk = 4000
 
 monitor_hosts = {}
 monitor_vnodes = {}
@@ -21,6 +31,37 @@ laststopcpuval = {}
 laststopruntime = {}
 lastbillingtime = {}
 increment = {}
+
+email_from_address = env.getenv('EMAIL_FROM_ADDRESS')
+
+def send_beans_email(to_address, username, beans):
+    logger.info("Send email to "+to_address+" to remind of beans and username="+username+" and beans="+str(beans))
+    if (email_from_address in ['\'\'', '\"\"', '']):
+        return
+    #text = 'Dear '+ username + ':\n' + '  Your beans in docklet are less than' + beans + '.'
+    text = '<html><h4>Dear '+ username + ':</h4>'
+    text += '''<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Your beans in <a href='%s'>docklet</a> are %d now. </p>
+               <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If your beans are less than or equal to 0, all your worksapces will be stopped.</p>
+               <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Please apply for more beans to keep your workspaces running by following link:</p>
+               <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href='%s/beans/application/'>%s/beans/application/</p>
+               <br>
+               <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Note: DO NOT reply to this email!</p>
+               <br><br>
+               <p> <a href='http://docklet.unias.org'>Docklet Team</a>, SEI, PKU</p>
+            ''' % (env.getenv("PORTAL_URL"), beans, env.getenv("PORTAL_URL"), env.getenv("PORTAL_URL"))
+    text += '<p>'+  str(datetime.now()) + '</p>'
+    text += '</html>'
+    subject = 'Docklet beans alert'
+    msg = MIMEMultipart()
+    textmsg = MIMEText(text,'html','utf-8')
+    msg['Subject'] = Header(subject, 'utf-8')
+    msg['From'] = email_from_address
+    msg['To'] = to_address
+    msg.attach(textmsg)
+    s = smtplib.SMTP()
+    s.connect()
+    s.sendmail(email_from_address, to_address, msg.as_string())
+    s.close()
 
 class Container_Collector(threading.Thread):
 
@@ -77,6 +118,9 @@ class Container_Collector(threading.Thread):
         global increment
         global workercinfo
         global G_masterip
+        global a_cpu
+        global b_mem
+        global c_disk
         cpu_val = '0'
         if vnode_name not in workercinfo.keys():
             return
@@ -99,7 +143,7 @@ class Container_Collector(threading.Thread):
         else:
             disk_quota = 0
         #logger.info("cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
-        billingval = cpu_increment/1000.0 + avemem/500000.0 + float(disk_quota)/1024.0/1024.0/2000
+        billingval = cpu_increment/a_cpu + avemem/b_mem + float(disk_quota)/1024.0/1024.0/c_disk
         if 'basic_info' not in workercinfo[vnode_name].keys():
             workercinfo[vnode_name]['basic_info'] = {}
             workercinfo[vnode_name]['basic_info']['billing'] = 0
@@ -128,8 +172,17 @@ class Container_Collector(threading.Thread):
             logger.warning("Error!!! Billing User %s doesn't exist!" % (owner_name))
         else:
             #logger.info("Billing User:"+str(owner))
+            oldbeans = owner.beans
             owner.beans -= math.ceil(billingval)
-            db.session.commit()
+            #logger.info(str(oldbeans) + " " + str(owner.beans))
+            if oldbeans > 0 and owner.beans <= 0 or oldbeans >= 100 and owner.beans < 100 or oldbeans >= 500 and owner.beans < 500 or oldbeans >= 1000 and owner.beans < 1000:
+                send_beans_email(owner.e_mail,owner.username,owner.beans)
+            try:
+                db.session.commit()
+            except Exception as err:
+                db.session.rollback()
+                logger.warning(traceback.format_exc())
+                logger.warning(err)
             #logger.info("Billing User:"+str(owner))
             if owner.beans <= 0:
                 logger.info("The beans of User(" + str(owner) + ") are less than or equal to zero, the container("+vnode_name+") will be stopped.")
