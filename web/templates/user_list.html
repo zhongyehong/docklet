@@ -166,6 +166,7 @@
                        </div>
                        <div class="modal-footer">
                            <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
+                           <a class="btn btn-danger" data-toggle="modal" data-target="#ChpasswordModal" onClick="" id="ChpasswordButton">Change Password</a>
                            <button type="button" class="btn btn-primary" onClick="javascript:sendModifyUser();">Submit</button>
                        </div>
                      </div>
@@ -191,6 +192,11 @@
                                     <input type="password" placeholder="Enter Password" class="form-control" name="password" id="mpPassword">
                                   </div>
                                </form>
+                               <div class="form-group">
+                                 <label>Retype Password</label>
+                                 <input type="password" placeholder="Enter Password" class="form-control" id="mpPassword2">
+                               </div>
+                               <p style="color:red" id="notCorrectFlag"></p>
 
                        </div>
                        <div class="modal-footer">
@@ -227,6 +233,7 @@
                         <th>Application ID</th>
                         <th>Username</th>
                         <th>Number</th>
+                        <th>Submission Time</th>
                         <th>Reason</th>
                         <th>Command</th>
                     	</tr>
@@ -237,8 +244,9 @@
                       <td>{{ application.id }}</td>
                       <td>{{ application.username }}</td>
                       <td>{{ application.number }} beans</td>
+                      <td>{{ application.time }}</td>
                       <td>{{ application.reason }}</td>
-                      <td><a class="btn btn-xs btn-info" href="/beans/admin/{{ application.id }}/agree/">Agree</a>&nbsp;&nbsp;&nbsp;&nbsp;  
+                      <td><a class="btn btn-xs btn-info" href="/beans/admin/{{ application.id }}/agree/">Agree</a>&nbsp;&nbsp;&nbsp;&nbsp;
                           <a class="btn btn-xs btn-danger" href="/beans/admin/{{ application.id }}/reject/">Reject</a></td>
                       </tr>
                       {% endfor %}
@@ -271,10 +279,6 @@
                     if (row[6]=='applying')
                     {
                       str=str + '<a class="btn btn-danger btn-xs" onClick="javascript:setActivateUser(' + row[0] + ');">' + 'Activate' + '</a>';
-                    }
-                    else
-                    {
-                      str=str + '<a class="btn btn-primary btn-xs" data-toggle="modal" data-target="#ChpasswordModal" onClick="javascript:setFormChpassword(\'' + row[1] + '\');">' + 'Chpassword' + '</a>';
                     }
                     return str;
                 },
@@ -310,7 +314,14 @@
         document.getElementById("modifyUserForm").submit();
     }
     function sendChpassword(){
-        document.getElementById("chpasswordForm").submit();
+        if ($("#mpPassword").val() == $("#mpPassword2").val())
+        {
+          document.getElementById("chpasswordForm").submit();
+        }
+        else
+        {
+          $("#notCorrectFlag").html("Two passwords are not identical");
+        }
     }
     function sendModifyGroup(){
         document.getElementById("modifyGroupForm").submit();
@@ -332,6 +343,7 @@
         $("#mUserGroup").val(result.group);
         $("#mAuthMethod").val(result.auth_method);
         $("#mDescription").val(result.description);
+        $("#ChpasswordButton").attr("onClick", "javascript:setFormChpassword(\"" + result.username + "\");");
       });
     }
     function setFormChpassword(arg){

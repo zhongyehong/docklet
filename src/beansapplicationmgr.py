@@ -1,3 +1,4 @@
+import threading,datetime,random,time
 from model import db,User,ApplyMsg
 from userManager import administration_required
 
@@ -54,3 +55,28 @@ class ApplicationMgr:
         applymsg.status = "Rejected"
         db.session.commit()
         return {"success":"true"}
+
+class ApprovalRobot(threading.Thread):
+
+    def __init__(self,maxtime=3600):
+        threading.Thread.__init__(self)
+        self.stop = False
+        self.interval = 20
+        self.maxtime = maxtime
+    
+    def stop(self):
+        self.stop = True 
+
+    def run(self):
+        while not self.stop:
+            applymsgs = ApplyMsg.query.filter_by(status="Processing").all()
+            for msg in applymsgs:
+                secs = (datetime.datetime.now() - msg.time).seconds
+                ranint = random.randint(self.interval,self.maxtime)
+                if secs >= ranint:
+                    msg.status = "Agreed"
+                    user = User.query.filter_by(username=msg.username).first()
+                    if user is not None:
+                        user.beans += msg.number
+                    db.session.commit()
+            time.sleep(self.interval)

@@ -59,7 +59,7 @@ class Container_Collector(threading.Thread):
         return containers
 
     def get_proc_etime(self,pid):
-        fmt = subprocess.getoutput("ps -A -opid,etime | grep '^ *%d' | awk '{print $NF}'" % pid).strip()
+        fmt = subprocess.getoutput("ps -A -opid,etime | grep '^ *%d ' | awk '{print $NF}'" % pid).strip()
         if fmt == '':
             return -1
         parts = fmt.split('-')
@@ -109,13 +109,18 @@ class Container_Collector(threading.Thread):
         try:
             vnode = VNode.query.get(vnode_name)
             vnode.billing = nowbillingval
-            db.session.commit()
         except Exception as err:
             vnode = VNode(vnode_name)
             vnode.billing = nowbillingval
             db.session.add(vnode)
-            db.session.commit()
             logger.warning(err)
+        try:
+            db.session.commit()
+        except Exception as err:
+            db.session.rollback()
+            logger.warning(traceback.format_exc())
+            logger.warning(err)
+            raise
         workercinfo[vnode_name]['basic_info']['billing'] = nowbillingval
         owner_name = get_owner(vnode_name)
         owner = User.query.filter_by(username=owner_name).first()
@@ -129,7 +134,7 @@ class Container_Collector(threading.Thread):
             if owner.beans <= 0:
                 logger.info("The beans of User(" + str(owner) + ") are less than or equal to zero, the container("+vnode_name+") will be stopped.")
                 token = owner.generate_auth_token()
-                form = {'token':token}
+                form = {'username':owner.username}
                 header = {'Content-Type':'application/x-www-form-urlencoded'}
                 http = Http()
                 [resp,content] = http.request("http://"+G_masterip+"/cluster/stopall/","POST",urlencode(form),headers = header)
