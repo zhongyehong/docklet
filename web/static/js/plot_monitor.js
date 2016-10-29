@@ -205,7 +205,11 @@ function processBasicInfo()
             $("#con_state").html("<div class='label label-primary'>Running</div>");
             $("#con_ip").html(basic_info.IP);
         }
-        $("#con_time").html(basic_info.RunningTime+"s");
+        var total = parseInt(basic_info.RunningTime);
+        var hour = Math.floor(total / 3600);
+        var min = Math.floor(total % 3600 / 60);
+        var secs = Math.floor(total % 3600 % 60);
+        $("#con_time").html(hour+"h "+min+"m "+secs+"s")
         $("#con_billing").html(basic_info.billing+" <img src='/static/img/bean.png' />");
     },"json");
 }
