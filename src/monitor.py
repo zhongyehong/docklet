@@ -217,6 +217,8 @@ class Container_Collector(threading.Thread):
         else:
             basic_info['RunningTime'] = 0
             basic_info['billing'] = 0
+        if 'billing_this_hour' not in basic_info.keys():
+            basic_info['billing_this_hour'] = 0
         for part in parts:
             if not part == '':
                 key_val = re.split(':',part)
