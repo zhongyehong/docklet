@@ -217,6 +217,7 @@ class Container_Collector(threading.Thread):
         else:
             basic_info['RunningTime'] = 0
             basic_info['billing'] = 0
+            basic_info['billing_this_hour'] = 0
         for part in parts:
             if not part == '':
                 key_val = re.split(':',part)
@@ -228,7 +229,6 @@ class Container_Collector(threading.Thread):
         #if basic_exist:
          #   logger.info(workercinfo[container_name]['basic_info'])
         if(info['State'] == 'STOPPED'):
-            basic_info['billing_this_hour'] = 0
             workercinfo[container_name]['basic_info'] = basic_info
             #logger.info(basic_info)
             return False
