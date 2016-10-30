@@ -27,13 +27,18 @@ class ApplicationMgr:
     
     def query(self,username):
         applymsgs = ApplyMsg.query.filter_by(username=username).all()
-        return list(eval(str(applymsgs)))
+        ans = []
+        for msg in applymsgs:
+            ans.append(msg.ch2dict())
+        return ans
     
     @administration_required
     def queryUnRead(self,*,cur_user):
         applymsgs = ApplyMsg.query.filter_by(status="Processing").all()
-        msgs = list(eval(str(applymsgs)))
-        return {"success":"true","applymsgs":msgs}
+        ans = []
+        for msg in applymsgs:
+            ans.append(msg.ch2dict())
+        return {"success":"true","applymsgs":ans}
 
     @administration_required
     def agree(self,msgid,*,cur_user):

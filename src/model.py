@@ -256,5 +256,15 @@ class ApplyMsg(db.Model):
         self.status = "Processing"
         self.time = datetime.now()
 
+    def ch2dict(self):
+        ans = {}
+        ans['id'] = self.id
+        ans['username'] = self.username
+        ans['number'] = self.number
+        ans['reason'] = self.reason
+        ans['status'] = self.status
+        ans['time'] = self.time.strftime("%Y-%m-%d %H:%M:%S")
+        return ans
+
     def __repr__(self):
         return "{\"id\":\"%d\", \"username\":\"%s\", \"number\": \"%d\", \"reason\":\"%s\", \"status\":\"%s\", \"time\":\"%s\"}" % (self.id, self.username, self.number, self.reason, self.status, self.time.strftime("%Y-%m-%d %H:%M:%S"))
