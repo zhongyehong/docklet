@@ -4,18 +4,14 @@ import subprocess,re,os,etcdlib,psutil,math,sys
 import time,threading,json,traceback,platform
 import env
 from datetime import datetime
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.header import Header
 
 from model import db,VNode,History,User
 from log import logger
 from httplib2 import Http
 from urllib.parse import urlencode
 
-a_cpu = 1000
-b_mem = 4000000
+a_cpu = 500
+b_mem = 1000000
 c_disk = 4000
 
 monitor_hosts = {}
@@ -32,37 +28,11 @@ laststopruntime = {}
 lastbillingtime = {}
 increment = {}
 
-email_from_address = env.getenv('EMAIL_FROM_ADDRESS')
-
-def send_beans_email(to_address, username, beans):
-    global email_from_address
-    logger.info("Send email to "+to_address+" to remind of beans and username="+username+" and beans="+str(beans))
-    if (email_from_address in ['\'\'', '\"\"', '']):
-        return
-    #text = 'Dear '+ username + ':\n' + '  Your beans in docklet are less than' + beans + '.'
-    text = '<html><h4>Dear '+ username + ':</h4>'
-    text += '''<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Your beans in <a href='%s'>docklet</a> are %d now. </p>
-               <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If your beans are less than or equal to 0, all your worksapces will be stopped.</p>
-               <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Please apply for more beans to keep your workspaces running by following link:</p>
-               <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href='%s/beans/application/'>%s/beans/application/</p>
-               <br>
-               <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Note: DO NOT reply to this email!</p>
-               <br><br>
-               <p> <a href='http://docklet.unias.org'>Docklet Team</a>, SEI, PKU</p>
-            ''' % (env.getenv("PORTAL_URL"), beans, env.getenv("PORTAL_URL"), env.getenv("PORTAL_URL"))
-    text += '<p>'+  str(datetime.now()) + '</p>'
-    text += '</html>'
-    subject = 'Docklet beans alert'
-    msg = MIMEMultipart()
-    textmsg = MIMEText(text,'html','utf-8')
-    msg['Subject'] = Header(subject, 'utf-8')
-    msg['From'] = email_from_address
-    msg['To'] = to_address
-    msg.attach(textmsg)
-    s = smtplib.SMTP()
-    s.connect()
-    s.sendmail(email_from_address, to_address, msg.as_string())
-    s.close()
+def request_master(url,data):
+    header = {'Content-Type':'application/x-www-form-urlencoded'}
+    http = Http()
+    [resp,content] = http.request("http://"+G_masterip+url,"POST",urlencode(data),headers = header)
+    logger.info("response from master:"+content.decode('utf-8'))  
 
 class Container_Collector(threading.Thread):
 
@@ -141,8 +111,9 @@ class Container_Collector(threading.Thread):
             disk_quota = workercinfo[vnode_name]['disk_use']['total']
         else:
             disk_quota = 0
-        #logger.info("cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
         billingval = math.ceil(cpu_increment/a_cpu + avemem/b_mem + float(disk_quota)/1024.0/1024.0/c_disk)
+        if billingval > 100:
+            logger.info("Huge Billingval for "+vnode_name+". cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
         if not isreal:
             return math.ceil(billingval)
         increment[vnode_name]['lastcputime'] = cpu_val
@@ -179,7 +150,8 @@ class Container_Collector(threading.Thread):
             owner.beans -= billingval
             #logger.info(str(oldbeans) + " " + str(owner.beans))
             if oldbeans > 0 and owner.beans <= 0 or oldbeans >= 100 and owner.beans < 100 or oldbeans >= 500 and owner.beans < 500 or oldbeans >= 1000 and owner.beans < 1000:
-                send_beans_email(owner.e_mail,owner.username,owner.beans)
+                data = {"to_address":owner.e_mail,"username":owner.username,"beans":owner.beans}
+                request_master("/beans/mail/",data)
             try:
                 db.session.commit()
             except Exception as err:
@@ -189,12 +161,8 @@ class Container_Collector(threading.Thread):
             #logger.info("Billing User:"+str(owner))
             if owner.beans <= 0:
                 logger.info("The beans of User(" + str(owner) + ") are less than or equal to zero, the container("+vnode_name+") will be stopped.")
-                token = owner.generate_auth_token()
                 form = {'username':owner.username}
-                header = {'Content-Type':'application/x-www-form-urlencoded'}
-                http = Http()
-                [resp,content] = http.request("http://"+G_masterip+"/cluster/stopall/","POST",urlencode(form),headers = header)
-                logger.info("response from master:"+content.decode('utf-8'))
+                request_master("/cluster/stopall/",form)
         return billingval
 
     def collect_containerinfo(self,container_name):
@@ -299,11 +267,11 @@ class Container_Collector(threading.Thread):
         mem_use['val'] = mem_val
         mem_use['unit'] = mem_unit
         if(mem_unit == "MiB"):
-            mem_val = float(mem_val) * 1024
             increment[container_name]['memincrement'] += float(mem_val)
+            mem_val = float(mem_val) * 1024
         elif (mem_unit == "GiB"):
-            mem_val = float(mem_val) * 1024 * 1024
             increment[container_name]['memincrement'] += float(mem_val)*1024
+            mem_val = float(mem_val) * 1024 * 1024
         mem_usedp = float(mem_val) / self.mem_quota[container_name]
         mem_use['usedp'] = mem_usedp
         workercinfo[container_name]['mem_use'] = mem_use
