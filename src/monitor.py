@@ -10,8 +10,8 @@ from log import logger
 from httplib2 import Http
 from urllib.parse import urlencode
 
-a_cpu = 1000
-b_mem = 4000000
+a_cpu = 500
+b_mem = 1000000
 c_disk = 4000
 
 monitor_hosts = {}
