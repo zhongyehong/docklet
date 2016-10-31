@@ -1,6 +1,42 @@
 import threading,datetime,random,time
 from model import db,User,ApplyMsg
 from userManager import administration_required
+import env
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.header import Header
+
+email_from_address = env.getenv('EMAIL_FROM_ADDRESS')
+
+def send_beans_email(to_address, username, beans):
+    global email_from_address
+    if (email_from_address in ['\'\'', '\"\"', '']):
+        return
+    #text = 'Dear '+ username + ':\n' + '  Your beans in docklet are less than' + beans + '.'
+    text = '<html><h4>Dear '+ username + ':</h4>'
+    text += '''<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Your beans in <a href='%s'>docklet</a> are %d now. </p>
+               <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If your beans are less than or equal to 0, all your worksapces will be stopped.</p>
+               <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Please apply for more beans to keep your workspaces running by following link:</p>
+               <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href='%s/beans/application/'>%s/beans/application/</p>
+               <br>
+               <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Note: DO NOT reply to this email!</p>
+               <br><br>
+               <p> <a href='http://docklet.unias.org'>Docklet Team</a>, SEI, PKU</p>
+            ''' % (env.getenv("PORTAL_URL"), beans, env.getenv("PORTAL_URL"), env.getenv("PORTAL_URL"))
+    text += '<p>'+  str(datetime.datetime.now()) + '</p>'
+    text += '</html>'
+    subject = 'Docklet beans alert'
+    msg = MIMEMultipart()
+    textmsg = MIMEText(text,'html','utf-8')
+    msg['Subject'] = Header(subject, 'utf-8')
+    msg['From'] = email_from_address
+    msg['To'] = to_address
+    msg.attach(textmsg)
+    s = smtplib.SMTP()
+    s.connect()
+    s.sendmail(email_from_address, to_address, msg.as_string())
+    s.close()
 
 class ApplicationMgr:
     
