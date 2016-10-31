@@ -299,11 +299,11 @@ class Container_Collector(threading.Thread):
         mem_use['val'] = mem_val
         mem_use['unit'] = mem_unit
         if(mem_unit == "MiB"):
-            mem_val = float(mem_val) * 1024
             increment[container_name]['memincrement'] += float(mem_val)
+            mem_val = float(mem_val) * 1024
         elif (mem_unit == "GiB"):
-            mem_val = float(mem_val) * 1024 * 1024
             increment[container_name]['memincrement'] += float(mem_val)*1024
+            mem_val = float(mem_val) * 1024 * 1024
         mem_usedp = float(mem_val) / self.mem_quota[container_name]
         mem_use['usedp'] = mem_usedp
         workercinfo[container_name]['mem_use'] = mem_use
