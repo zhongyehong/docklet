@@ -1,5 +1,22 @@
 #!/usr/bin/python3
 
+'''
+Monitor for Docklet
+Description:Monitor system for docklet will collect data on resources usages and status of vnode 
+            and phyiscal machines. And master can fetch these data and then show them on the web page.
+            Besides, Monitor will also bill the vnodes according to their resources usage amount.
+
+Design:Monitor mainly consists of three parts: Collectors, Master_Collector and Fetchers.
+       1.Collectors will collect data every two seconds on each worker. And 'Container_Collector' will 
+       collect data of containers(vnodes), while 'Collector' will collect data of physical machines.
+       2.'Master_Collector' only runs on Master. It fetches the data on workers every two seconds by rpc 
+       and stores them in the memory of Master.
+       3.Fetchers are classes that Master will use them to fetch specific data in the memory and then show 
+       them on the web. 'Container_Fetcher' is the class to fetch the containers data in 'monitor_vnodes', 
+       while 'Fetcher' is the class to fetch the data of physical machines in 'monitor_hosts'.
+'''
+
+
 import subprocess,re,os,etcdlib,psutil,math,sys
 import time,threading,json,traceback,platform
 import env
@@ -10,30 +27,69 @@ from log import logger
 from httplib2 import Http
 from urllib.parse import urlencode
 
-a_cpu = 500
-b_mem = 1000000
-c_disk = 4000
+# billing parameters
+a_cpu = 500         # seconds
+b_mem = 1000000     # MB
+c_disk = 4000       # MB
 
-monitor_hosts = {}
+# major dict to store the monitoring data
+# only use on Master
+# monitor_hosts: use workers' ip addresses as first key.
+# second key: cpuinfo,diskinfo,meminfo,osinfo,cpuconfig,running,containers,containerslist
+# 1.cpuinfo stores the cpu usages data, and it has keys: user,system,idle,iowait
+# 2.diskinfo stores the disks usages data, and it has keys: device,mountpoint,total,used,free,percent
+# 3.meminfo stores the memory usages data, and it has keys: total,used,free,buffers,cached,percent
+# 4.osinfo stores the information of operating system, 
+# and it has keys: platform,system,node,release,version,machine,processor              
+# 5.cpuconfig stores the information of processors, and it is a list, each element of list is a dict
+# which stores the information of a processor, each element has key: processor,model name,
+# core id, cpu MHz, cache size, physical id.
+# 6.running indicates the status of worker,and it has two values: True, False.
+# 7.containers store the amount of containers on the worker.
+# 8.containers store a list which consists of the names of containers on the worker.
+moitor_hosts = {}
+
+# monitor_vnodes: use the names of vnodes(containers) as first key.
+# second key: cpu_use,mem_use,disk_use,basic_info,quota
+# 1.cpu_use has keys: val,unit,hostpercent
+# 2.mem_use has keys: val,unit,usedp
+# 3.disk_use has keys: device,mountpoint,total,used,free,percent
+# 4.basic_info has keys: Name,State,PID,IP,RunningTime,billing,billing_this_hour
+# 5.quota has keys: cpu,memeory
 monitor_vnodes = {}
 
+# major dict to store the monitoring data on Worker
+# only use on Worker
+# workerinfo: only store the data collected on current Worker, 
+# has the first keys same as the second keys in monitor_hosts.
 workerinfo = {}
+
+# workercinfo: only store the data collected on current Worker,
+# has the first keys same as the second keys in monitor_vnodes.
 workercinfo = {}
+
+# only use on worker
 containerpids = []
 pid2name = {}
 G_masterip = ""
 
+# only use on worker
 laststopcpuval = {}
 laststopruntime = {}
-lastbillingtime = {}
-increment = {}
+lastbillingtime = {}        
+# increment has keys: lastcputime,memincrement. 
+# record the cpu val at last billing time and accumulate the memory usages during this billing hour.    
+increment = {}  
 
+# send http request to master
 def request_master(url,data):
+    global G_masterip
     header = {'Content-Type':'application/x-www-form-urlencoded'}
     http = Http()
     [resp,content] = http.request("http://"+G_masterip+url,"POST",urlencode(data),headers = header)
     logger.info("response from master:"+content.decode('utf-8'))  
 
+# The class is to collect data of containers on each worker
 class Container_Collector(threading.Thread):
 
     def __init__(self,test=False):
@@ -41,15 +97,15 @@ class Container_Collector(threading.Thread):
         global workercinfo
         threading.Thread.__init__(self)
         self.thread_stop = False
-        self.interval = 2
-        self.billingtime = 3600
+        self.interval = 2       
+        self.billingtime = 3600     # billing interval
         self.test = test
         self.cpu_last = {}
         self.cpu_quota = {}
         self.mem_quota = {}
         self.cores_num = int(subprocess.getoutput("grep processor /proc/cpuinfo | wc -l"))
         containers = self.list_container()
-        for container in containers:
+        for container in containers:    # recovery
             if not container == '':
                 try:
                     vnode = VNode.query.get(container)
@@ -63,13 +119,15 @@ class Container_Collector(threading.Thread):
                     laststopcpuval[container] = 0
                     laststopruntime[container] = 0
         return
-
+    
+    # list containers on this worker
     def list_container(self):
         output = subprocess.check_output(["sudo lxc-ls"],shell=True)
         output = output.decode('utf-8')
         containers = re.split('\s+',output)
         return containers
-
+    
+    # get running time of a process, return seconds
     def get_proc_etime(self,pid):
         fmt = subprocess.getoutput("ps -A -opid,etime | grep '^ *%d ' | awk '{print $NF}'" % pid).strip()
         if fmt == '':
@@ -84,6 +142,8 @@ class Container_Collector(threading.Thread):
         seconds = int(parts[1])
         return ((days * 24 + hours) * 60 + minutes) * 60 + seconds
     
+    # compute the billing val this running hour
+    # if isreal is True, it will also make users' beans decrease to pay for the bill.
     @classmethod
     def billing_increment(cls,vnode_name,isreal=True):
         global increment
