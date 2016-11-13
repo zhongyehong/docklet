@@ -1,3 +1,15 @@
+#!/usr/bin/python3
+
+'''
+This module consists of three parts:
+1.send_beans_email: a function to send email to remind users of their beans.
+
+2.ApplicationMgr: a class that will deal with users' requests about beans application.
+
+3.ApprovalRobot: a automatic robot to examine and approve users' applications.
+
+'''
+
 import threading,datetime,random,time
 from model import db,User,ApplyMsg
 from userManager import administration_required
@@ -9,6 +21,7 @@ from email.header import Header
 
 email_from_address = env.getenv('EMAIL_FROM_ADDRESS')
 
+# send email to remind users of their beans
 def send_beans_email(to_address, username, beans):
     global email_from_address
     if (email_from_address in ['\'\'', '\"\"', '']):
@@ -38,14 +51,17 @@ def send_beans_email(to_address, username, beans):
     s.sendmail(email_from_address, to_address, msg.as_string())
     s.close()
 
+# a class that will deal with users' requests about beans application.
 class ApplicationMgr:
     
     def __init__(self):
+        # create database
         try:
             ApplyMsg.query.all()
         except:
             db.create_all()
 
+    # user apply for beans
     def apply(self,username,number,reason):
         user = User.query.filter_by(username=username).first()
         if user is not None and user.beans >= 1000:
@@ -53,14 +69,16 @@ class ApplicationMgr:
         if int(number) < 100 or int(number) > 5000:
             return [False, "Number field must be between 100 and 5000!"]
         applymsgs = ApplyMsg.query.filter_by(username=username).all()
-        lasti = len(applymsgs) - 1
+        lasti = len(applymsgs) - 1      # the last index, the last application is also the latest application.
         if lasti >= 0 and applymsgs[lasti].status == "Processing":
             return [False, "You already have a processing application, please be patient."] 
+        # store the application into the database
         applymsg = ApplyMsg(username,number,reason)
         db.session.add(applymsg)
         db.session.commit()
         return [True,""]
     
+    # get all applications of a user
     def query(self,username):
         applymsgs = ApplyMsg.query.filter_by(username=username).all()
         ans = []
@@ -68,6 +86,7 @@ class ApplicationMgr:
             ans.append(msg.ch2dict())
         return ans
     
+    # get all unread applications
     @administration_required
     def queryUnRead(self,*,cur_user):
         applymsgs = ApplyMsg.query.filter_by(status="Processing").all()
@@ -75,7 +94,8 @@ class ApplicationMgr:
         for msg in applymsgs:
             ans.append(msg.ch2dict())
         return {"success":"true","applymsgs":ans}
-
+    
+    # agree an application
     @administration_required
     def agree(self,msgid,*,cur_user):
         applymsg = ApplyMsg.query.get(msgid)
@@ -84,10 +104,12 @@ class ApplicationMgr:
         applymsg.status = "Agreed"
         user = User.query.filter_by(username=applymsg.username).first()
         if user is not None:
+            # update users' beans
             user.beans += applymsg.number
         db.session.commit()
         return {"success":"true"}
     
+    # reject an application
     @administration_required
     def reject(self,msgid,*,cur_user):
         applymsg = ApplyMsg.query.get(msgid)
@@ -97,19 +119,21 @@ class ApplicationMgr:
         db.session.commit()
         return {"success":"true"}
 
+# a automatic robot to examine and approve users' applications.
 class ApprovalRobot(threading.Thread):
 
     def __init__(self,maxtime=3600):
         threading.Thread.__init__(self)
         self.stop = False
         self.interval = 20
-        self.maxtime = maxtime
+        self.maxtime = maxtime      # The max time that users may wait for from 'processing' to 'agreed'
     
     def stop(self):
         self.stop = True 
 
     def run(self):
         while not self.stop:
+            # query all processing applications
             applymsgs = ApplyMsg.query.filter_by(status="Processing").all()
             for msg in applymsgs:
                 secs = (datetime.datetime.now() - msg.time).seconds
@@ -118,6 +142,7 @@ class ApprovalRobot(threading.Thread):
                     msg.status = "Agreed"
                     user = User.query.filter_by(username=msg.username).first()
                     if user is not None:
+                    # update users'beans
                         user.beans += msg.number
                     db.session.commit()
             time.sleep(self.interval)

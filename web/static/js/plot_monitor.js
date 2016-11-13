@@ -211,6 +211,7 @@ function processBasicInfo()
         var secs = Math.floor(total % 3600 % 60);
         $("#con_time").html(hour+"h "+min+"m "+secs+"s")
         $("#con_billing").html(basic_info.billing+" <img src='/static/img/bean.png' />");
+        $("#con_billingthishour").html(basic_info.billing_this_hour+" <img src='/static/img/bean.png' />");
     },"json");
 }
 setInterval(processBasicInfo,1000);
