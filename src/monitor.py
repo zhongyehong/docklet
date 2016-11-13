@@ -29,7 +29,7 @@ from urllib.parse import urlencode
 
 # billing parameters
 a_cpu = 500         # seconds
-b_mem = 1000000     # MB
+b_mem = 2000000     # MB
 c_disk = 4000       # MB
 
 # major dict to store the monitoring data
