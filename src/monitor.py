@@ -4,6 +4,9 @@ import subprocess,re,os,etcdlib,psutil,math,sys
 import time,threading,json,traceback,platform
 
 from log import logger
+from httplib2 import Http
+from urllib.parse import urlencode
+from httprest import post_to_user
 
 monitor_hosts = {}
 monitor_vnodes = {}
@@ -49,6 +52,77 @@ class Container_Collector(threading.Thread):
         minutes = int(parts[0])
         seconds = int(parts[1])
         return ((days * 24 + hours) * 60 + minutes) * 60 + seconds
+    
+    @classmethod
+    def billing_increment(cls,vnode_name):
+        global increment
+        global workercinfo
+        global G_masterip
+        cpu_val = '0'
+        if vnode_name not in workercinfo.keys():
+            return
+        if 'cpu_use' in workercinfo[vnode_name].keys():
+            cpu_val = workercinfo[vnode_name]['cpu_use']['val']
+        if vnode_name not in increment.keys():
+            increment[vnode_name] = {}
+            increment[vnode_name]['lastcputime'] = cpu_val
+            increment[vnode_name]['memincrement'] = 0
+        cpu_increment = float(cpu_val) - float(increment[vnode_name]['lastcputime'])
+        #logger.info("billing:"+str(cpu_increment)+" "+str(increment[container_name]['lastcputime']))
+        if cpu_increment == 0.0:
+            avemem = 0
+        else:
+            avemem = cpu_increment*float(increment[vnode_name]['memincrement'])/1800.0
+        increment[vnode_name]['lastcputime'] = cpu_val
+        increment[vnode_name]['memincrement'] = 0
+        if 'disk_use' in workercinfo[vnode_name].keys():
+            disk_quota = workercinfo[vnode_name]['disk_use']['total']
+        else:
+            disk_quota = 0
+        #logger.info("cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
+        billingval = cpu_increment/1000.0 + avemem/500000.0 + float(disk_quota)/1024.0/1024.0/2000
+        if 'basic_info' not in workercinfo[vnode_name].keys():
+            workercinfo[vnode_name]['basic_info'] = {}
+            workercinfo[vnode_name]['basic_info']['billing'] = 0
+            workercinfo[vnode_name]['basic_info']['RunningTime'] = 0
+        nowbillingval = workercinfo[vnode_name]['basic_info']['billing']
+        nowbillingval += math.ceil(billingval)
+        try:
+            vnode = VNode.query.get(vnode_name)
+            vnode.billing = nowbillingval
+            db.session.commit()
+        except Exception as err:
+            vnode = VNode(vnode_name)
+            vnode.billing = nowbillingval
+            db.session.add(vnode)
+            db.session.commit()
+            logger.warning(err)
+        workercinfo[vnode_name]['basic_info']['billing'] = nowbillingval
+        owner_name = get_owner(vnode_name)
+        owner = User.query.filter_by(username=owner_name).first()
+        #result = post_to_user("/user/billing",{'username':owner_name, 'beans': math.ceil(billingval)})
+        #if not result.get('success'):
+        #    logger.error(result.get('message'))
+        #else:
+        #    beans = result.get('restbeans')
+        #    if beans <= 0:
+        #        logger.info("The beans of User(" + str(owner_name) + ") are less than or equal to zero, the container("+vnode_name+") will be stopped.")
+        #        post_to_user()
+        if owner is None:
+            logger.warning("Error!!! Billing User %s doesn't exist!" % (owner_name))
+        else:
+            #logger.info("Billing User:"+str(owner))
+            owner.beans -= math.ceil(billingval)
+            db.session.commit()
+            #logger.info("Billing User:"+str(owner))
+            if owner.beans <= 0:
+                logger.info("The beans of User(" + str(owner) + ") are less than or equal to zero, the container("+vnode_name+") will be stopped.")
+                token = owner.generate_auth_token()
+                form = {'token':token}
+                header = {'Content-Type':'application/x-www-form-urlencoded'}
+                http = Http()
+                [resp,content] = http.request("http://"+G_masterip+"/cluster/stopall/","POST",urlencode(form),headers = header)
+                logger.info("response from master:"+content.decode('utf-8'))
 
     def collect_containerinfo(self,container_name):
         global workerinfo

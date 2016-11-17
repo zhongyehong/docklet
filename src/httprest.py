@@ -27,11 +27,18 @@ import userManager
 import monitor,traceback
 import threading
 import sysmgr
+import requests
 
 #default EXTERNAL_LOGIN=False
 external_login = env.getenv('EXTERNAL_LOGIN')
 if (external_login == 'TRUE'):
     from userDependence import external_auth
+
+#userpoint = env.getenv('USER_IP') + ":" + env.getenv('USER_PORT')
+userpoint = "http://0.0.0.0:9100"
+
+def post_to_user(url = '/', data={}):
+    return requests.post(userpoint+url,data=data).json()
 
 app = Flask(__name__)
 
@@ -41,95 +48,38 @@ from functools import wraps
 def login_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        global G_usermgr
         logger.info ("get request, path: %s" % request.path)
         token = request.form.get("token", None)
         if (token == None):
             return json.dumps({'success':'false', 'message':'user or key is null'})
-        cur_user = G_usermgr.auth_token(token)
-        if (cur_user == None):
-            return json.dumps({'success':'false', 'message':'token failed or expired', 'Unauthorized': 'True'})
-        return func(cur_user, cur_user.username, request.form, *args, **kwargs)
+        result = post_to_user("/authtoken/", {'token':token})
+        if result.get('success') == 'true':
+            username = result.get('username')
+            beans = result.get('beans')
+        else:
+            return result
+        #if (cur_user == None):
+        #    return json.dumps({'success':'false', 'message':'token failed or expired', 'Unauthorized': 'True'})
+        return func(username, beans, request.form, *args, **kwargs)
 
     return wrapper
 
-@app.route("/login/", methods=['POST'])
-def login():
-    global G_usermgr
-    logger.info ("handle request : user login")
-    user = request.form.get("user", None)
-    key = request.form.get("key", None)
-    if user == None or key == None:
-        return json.dumps({'success':'false', 'message':'user or key is null'})
-    auth_result = G_usermgr.auth(user, key)
-    if  auth_result['success'] == 'false':
-        return json.dumps({'success':'false', 'message':'auth failed'})
-    return json.dumps({'success':'true', 'action':'login', 'data': auth_result['data']})
 
-@app.route("/external_login/", methods=['POST'])
-def external_login():
-    global G_usermgr
-    logger.info ("handle request : external user login")
-    try:
-        result = G_usermgr.auth_external(request.form)
-        return json.dumps(result)
-    except:
-        result = {'success': 'false', 'reason': 'Something wrong happened when auth an external account'}
-        return json.dumps(result)
+def beans_check(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        beans = args[1]
+        if beans <= 0:
+            return json.dumps({'success':'false','message':'user\'s beans are less than or equal to zero!'})
+        else:
+            return func(*args, **kwargs)
 
-@app.route("/register/", methods=['POST'])
-def register():
-    global G_usermgr
-    if request.form.get('activate', None) == None:
-        logger.info ("handle request : user register")
-        username = request.form.get('username', '')
-        password = request.form.get('password', '')
-        email = request.form.get('email', '')
-        description = request.form.get('description','')
-        if (username == '' or password == '' or email == ''):
-            return json.dumps({'success':'false'})
-        newuser = G_usermgr.newuser()
-        newuser.username = request.form.get('username')
-        newuser.password = request.form.get('password')
-        newuser.e_mail = request.form.get('email')
-        newuser.student_number = request.form.get('studentnumber')
-        newuser.department = request.form.get('department')
-        newuser.nickname = request.form.get('truename')
-        newuser.truename = request.form.get('truename')
-        newuser.description = request.form.get('description')
-        newuser.status = "init"
-        newuser.auth_method = "local"
-        result = G_usermgr.register(user = newuser)
-        return json.dumps(result)
-    else:
-        logger.info ("handle request, user activating")
-        token = request.form.get("token", None)
-        if (token == None):
-            return json.dumps({'success':'false', 'message':'user or key is null'})
-        cur_user = G_usermgr.auth_token(token)
-        if (cur_user == None):
-            return json.dumps({'success':'false', 'message':'token failed or expired', 'Unauthorized': 'True'})
-        newuser = G_usermgr.newuser()
-        newuser.username = cur_user.username
-        newuser.nickname = cur_user.truename
-        newuser.status = 'applying'
-        newuser.user_group = cur_user.user_group
-        newuser.auth_method = cur_user.auth_method
-        newuser.e_mail = request.form.get('email','')
-        newuser.student_number = request.form.get('studentnumber', '')
-        newuser.department = request.form.get('department', '')
-        newuser.truename = request.form.get('truename', '')
-        newuser.tel = request.form.get('tel', '')
-        newuser.description = request.form.get('description', '')
-        result = G_usermgr.register(user = newuser)
-        userManager.send_remind_activating_email(newuser.username)
-        return json.dumps(result)
-
+    return wrapper
 
 @app.route("/cluster/create/", methods=['POST'])
 @login_required
-def create_cluster(cur_user, user, form):
-    global G_usermgr
+@beans_check
+def create_cluster(user, beans, form):
     global G_vclustermgr
     clustername = form.get('clustername', None)
     if (clustername == None):
@@ -138,7 +88,7 @@ def create_cluster(cur_user, user, form):
     image['name'] = form.get("imagename", None)
     image['type'] = form.get("imagetype", None)
     image['owner'] = form.get("imageowner", None)
-    user_info = G_usermgr.selfQuery(cur_user = cur_user)
+    user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
     user_info = json.dumps(user_info)
     logger.info ("handle request : create cluster %s with image %s " % (clustername, image['name']))
     setting = {
@@ -146,20 +96,22 @@ def create_cluster(cur_user, user, form):
             'memory': form.get('memorySetting'),
             'disk': form.get('diskSetting')
             }
-    [status, result] = G_usermgr.usageInc(cur_user = cur_user, modification = setting)
+    res = post_to_user("/user/usageInc/", {'token':form.get('token'), 'setting':json.dumps(setting)})
+    status = res.get('success')
+    result = res.get('result')
     if not status:
         return json.dumps({'success':'false', 'action':'create cluster', 'message':result})
     [status, result] = G_vclustermgr.create_cluster(clustername, user, image, user_info, setting)
     if status:
         return json.dumps({'success':'true', 'action':'create cluster', 'message':result})
     else:
-        G_usermgr.usageRecover(cur_user = cur_user, modification = setting)
+        post_to_user("/user/usageRecover/", {'token':form.get('token'), 'setting':json.dumps(setting)})
         return json.dumps({'success':'false', 'action':'create cluster', 'message':result})
 
 @app.route("/cluster/scaleout/", methods=['POST'])
 @login_required
-def scaleout_cluster(cur_user, user, form):
-    global G_usermgr
+@beans_check
+def scaleout_cluster(user, beans, form):
     global G_vclustermgr
     clustername = form.get('clustername', None)
     if (clustername == None):
@@ -169,33 +121,35 @@ def scaleout_cluster(cur_user, user, form):
     image['name'] = form.get("imagename", None)
     image['type'] = form.get("imagetype", None)
     image['owner'] = form.get("imageowner", None)
-    user_info = G_usermgr.selfQuery(cur_user = cur_user)
+    user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
     user_info = json.dumps(user_info)
     setting = {
             'cpu': form.get('cpuSetting'),
             'memory': form.get('memorySetting'),
             'disk': form.get('diskSetting')
             }
-    [status, result] = G_usermgr.usageInc(cur_user = cur_user, modification = setting)
+    res = post_to_user("/user/usageInc/", {'token':form.get('token'), 'setting':json.dumps(setting)})
+    status = res.get('success')
+    result = res.get('result')
     if not status:
         return json.dumps({'success':'false', 'action':'scale out', 'message': result})
     [status, result] = G_vclustermgr.scale_out_cluster(clustername, user, image, user_info, setting)
     if status:
         return json.dumps({'success':'true', 'action':'scale out', 'message':result})
     else:
-        G_usermgr.usageRecover(cur_user = cur_user, modification = setting)
+        post_to_user("/user/usageRecover/", {'token':form.get('token'), 'setting':json.dumps(setting)})
         return json.dumps({'success':'false', 'action':'scale out', 'message':result})
 
 @app.route("/cluster/scalein/", methods=['POST'])
 @login_required
-def scalein_cluster(cur_user, user, form):
+def scalein_cluster(user, beans, form):
     global G_vclustermgr
     clustername = form.get('clustername', None)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
     logger.info("handle request : scale in %s" % clustername)
     containername = form.get("containername", None)
-    G_usermgr.usageRelease(cur_user = cur_user, clustername = clustername, containername = containername, allcontainer = False)
+    post_to_user("/user/usageRelease/", {'token':form.get('token'), 'clustername':clustername, 'containername':containername, 'allcontainer':False})
     [status, result] = G_vclustermgr.scale_in_cluster(clustername, user, containername)
     if status:
         return json.dumps({'success':'true', 'action':'scale in', 'message':result})
@@ -204,7 +158,8 @@ def scalein_cluster(cur_user, user, form):
 
 @app.route("/cluster/start/", methods=['POST'])
 @login_required
-def start_cluster(cur_user, user, form):
+@beans_check
+def start_cluster(user, beans, form):
     global G_vclustermgr
     clustername = form.get('clustername', None)
     if (clustername == None):
@@ -218,7 +173,7 @@ def start_cluster(cur_user, user, form):
 
 @app.route("/cluster/stop/", methods=['POST'])
 @login_required
-def stop_cluster(cur_user, user, form):
+def stop_cluster(user, beans, form):
     global G_vclustermgr
     clustername = form.get('clustername', None)
     if (clustername == None):
@@ -232,16 +187,15 @@ def stop_cluster(cur_user, user, form):
 
 @app.route("/cluster/delete/", methods=['POST'])
 @login_required
-def delete_cluster(cur_user, user, form):
+def delete_cluster(user, beans, form):
     global G_vclustermgr
-    global G_usermgr
     clustername = form.get('clustername', None)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
     logger.info ("handle request : delete cluster %s" % clustername)
-    user_info = G_usermgr.selfQuery(cur_user=cur_user)
+    user_info = post_to_user("/user/selfQuery/" , {'token':form.get("token")})
     user_info = json.dumps(user_info)
-    G_usermgr.usageRelease(cur_user = cur_user, clustername = clustername, containername = "all", allcontainer = True)
+    post_to_user("/user/usageRelease/", {'token':form.get('token'), 'clustername':clustername, 'containername':'all', 'allcontainer':True})
     [status, result] = G_vclustermgr.delete_cluster(clustername, user, user_info)
     if status:
         return json.dumps({'success':'true', 'action':'delete cluster', 'message':result})
@@ -250,7 +204,7 @@ def delete_cluster(cur_user, user, form):
 
 @app.route("/cluster/info/", methods=['POST'])
 @login_required
-def info_cluster(cur_user, user, form):
+def info_cluster(user, beans, form):
     global G_vclustermgr
     clustername = form.get('clustername', None)
     if (clustername == None):
@@ -264,7 +218,7 @@ def info_cluster(cur_user, user, form):
 
 @app.route("/cluster/list/", methods=['POST'])
 @login_required
-def list_cluster(cur_user, user, form):
+def list_cluster(user, beans, form):
     global G_vclustermgr
     logger.info ("handle request : list clusters for %s" % user)
     [status, clusterlist] = G_vclustermgr.list_clusters(user)
@@ -273,9 +227,22 @@ def list_cluster(cur_user, user, form):
     else:
         return json.dumps({'success':'false', 'action':'list cluster', 'message':clusterlist})
 
+@app.route("/cluster/stopall/",methods=['POST'])
+@login_required
+def stopall_cluster(user, beans, form):
+    global G_vclustermgr
+    logger.info ("handle request : stop all clusters for %s" % user)
+    [status, clusterlist] = G_vclustermgr.list_clusters(user)
+    if status:
+        for cluster in clusterlist:
+            G_vclustermgr.stop_cluster(cluster,user)
+        return json.dumps({'success':'true', 'action':'stop all cluster'})
+    else:
+        return json.dumps({'success':'false', 'action':'stop all cluster', 'message':clusterlist})
+
 @app.route("/cluster/flush/", methods=['POST'])
 @login_required
-def flush_cluster(cur_user, user, form):
+def flush_cluster(user, beans, form):
     global G_vclustermgr
     clustername = form.get('clustername', None)
     if (clustername == None):
@@ -286,9 +253,8 @@ def flush_cluster(cur_user, user, form):
 
 @app.route("/cluster/save/", methods=['POST'])
 @login_required
-def save_cluster(cur_user, user, form):
+def save_cluster(user, beans, form):
     global G_vclustermgr
-    global G_usermgr
     clustername = form.get('clustername', None)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
@@ -302,7 +268,7 @@ def save_cluster(cur_user, user, form):
         if not status:
             return json.dumps({'success':'false','reason':'exists', 'message':message})
 
-    user_info = G_usermgr.selfQuery(cur_user = cur_user)
+    user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
     [status,message] = G_vclustermgr.create_image(user,clustername,containername,imagename,description,user_info["data"]["groupinfo"]["image"])
     if status:
         logger.info("image has been saved")
@@ -314,14 +280,22 @@ def save_cluster(cur_user, user, form):
 
 @app.route("/image/list/", methods=['POST'])
 @login_required
-def list_image(cur_user, user, form):
+def list_image(user, beans, form):
     global G_imagemgr
     images = G_imagemgr.list_images(user)
     return json.dumps({'success':'true', 'images': images})
 
+@app.route("/image/updatebase/", methods=['POST'])
+@login_required
+def update_base(user, beans, form):
+    global G_imagemgr
+    global G_vclustermgr
+    [success, status] = G_imagemgr.update_base_image(user, G_vclustermgr, form.get('image'))
+    return json.dumps({'success':'true', 'message':status})
+
 @app.route("/image/description/", methods=['POST'])
 @login_required
-def description_image(cur_user, user, form):
+def description_image(user, beans, form):
     global G_imagemgr
     image = {}
     image['name'] = form.get("imagename", None)
@@ -332,7 +306,7 @@ def description_image(cur_user, user, form):
 
 @app.route("/image/share/", methods=['POST'])
 @login_required
-def share_image(cur_user, user, form):
+def share_image(user, beans, form):
     global G_imagemgr
     image = form.get('image')
     G_imagemgr.shareImage(user,image)
@@ -340,7 +314,7 @@ def share_image(cur_user, user, form):
 
 @app.route("/image/unshare/", methods=['POST'])
 @login_required
-def unshare_image(cur_user, user, form):
+def unshare_image(user, beans, form):
     global G_imagemgr
     image = form.get('image', None)
     G_imagemgr.unshareImage(user,image)
@@ -348,7 +322,7 @@ def unshare_image(cur_user, user, form):
 
 @app.route("/image/delete/", methods=['POST'])
 @login_required
-def delete_image(cur_user, user, form):
+def delete_image(user, beans, form):
     global G_imagemgr
     image = form.get('image', None)
     G_imagemgr.removeImage(user,image)
@@ -356,7 +330,7 @@ def delete_image(cur_user, user, form):
 
 @app.route("/addproxy/", methods=['POST'])
 @login_required
-def addproxy(cur_user, user, form):
+def addproxy(user, beans, form):
     global G_vclustermgr
     logger.info ("handle request : add proxy")
     proxy_ip = form.get("ip", None)
@@ -370,7 +344,7 @@ def addproxy(cur_user, user, form):
 
 @app.route("/deleteproxy/", methods=['POST'])
 @login_required
-def deleteproxy(cur_user, user, form):
+def deleteproxy(user, beans, form):
     global G_vclustermgr
     logger.info ("handle request : delete proxy")
     clustername = form.get("clustername", None)
@@ -379,7 +353,7 @@ def deleteproxy(cur_user, user, form):
 
 @app.route("/monitor/hosts/<com_id>/<issue>/", methods=['POST'])
 @login_required
-def hosts_monitor(cur_user, user, form, com_id, issue):
+def hosts_monitor(user, beans, form, com_id, issue):
     global G_clustername
 
     logger.info("handle request: monitor/hosts")
@@ -421,7 +395,7 @@ def hosts_monitor(cur_user, user, form, com_id, issue):
 
 @app.route("/monitor/vnodes/<con_id>/<issue>/", methods=['POST'])
 @login_required
-def vnodes_monitor(cur_user, user, form, con_id, issue):
+def vnodes_monitor(user, beans, form, con_id, issue):
     global G_clustername
     logger.info("handle request: monitor/vnodes")
     res = {}
@@ -436,7 +410,7 @@ def vnodes_monitor(cur_user, user, form, con_id, issue):
         res['basic_info'] = fetcher.get_basic_info()
     elif issue == 'owner':
         names = con_id.split('-')
-        result = G_usermgr.query(username = names[0], cur_user = cur_user)
+        result = post_to_user("/user/query/", data = {"token": form.get(token)})
         if result['success'] == 'false':
             res['username'] = ""
             res['truename'] = ""
@@ -450,246 +424,32 @@ def vnodes_monitor(cur_user, user, form, con_id, issue):
 
 @app.route("/monitor/user/quotainfo/", methods=['POST'])
 @login_required
-def user_quotainfo_monitor(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: monitor/user/quotainfo/")
-    user_info = G_usermgr.selfQuery(cur_user = cur_user)
-    quotainfo = user_info['data']['groupinfo']
-    return json.dumps({'success':'true', 'quotainfo':quotainfo})
+def user_quotainfo_monitor(user, beans, form, issue):
+    global G_historymgr
+    if issue == 'quotainfo':        
+        logger.info("handle request: monitor/user/quotainfo/")
+        user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
+        quotainfo = user_info['data']['groupinfo']
+        return json.dumps({'success':'true', 'quotainfo':quotainfo})
+    elif issue == 'createdvnodes':
+        logger.info("handle request: monitor/user/createdvnodes/")
+        res = G_historymgr.getCreatedVNodes(user)
+        return json.dumps({'success':'true', 'createdvnodes':res})
+    else:
+        return json.dumps({'success':'false', 'message':"Unspported Method!"})
 
 @app.route("/monitor/listphynodes/", methods=['POST'])
 @login_required
-def listphynodes_monitor(cur_user, user, form):
+def listphynodes_monitor(user, beans, form):
     global G_nodemgr
     logger.info("handle request: monitor/listphynodes/")
     res = {}
     res['allnodes'] = G_nodemgr.get_allnodes()
     return json.dumps({'success':'true', 'monitor':res})
 
-
-@app.route("/user/modify/", methods=['POST'])
-@login_required
-def modify_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/modify/")
-    result = G_usermgr.modify(newValue = form, cur_user = cur_user)
-    return json.dumps(result)
-
-@app.route("/user/groupModify/", methods=['POST'])
-@login_required
-def groupModify_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/groupModify/")
-    result = G_usermgr.groupModify(newValue = form, cur_user = cur_user)
-    return json.dumps(result)
-
-
-@app.route("/user/query/", methods=['POST'])
-@login_required
-def query_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/query/")
-    result = G_usermgr.query(ID = form.get("ID"), cur_user = cur_user)
-    if (result.get('success', None) == None or result.get('success', None) == "false"):
-        return json.dumps(result)
-    else:
-        result = G_usermgr.queryForDisplay(user = result['token'])
-        return json.dumps(result)
-
-
-@app.route("/user/add/", methods=['POST'])
-@login_required
-def add_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/add/")
-    user = G_usermgr.newuser(cur_user = cur_user)
-    user.username = form.get('username', None)
-    user.password = form.get('password', None)
-    user.e_mail = form.get('e_mail', '')
-    user.status = "normal"
-    result = G_usermgr.register(user = user, cur_user = cur_user)
-    return json.dumps(result)
-
-
-@app.route("/user/groupadd/", methods=['POST'])
-@login_required
-def groupadd_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/groupadd/")
-    result = G_usermgr.groupadd(form = form, cur_user = cur_user)
-    return json.dumps(result)
-
-
-@app.route("/user/chdefault/", methods=['POST'])
-@login_required
-def chdefault(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/chdefault/")
-    result = G_usermgr.change_default_group(form = form, cur_user = cur_user)
-    return json.dumps(result)
-
-
-@app.route("/user/quotaadd/", methods=['POST'])
-@login_required
-def quotaadd_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/quotaadd/")
-    result = G_usermgr.quotaadd(form = form, cur_user = cur_user)
-    return json.dumps(result)
-
-
-@app.route("/user/groupdel/", methods=['POST'])
-@login_required
-def groupdel_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/groupdel/")
-    result = G_usermgr.groupdel(name = form.get('name', None), cur_user = cur_user)
-    return json.dumps(result)
-
-
-@app.route("/user/data/", methods=['POST'])
-@login_required
-def data_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/data/")
-    result = G_usermgr.userList(cur_user = cur_user)
-    return json.dumps(result)
-
-
-@app.route("/user/groupNameList/", methods=['POST'])
-@login_required
-def groupNameList_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/groupNameList/")
-    result = G_usermgr.groupListName(cur_user = cur_user)
-    return json.dumps(result)
-
-
-@app.route("/user/groupList/", methods=['POST'])
-@login_required
-def groupList_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/groupList/")
-    result = G_usermgr.groupList(cur_user = cur_user)
-    return json.dumps(result)
-
-
-@app.route("/user/groupQuery/", methods=['POST'])
-@login_required
-def groupQuery_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/groupQuery/")
-    result = G_usermgr.groupQuery(name = form.get("name"), cur_user = cur_user)
-    return json.dumps(result)
-
-
-@app.route("/user/selfQuery/", methods=['POST'])
-@login_required
-def selfQuery_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/selfQuery/")
-    result = G_usermgr.selfQuery(cur_user = cur_user)
-    return json.dumps(result)
-
-
-@app.route("/user/selfModify/", methods=['POST'])
-@login_required
-def selfModify_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/selfModify/")
-    result = G_usermgr.selfModify(cur_user = cur_user, newValue = form)
-    return json.dumps(result)
-
-@app.route("/user/usageQuery/" , methods=['POST'])
-@login_required
-def usageQuery_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/usageQuery/")
-    result = G_usermgr.usageQuery(cur_user = cur_user)
-    return json.dumps(result)
-
-@app.route("/user/lxcsettingList/", methods=['POST'])
-@login_required
-def lxcsettingList_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/lxcsettingList/")
-    result = G_usermgr.lxcsettingList(cur_user = cur_user, form = form)
-    return json.dumps(result)
-
-@app.route("/user/chlxcsetting/", methods=['POST'])
-@login_required
-def chlxcsetting_user(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: user/chlxcsetting/")
-    result = G_usermgr.chlxcsetting(cur_user = cur_user, form = form)
-    return json.dumps(result)
-
-@app.route("/notification/list/", methods=['POST'])
-@login_required
-def list_notifications(cur_user, user, form):
-    global G_notificationmgr
-    logger.info("handle request: notification/list/")
-    result = G_notificationmgr.list_notifications(cur_user=cur_user, form=form)
-    return json.dumps(result)
-
-
-@app.route("/notification/create/", methods=['POST'])
-@login_required
-def create_notification(cur_user, user, form):
-    global G_notificationmgr
-    logger.info("handle request: notification/create/")
-    result = G_notificationmgr.create_notification(cur_user=cur_user, form=form)
-    return json.dumps(result)
-
-
-@app.route("/notification/modify/", methods=['POST'])
-@login_required
-def modify_notification(cur_user, user, form):
-    global G_notificationmgr
-    logger.info("handle request: notification/modify/")
-    result = G_notificationmgr.modify_notification(cur_user=cur_user, form=form)
-    return json.dumps(result)
-
-
-@app.route("/notification/delete/", methods=['POST'])
-@login_required
-def delete_notification(cur_user, user, form):
-    global G_notificationmgr
-    logger.info("handle request: notification/delete/")
-    result = G_notificationmgr.delete_notification(cur_user=cur_user, form=form)
-    return json.dumps(result)
-
-
-@app.route("/notification/query_self/", methods=['POST'])
-@login_required
-def query_self_notification_simple_infos(cur_user, user, form):
-    global G_notificationmgr
-    logger.info("handle request: notification/query_self/")
-    result = G_notificationmgr.query_self_notification_simple_infos(cur_user=cur_user, form=form)
-    return json.dumps(result)
-
-
-@app.route("/notification/query/", methods=['POST'])
-@login_required
-def query_notification(cur_user, user, form):
-    global G_notificationmgr
-    logger.info("handle request: notification/query/")
-    result = G_notificationmgr.query_notification(cur_user=cur_user, form=form)
-    return json.dumps(result)
-
-
-@app.route("/notification/query/all/", methods=['POST'])
-@login_required
-def query_self_notifications_infos(cur_user, user, form):
-    global G_notificationmgr
-    logger.info("handle request: notification/query/all/")
-    result = G_notificationmgr.query_self_notifications_infos(cur_user=cur_user, form=form)
-    return json.dumps(result)
-
-
 @app.route("/system/parmList/", methods=['POST'])
 @login_required
-def parmList_system(cur_user, user, form):
+def parmList_system(user, beans, form):
     global G_sysmgr
     logger.info("handle request: system/parmList/")
     result = G_sysmgr.getParmList()
@@ -697,7 +457,7 @@ def parmList_system(cur_user, user, form):
 
 @app.route("/system/modify/", methods=['POST'])
 @login_required
-def modify_system(cur_user, user, form):
+def modify_system(user, beans, form):
     global G_sysmgr
     logger.info("handle request: system/modify/")
     field = form.get("field", None)
@@ -712,7 +472,7 @@ def modify_system(cur_user, user, form):
 
 @app.route("/system/clear_history/", methods=['POST'])
 @login_required
-def clear_system(cur_user, user, form):
+def clear_system(user, beans, form):
     global G_sysmgr
     logger.info("handle request: system/clear_history/")
     field = form.get("field", None)
@@ -726,7 +486,7 @@ def clear_system(cur_user, user, form):
 
 @app.route("/system/add/", methods=['POST'])
 @login_required
-def add_system(cur_user, user, form):
+def add_system(user, beans, form):
     global G_sysmgr
     logger.info("handle request: system/add/")
     field = form.get("field", None)
@@ -741,7 +501,7 @@ def add_system(cur_user, user, form):
 
 @app.route("/system/delete/", methods=['POST'])
 @login_required
-def delete_system(cur_user, user, form):
+def delete_system(user, beans, form):
     global G_sysmgr
     logger.info("handle request: system/delete/")
     field = form.get("field", None)
@@ -755,7 +515,7 @@ def delete_system(cur_user, user, form):
 
 @app.route("/system/reset_all/", methods=['POST'])
 @login_required
-def resetall_system(cur_user, user, form):
+def resetall_system(user, beans, form):
     global G_sysmgr
     logger.info("handle request: system/reset_all/")
     field = form.get("field", None)
@@ -795,7 +555,6 @@ if __name__ == '__main__':
 
     global G_nodemgr
     global G_vclustermgr
-    global G_usermgr
     global G_notificationmgr
     global etcdclient
     global G_networkmgr
@@ -876,10 +635,6 @@ if __name__ == '__main__':
         if etcdclient.isdir("_lock")[0]:
             etcdclient.deldir("_lock")
 
-    G_usermgr = userManager.userManager('root')
-    if mode == "new":
-        G_usermgr.initUsage()
-    G_notificationmgr = notificationmgr.NotificationMgr()
 
     clusternet = env.getenv("CLUSTER_NET")
     logger.info("using CLUSTER_NET %s" % clusternet)
@@ -906,6 +661,11 @@ if __name__ == '__main__':
     masterport = env.getenv('MASTER_PORT')
     logger.info("using MASTER_PORT %d", int(masterport))
 
+    G_historymgr = monitor.History_Manager()
+    master_collector = monitor.Master_Collector(G_nodemgr,ipaddr+":"+str(masterport))
+    master_collector.start()
+    logger.info("master_collector started")
+    
     # server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
     logger.info("starting master server")
 

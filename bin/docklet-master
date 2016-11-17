@@ -13,6 +13,7 @@ LXC_SCRIPT=$DOCKLET_CONF/lxc-script
 DOCKLET_SRC=$DOCKLET_HOME/src
 DOCKLET_LIB=$DOCKLET_SRC
 DOCKLET_WEB=$DOCKLET_HOME/web
+DOCKLET_USER=$DOCKLET_HOME/user
 
 # default working directory, default to /opt/docklet
 FS_PREFIX=/opt/docklet
@@ -32,6 +33,7 @@ ETCD=localhost:2379
 CLUSTER_NAME=docklet-vc
 #web port, default is 8888
 WEB_PORT=8888
+USER_PORT=9100
 #cluster net, default is 172.16.0.1/16
 CLUSTER_NET="172.16.0.1/16"
 
@@ -60,6 +62,12 @@ DAEMON_WEB=$DOCKLET_WEB/web.py
 DAEMON_NAME_WEB=docklet-web
 PIDFILE_WEB=$RUN_DIR/docklet-web.pid
 DAEMON_OPTS_WEB=
+
+# settings for docklet user
+DAEMON_USER_MODULE=$DOCKLET_USER/user.py
+DAEMON_NAME_USER=docklet-user
+PIDFILE_USER=$RUN_DIR/docklet-user.pid
+DAEMON_OPTS_USER=
 
 RUNNING_CONFIG=$FS_PREFIX/local/docklet-running.conf
 export CONFIG=$RUNNING_CONFIG
@@ -121,7 +129,7 @@ do_start_proxy () {
 }
 
 pre_start_web () {
-    log_daemon_msg "Starting  $DAEMON_NAME_WEB in $FS_PREFIX"
+    log_daemon_msg "Starting $DAEMON_NAME_WEB in $FS_PREFIX"
 
     webip=$(ip addr show $NETWORK_DEVICE | grep -oE "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+")
 
@@ -144,6 +152,14 @@ do_start_web () {
     log_end_msg $?
 }
 
+do_start_user () {
+    log_daemon_msg "Starting $DAEMON_NAME_USER in $FS_PREFIX"
+
+    DAEMON_OPTS_USER="-p $USER_PORT"
+
+    start-stop-daemon --start --background --pidfile $PIDFILE_USER --make-pidfile --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON_USER_MODULE -- $DAEMON_OPTS_USER
+    log_end_msg $?
+}
 
 do_stop_master () {
     log_daemon_msg "Stopping $DAEMON_NAME_MASTER daemon"
@@ -164,22 +180,31 @@ do_stop_web () {
     log_end_msg $?
 }
 
+do_stop_user () {
+    log_daemon_msg "Stopping $DAEMON_NAME_USER daemon"
+    start-stop-daemon --stop --quiet --oknodo --remove-pidfile --pidfile $PIDFILE_USER --retry 10
+    log_end_msg $?
+}
+
 case "$1" in
     init)
         do_start_master "new"
         do_start_proxy
         do_start_web
+        do_start_user
         ;;
     start)
         do_start_master "recovery"
         do_start_proxy
         do_start_web
+        do_start_user
         ;;
 
     stop)
         do_stop_web
         do_stop_proxy
         do_stop_master
+        do_stop_user
         ;;
 
     restart)
@@ -221,6 +246,7 @@ case "$1" in
         status_of_proc -p $PIDFILE_MASTER "$DAEMON_MASTER" "$DAEMON_NAME_MASTER" || status=$?
         status_of_proc -p $PIDFILE_PROXY "$DAEMON_PROXY" "$DAEMON_NAME_PROXY" || status=$?
         status_of_proc -p $PIDFILE_WEB "$DAEMON_WEB" "$DAEMON_NAME_WEB" || status=$?
+        status_of_proc -p $PIDFILE_USER "$DAEMON_USER" "$DAEMON_NAME_USER" || status=$?
         exit $status
         ;;
 

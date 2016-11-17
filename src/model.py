@@ -91,6 +91,7 @@ class User(db.Model):
         self.department = department
         self.truename = truename
         self.tel = tel
+        self.beans = 10000
         if (date != None):
             self.register_date = date
         else:
