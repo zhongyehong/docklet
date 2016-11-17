@@ -26,6 +26,7 @@ from model import db,VNode,History,User
 from log import logger
 from httplib2 import Http
 from urllib.parse import urlencode
+from httprest import post_to_user
 
 # billing parameters
 a_cpu = 500         # seconds
