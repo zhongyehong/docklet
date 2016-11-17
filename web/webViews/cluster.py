@@ -137,6 +137,7 @@ class listClusterView(normalView):
 
 class startClusterView(normalView):
     template_path = "dashboard.html"
+    error_path = "error.html"
 
     @classmethod
     def get(self):
@@ -144,10 +145,11 @@ class startClusterView(normalView):
                 "clustername": self.clustername
         }
         result = dockletRequest.post("/cluster/start/", data)
-        if(result):
-            return redirect("/dashboard/")
+        if(result.get('success', None) == "true"):
+           return redirect("/dashboard/")
+            #return self.render(self.template_path, user = session['username'])
         else:
-            return self.error()
+            return self.render(self.error_path, message = result.get('message'))
 
 class stopClusterView(normalView):
     template_path = "dashboard.html"

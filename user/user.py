@@ -455,6 +455,8 @@ if __name__  ==  '__main__':
     logger.info("using USER_PORT %d", int(userport))
 
     G_applicationmgr = beansapplicationmgr.ApplicationMgr()
+    approvalrbt = beansapplicationmgr.ApprovalRobot()
+    approvalrbt.start()
     
     # server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
     logger.info("starting user server")

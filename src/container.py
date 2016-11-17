@@ -5,6 +5,7 @@ import imagemgr
 from log import logger
 import env
 from lvmtool import sys_run, check_volume
+from monitor import Container_Collector, History_Manager
 
 class Container(object):
     def __init__(self, addr, etcdclient):
@@ -20,6 +21,7 @@ class Container(object):
 
         self.lxcpath = "/var/lib/lxc"
         self.imgmgr = imagemgr.ImageMgr()
+        self.historymgr = History_Manager()
 
     def create_container(self, lxc_name, username, setting, clustername, clusterid, containerid, hostname, ip, gateway, vlanid, image):
         logger.info("create container %s of %s for %s" %(lxc_name, clustername, username))
@@ -130,11 +132,14 @@ IP=%s
         except Exception as e:
             logger.error(e)
             return [False, "create container failed"]
+        self.historymgr.log(lxc_name,"Create")
         return [True, "create container success"]
 
     def delete_container(self, lxc_name):
         logger.info ("delete container:%s" % lxc_name)
         if self.imgmgr.deleteFS(lxc_name):
+            Container_Collector.billing_increment(lxc_name)
+            self.historymgr.log(lxc_name,"Delete")
             logger.info("delete container %s success" % lxc_name)
             return [True, "delete container success"]
         else:
@@ -164,6 +169,7 @@ IP=%s
             subprocess.run(["lxc-start -n %s" % lxc_name],
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, check=True)
             logger.info ("start container %s success" % lxc_name)
+            self.historymgr.log(lxc_name,"Start")
             return [True, "start container success"]
         except subprocess.CalledProcessError as sube:
             logger.error('start container %s failed: %s' % (lxc_name,
@@ -199,6 +205,15 @@ IP=%s
                     sube.output.decode('utf-8')))
             return [False, "start services for container failed"]
 
+    # mount_container: mount base image and user image by aufs
+    def mount_container(self,lxc_name):
+        logger.info ("mount container:%s" % lxc_name)
+        [success, status] = self.container_status(lxc_name)
+        if not success:
+            return [False, status]
+        self.imgmgr.checkFS(lxc_name)
+        return [True, "mount success"]
+
     # recover container: if running, do nothing. if stopped, start it
     def recover_container(self, lxc_name):
         logger.info ("recover container:%s" % lxc_name)
@@ -206,9 +221,11 @@ IP=%s
         [success, status] = self.container_status(lxc_name)
         if not success:
             return [False, status]
+        self.imgmgr.checkFS(lxc_name)
         if status == 'stopped':
             logger.info("%s stopped, recover it to running" % lxc_name)
             if self.start_container(lxc_name)[0]:
+                self.historymgr.log(lxc_name,"Recover")
                 if self.start_services(lxc_name)[0]:
                     logger.info("%s recover success" % lxc_name)
                     return [True, "recover success"]
@@ -235,6 +252,7 @@ IP=%s
             logger.error("stop container %s failed" % lxc_name)
             return [False, "stop container failed"]
         else:
+            self.historymgr.log(lxc_name,"Stop")
             logger.info("stop container %s success" % lxc_name)
             return [True, "stop container success"]
         #if int(status) == 1:
@@ -243,6 +261,16 @@ IP=%s
         #else:
         #    logger.info ("stop container %s success" % lxc_name)
         #    return [True, "stop container success"]
+
+    def detach_container(self, lxc_name):
+        logger.info("detach container:%s" % lxc_name)
+        [success, status] = self.container_status(lxc_name)
+        if not success:
+            return [False, status]
+        if status == 'running':
+            logger.error("container %s is running, please stop it first" % lxc_name)
+        self.imgmgr.detachFS(lxc_name)
+        return [True, "detach container success"]
 
     # check container: check LV and mountpoints, if wrong, try to repair it
     def check_container(self, lxc_name):
@@ -328,6 +356,9 @@ IP=%s
 
     def create_image(self,username,imagename,containername,description="not thing",imagenum=10):
         return self.imgmgr.createImage(username,imagename,containername,description,imagenum)
+    
+    def update_basefs(self,imagename):
+        return self.imgmgr.update_basefs(imagename)
 
     # check all local containers
     def check_allcontainers(self):

@@ -128,6 +128,10 @@ class Worker(object):
         # register functions or instances to server for rpc
         #self.rpcserver.register_function(function_name)
 
+        # init collector to collect monitor infomation
+        self.con_collector = monitor.Container_Collector()
+        self.hosts_collector = monitor.Collector()
+
         # initialize the network
         # if worker and master run on the same node, reuse bridges
         #                     don't need to create new bridges
@@ -157,6 +161,10 @@ class Worker(object):
 
     # start service of worker
     def start(self):
+        # start collector
+        self.con_collector.start()
+        self.hosts_collector.start()
+        logger.info("Monitor Collector has been started.")
         # worker change it state itself. Independedntly from master.
         self.etcd.setkey("machines/runnodes/"+self.addr, "work")
         self.thread_sendheartbeat = threading.Thread(target=self.sendheartbeat)
@@ -174,7 +182,7 @@ class Worker(object):
             if status:
                 # master has know the worker so we start send heartbeat package
                 if value=='ok':
-                    self.etcd.setkey("machines/runnodes/"+self.addr, "ok", ttl = 2)
+                    self.etcd.setkey("machines/runnodes/"+self.addr, "ok", ttl = 60)
             else:
                 logger.error("get key %s failed, master crashed or initialized. restart worker please." % self.addr)
                 sys.exit(1)
@@ -215,12 +223,6 @@ if __name__ == '__main__':
     worker_port = env.getenv('WORKER_PORT')
     logger.info ("using WORKER_PORT %s" % worker_port )
 
-    # init collector to collect monitor infomation
-    con_collector = monitor.Container_Collector()
-    con_collector.start()
-    collector = monitor.Collector()
-    collector.start()
-    logger.info("CPU and Memory usage monitor started")
 
     logger.info("Starting worker")
     worker = Worker(etcdclient, addr=ipaddr, port=worker_port)

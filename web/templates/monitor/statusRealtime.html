@@ -45,7 +45,8 @@
                         <th>CPU Usage</th>
                         <th>Mem Usage</th>
                         <th>Disk Usage</th>
-                        <th>Billing</th>
+                        <th>Total Billing</th>
+                        <th>Billing This Running Hour</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -61,7 +62,8 @@
                         <td id='con_cpu'>--</td>
                         <td id='con_mem'>--</td>
                         <td id='con_disk'>--</td>
-                        <td id='con_billing'>{{ container['billing'] }} beans</td>
+                        <td id='con_billing'>{{ container['billing'] }} <img src='/static/img/bean.png' /></td>
+                        <td id='con_billingthishour'>{{ container['billing_this_hour'] }} <img src='/static/img/bean.png' /></td>
                       </tr>
                     </tbody>
                 </table>

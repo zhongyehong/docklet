@@ -23,7 +23,7 @@ import os
 import http.server, cgi, json, sys, shutil
 from socketserver import ThreadingMixIn
 import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr
-import userManager
+import userManager,beansapplicationmgr
 import monitor,traceback
 import threading
 import sysmgr
@@ -51,6 +51,7 @@ def login_required(func):
         logger.info ("get request, path: %s" % request.path)
         token = request.form.get("token", None)
         if (token == None):
+            logger.info ("get request without token, path: %s" % request.path)
             return json.dumps({'success':'false', 'message':'user or key is null'})
         result = post_to_user("/authtoken/", {'token':token})
         if result.get('success') == 'true':
@@ -64,6 +65,25 @@ def login_required(func):
 
     return wrapper
 
+def worker_ip_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+       global G_nodemgr
+       workers = G_nodemgr.get_rpcs()
+       ip = request.remote_addr
+       flag = False
+       for worker in workers:
+           workerip = G_nodemgr.rpc_to_ip(worker)
+           #logger.info(str(ip) + " " + str(workerip))
+           if ip == '127.0.0.1' or ip == '0.0.0.0' or ip == workerip:
+                flag = True
+                break
+       if not flag:
+           return json.dumps({'success':'false','message':'Worker\'s ip is required!'})
+       else:
+           return func(*args, **kwargs)
+
+    return wrapper
 
 def beans_check(func):
     @wraps(func)
@@ -114,6 +134,7 @@ def create_cluster(user, beans, form):
 def scaleout_cluster(user, beans, form):
     global G_vclustermgr
     clustername = form.get('clustername', None)
+    logger.info ("scaleout: %s" % form)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
     logger.info("handle request : scale out %s" % clustername)
@@ -178,7 +199,7 @@ def stop_cluster(user, beans, form):
     clustername = form.get('clustername', None)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
-    logger.info ("handle request : start cluster %s" % clustername)
+    logger.info ("handle request : stop cluster %s" % clustername)
     [status, result] = G_vclustermgr.stop_cluster(clustername, user)
     if status:
         return json.dumps({'success':'true', 'action':'stop cluster', 'message':result})
@@ -228,9 +249,12 @@ def list_cluster(user, beans, form):
         return json.dumps({'success':'false', 'action':'list cluster', 'message':clusterlist})
 
 @app.route("/cluster/stopall/",methods=['POST'])
-@login_required
-def stopall_cluster(user, beans, form):
+@worker_ip_required
+def stopall_cluster():
     global G_vclustermgr
+    user = request.form.get('username',None)
+    if user is None:
+        return json.dumps({'success':'false', 'message':'User is required!'})
     logger.info ("handle request : stop all clusters for %s" % user)
     [status, clusterlist] = G_vclustermgr.list_clusters(user)
     if status:
@@ -397,6 +421,7 @@ def hosts_monitor(user, beans, form, com_id, issue):
 @login_required
 def vnodes_monitor(user, beans, form, con_id, issue):
     global G_clustername
+    global G_historymgr
     logger.info("handle request: monitor/vnodes")
     res = {}
     fetcher = monitor.Container_Fetcher(con_id)
@@ -408,6 +433,8 @@ def vnodes_monitor(user, beans, form, con_id, issue):
         res['disk_use'] = fetcher.get_disk_use()
     elif issue == 'basic_info':
         res['basic_info'] = fetcher.get_basic_info()
+    elif issue == 'history':
+        res['history'] = G_historymgr.getHistory(con_id)
     elif issue == 'owner':
         names = con_id.split('-')
         result = post_to_user("/user/query/", data = {"token": form.get(token)})
@@ -422,7 +449,7 @@ def vnodes_monitor(user, beans, form, con_id, issue):
     return json.dumps({'success':'true', 'monitor':res})
 
 
-@app.route("/monitor/user/quotainfo/", methods=['POST'])
+@app.route("/monitor/user/<issue>/", methods=['POST'])
 @login_required
 def user_quotainfo_monitor(user, beans, form, issue):
     global G_historymgr
@@ -446,6 +473,22 @@ def listphynodes_monitor(user, beans, form):
     res = {}
     res['allnodes'] = G_nodemgr.get_allnodes()
     return json.dumps({'success':'true', 'monitor':res})
+
+'''
+@app.route("/beans/mail/", methods=['POST'])
+@worker_ip_required
+def beans_mail():
+    logger.info("handle request: beans/mail/")
+    addr = request.form.get("to_address",None)
+    username = request.form.get("username",None)
+    beans = request.form.get("beans",None)
+    if addr is None or username is None or beans is None:
+        return json.dumps({'success':'false', 'message':"to_address,username and beans fields are required!"})
+    else:
+        logger.info("send email to "+addr+" and username:"+username+" beans:"+beans)
+        beansapplicationmgr.send_beans_email(addr,username,int(beans))
+        return json.dumps({'success':'true'})
+'''
 
 @app.route("/system/parmList/", methods=['POST'])
 @login_required
@@ -526,6 +569,35 @@ def resetall_system(user, beans, form):
         return json.dumps({'success':'false', 'message': message})
     return json.dumps(result)
 
+# @app.route("/inside/cluster/scaleout/", methods=['POST'])
+# @inside_ip_required
+# def inside_cluster_scalout(cur_user, cluster_info, form):
+#     global G_usermgr
+#     global G_vclustermgr
+#     clustername = cluster_info['name']
+#     logger.info("handle request : scale out %s" % clustername)
+#     image = {}
+#     image['name'] = form.get("imagename", None)
+#     image['type'] = form.get("imagetype", None)
+#     image['owner'] = form.get("imageowner", None)
+#     user_info = G_usermgr.selfQuery(cur_user = cur_user)
+#     user = user_info['data']['username']
+#     user_info = json.dumps(user_info)
+#     setting = {
+#             'cpu': form.get('cpuSetting'),
+#             'memory': form.get('memorySetting'),
+#             'disk': form.get('diskSetting')
+#             }
+#     [status, result] = G_usermgr.usageInc(cur_user = cur_user, modification = setting)
+#     if not status:
+#         return json.dumps({'success':'false', 'action':'scale out', 'message': result})
+#     [status, result] = G_vclustermgr.scale_out_cluster(clustername, user, image, user_info, setting)
+#     if status:
+#         return json.dumps({'success':'true', 'action':'scale out', 'message':result})
+#     else:
+#         G_usermgr.usageRecover(cur_user = cur_user, modification = setting)
+#         return json.dumps({'success':'false', 'action':'scale out', 'message':result})
+
 @app.errorhandler(500)
 def internal_server_error(error):
     logger.debug("An internel server error occured")
@@ -560,6 +632,8 @@ if __name__ == '__main__':
     global G_networkmgr
     global G_clustername
     global G_sysmgr
+    global G_historymgr
+    global G_applicationmgr
     # move 'tools.loadenv' to the beginning of this file
 
     fs_path = env.getenv("FS_PREFIX")
@@ -651,8 +725,6 @@ if __name__ == '__main__':
     logger.info("vclustermgr started")
     G_imagemgr = imagemgr.ImageMgr()
     logger.info("imagemgr started")
-    master_collector = monitor.Master_Collector(G_nodemgr)
-    master_collector.start()
 
     logger.info("startting to listen on: ")
     masterip = env.getenv('MASTER_IP')
@@ -665,7 +737,6 @@ if __name__ == '__main__':
     master_collector = monitor.Master_Collector(G_nodemgr,ipaddr+":"+str(masterport))
     master_collector.start()
     logger.info("master_collector started")
-    
     # server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
     logger.info("starting master server")
 

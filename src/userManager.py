@@ -82,7 +82,7 @@ def send_activated_email(to_address, username):
                <br><br>
                <p> <a href='http://docklet.unias.org'>Docklet Team</a>, SEI, PKU</p>
             ''' % (env.getenv("PORTAL_URL"), env.getenv("PORTAL_URL"))
-    text += '<p>'+  str(datetime.utcnow()) + '</p>'
+    text += '<p>'+  str(datetime.now()) + '</p>'
     text += '</html>'
     subject = 'Docklet account activated'
     msg = MIMEMultipart()
@@ -107,7 +107,7 @@ def send_remind_activating_email(username):
                <br/><br/>
                <p> Docklet Team, SEI, PKU</p>
             ''' % (username, env.getenv("PORTAL_URL"), env.getenv("PORTAL_URL"))
-    text += '<p>'+  str(datetime.utcnow()) + '</p>'
+    text += '<p>'+  str(datetime.now()) + '</p>'
     text += '</html>'
     subject = 'An activating request in Docklet has been sent'
     msg = MIMEMultipart()
@@ -324,14 +324,14 @@ class userManager:
 
     def set_nfs_quota_bygroup(self,groupname, quota):
         if not data_quota == "True":
-            return 
-        users = User.query.filter_by(user_group = groupname).all()  
+            return
+        users = User.query.filter_by(user_group = groupname).all()
         for user in users:
             self.set_nfs_quota(user.username, quota)
 
     def set_nfs_quota(self, username, quota):
         if not data_quota == "True":
-            return 
+            return
         nfspath = "/users/%s/data" % username
         try:
             cmd = data_quota_cmd % (nfspath,quota+"GB")
@@ -368,6 +368,7 @@ class userManager:
                     "register_date" : "%s"%(user.register_date),
                     "group" : user.user_group,
                     "description" : user.description,
+                    "beans" : user.beans,
                 },
                 "token": user
             }
@@ -395,6 +396,7 @@ class userManager:
                 "tel" : user.tel,
                 "register_date" : "%s"%(user.register_date),
                 "group" : user.user_group,
+                "beans" : user.beans,
             },
             "token": user
         }
@@ -437,6 +439,8 @@ class userManager:
                 "register_date" : "%s"%(user.register_date),
                 "group" : user.user_group,
                 "groupinfo": group,
+                "beans" : user.beans,
+                "auth_method": user.auth_method,
             },
         }
         return result
@@ -464,6 +468,12 @@ class userManager:
             user.e_mail = value
         elif (name == 'tel'):
             user.tel = value
+        elif (name == 'password'):
+            old_password = hashlib.sha512(form.get('old_value', '').encode('utf-8')).hexdigest()
+            if (user.password != old_password):
+                result = {'success': 'false'}
+                return result
+            user.password = hashlib.sha512(value.encode('utf-8')).hexdigest()
         else:
             result = {'success': 'false'}
             return result
@@ -503,7 +513,7 @@ class userManager:
         settingfile.close()
 
         return {'success': 'true', 'quota' : groupinfo, 'usage' : usageinfo, 'default': defaultsetting }
-   
+
     @token_required
     def usageInc(self, *args, **kwargs):
         '''
@@ -660,6 +670,7 @@ class userManager:
                     "%s"%(user.register_date),
                     user.status,
                     user.user_group,
+                    user.beans,
                     '',
             ]
             result["data"].append(userinfo)
@@ -769,6 +780,21 @@ class userManager:
         will send an e-mail when status is changed from 'applying' to 'normal'
         Usage: modify(newValue = dict_from_form, cur_user = token_from_auth)
         '''
+        if ( kwargs['newValue'].get('Instruction', '') == 'Activate'):
+            user_modify = User.query.filter_by(id = kwargs['newValue'].get('ID', None)).first()
+            user_modify.status = 'normal'
+            send_activated_email(user_modify.e_mail, user_modify.username)
+            db.session.commit()
+            return {"success": "true"}
+
+        if ( kwargs['newValue'].get('password', '') != ''):
+            user_modify = User.query.filter_by(username = kwargs['newValue'].get('username', None)).first()
+            new_password = kwargs['newValue'].get('password','')
+            new_password = hashlib.sha512(new_password.encode('utf-8')).hexdigest()
+            user_modify.password = new_password
+            db.session.commit()
+            return {"success": "true"}
+
         user_modify = User.query.filter_by(username = kwargs['newValue'].get('username', None)).first()
         if (user_modify == None):
 
@@ -786,11 +812,12 @@ class userManager:
         if (user_modify.status == 'applying' and form.get('status', '') == 'normal'):
             send_activated_email(user_modify.e_mail, user_modify.username)
         user_modify.status = form.get('status', '')
-        if (form.get('password', '') != ''):
-            new_password = form.get('password','')
-            new_password = hashlib.sha512(new_password.encode('utf-8')).hexdigest()
-            user_modify.password = new_password
+        #if (form.get('password', '') != ''):
+            #new_password = form.get('password','')
+            #new_password = hashlib.sha512(new_password.encode('utf-8')).hexdigest()
+            #user_modify.password = new_password
             #self.chpassword(cur_user = user_modify, password = form.get('password','no_password'))
+        #modify password in another function now
 
         db.session.commit()
         res = self.groupQuery(name=user_modify.user_group)
@@ -920,7 +947,7 @@ class userManager:
         groupfile.write(json.dumps(groups))
         groupfile.close()
         return {"success":'true'}
-    
+
     @administration_required
     def lxcsettingList(*args, **kwargs):
         lxcsettingfile = open(fspath+"/global/sys/lxc.default", 'r')

@@ -8,9 +8,7 @@ class statusView(normalView):
 
     @classmethod
     def get(self):
-        data = {
-            "user": session['username'],
-        }
+        data = {}
         result = dockletRequest.post('/cluster/list/', data)
         clusters = result.get('clusters')
         result = dockletRequest.post('/monitor/user/quotainfo/', data)
@@ -43,6 +41,31 @@ class statusRealtimeView(normalView):
         result = dockletRequest.post('/monitor/vnodes/%s/basic_info/'%(self.node_name), data)
         basic_info = result.get('monitor').get('basic_info')
         return self.render(self.template_path, node_name = self.node_name, user = session['username'], container = basic_info)
+
+class historyView(normalView):
+    template_path = "monitor/history.html"
+    
+    @classmethod
+    def get(self):
+        data = {
+            "user": session['username'],
+        }
+        result = dockletRequest.post('/monitor/user/createdvnodes/', data)
+        vnodes = result.get('createdvnodes')
+        return self.render(self.template_path, user = session['username'],vnodes = vnodes)
+
+class historyVNodeView(normalView):
+    template_path = "monitor/historyVNode.html"
+    vnode_name = ""
+    
+    @classmethod
+    def get(self):
+        data = {
+            "user": session['username'],
+        }
+        result = dockletRequest.post('/monitor/vnodes/%s/history/'%(self.vnode_name), data)
+        history = result.get('monitor').get('history')
+        return self.render(self.template_path, vnode_name = self.vnode_name, user = session['username'], history = history)
 
 class hostsRealtimeView(normalView):
     template_path = "monitor/hostsRealtime.html"
