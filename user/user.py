@@ -391,6 +391,7 @@ def beans_admin(cur_user,user,form,issue):
     global G_applicationmgr
     if issue == 'applymsgs':
         result = G_applicationmgr.queryUnRead(cur_user = cur_user)
+        logger.debug("applymsg success")
         return json.dumps(result)
     elif issue == 'agree':
         msgid = form.get("msgid",None)

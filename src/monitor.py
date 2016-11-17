@@ -48,7 +48,6 @@ c_disk = 4000       # MB
 # 6.running indicates the status of worker,and it has two values: True, False.
 # 7.containers store the amount of containers on the worker.
 # 8.containers store a list which consists of the names of containers on the worker.
->>>>>>> upstream/master
 monitor_hosts = {}
 
 # monitor_vnodes: use the owners' names of vnodes(containers) as first key.
