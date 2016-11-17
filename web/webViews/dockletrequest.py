@@ -3,7 +3,6 @@ from flask import abort, session
 from webViews.log import logger
 import os,sys,inspect
 
-
 this_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe    ()))[0]))
 src_folder = os.path.realpath(os.path.abspath(os.path.join(this_folder,"../..", "src")))
 if src_folder not in sys.path:

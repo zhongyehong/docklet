@@ -111,28 +111,33 @@ def beans_check(func):
 def isalive(user, beans, form):
     return json.dumps({'success':'true'})
 
+
 @app.route("/settings/list/", methods=['POST'])
 @login_required
-def settings_list(cur_user, user, form):
-    return json.dumps(settings.list(cur_user = cur_user))
+def settings_list(user, beans, form):
+    user_group = post_to_user('/user/selfQuery/', {'token': request.form.get("token", None)}).get('data', None).get('group', None)
+    return json.dumps(settings.list(user_group = user_group))
 
 @app.route("/settings/update/", methods=['POST'])
 @login_required
-def settings_update(cur_user, user, form):
+def settings_update(user, beans, form):
+    user_group = post_to_user('/user/selfQuery/', {'token': request.form.get("token", None)}).get('data', None).get('group', None)
     newSetting = {}
     newSetting['ADMIN_EMAIL_ADDRESS'] = form.get('ADMIN_EMAIL_ADDRESS', '')
     newSetting['EMAIL_FROM_ADDRESS'] = form.get('EMAIL_FROM_ADDRESS', '')
-    return json.dumps(settings.update(cur_user = cur_user, newSetting = newSetting))
+    return json.dumps(settings.update(user_group = user_group, newSetting = newSetting))
 
 @app.route("/logs/list/", methods=['POST'])
 @login_required
-def logs_list(cur_user, user, form):
-    return json.dumps(logs.list(cur_user = cur_user))
+def logs_list(user, beans, form):
+    user_group = post_to_user('/user/selfQuery/', {'token': request.form.get("token", None)}).get('data', None).get('group', None)
+    return json.dumps(logs.list(user_group = user_group))
 
 @app.route("/logs/get/", methods=['POST'])
 @login_required
-def logs_get(cur_user, user, form):
-    return json.dumps(logs.get(cur_user = cur_user, filename = form.get('filename', '')))
+def logs_get(user, beans, form):
+    user_group = post_to_user('/user/selfQuery/', {'token': request.form.get("token", None)}).get('data', None).get('group', None)
+    return json.dumps(logs.get(user_group = user_group, filename = form.get('filename', '')))
 
 
 @app.route("/cluster/create/", methods=['POST'])

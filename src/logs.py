@@ -11,10 +11,10 @@ class logsClass:
     setting = {}
 
     def list(*args, **kwargs):
-        if ( ('cur_user' in kwargs) == False):
-            return {"success":'false', "reason":"Cannot get cur_user"}
-        cur_user = kwargs['cur_user']
-        if (not ((cur_user.user_group == 'admin') or (cur_user.user_group == 'root'))):
+        if ( ('user_group' in kwargs) == False):
+            return {"success":'false', "reason":"Cannot get user_group"}
+        user_group = kwargs['user_group']
+        if (not ((user_group == 'admin') or (user_group == 'root'))):
             return {"success": 'false', "reason": 'Unauthorized Action'}
         s = os.listdir(logsPath)
         r = []
@@ -24,10 +24,10 @@ class logsClass:
         return {'success': 'true', 'result': r}
 
     def get(*args, **kwargs):
-        if ( ('cur_user' in kwargs) == False):
-            return {"success":'false', "reason":"Cannot get cur_user"}
-        cur_user = kwargs['cur_user']
-        if (not ((cur_user.user_group == 'admin') or (cur_user.user_group == 'root'))):
+        if ( ('user_group' in kwargs) == False):
+            return {"success":'false', "reason":"Cannot get user_group"}
+        user_group = kwargs['user_group']
+        if (not ((user_group == 'admin') or (user_group == 'root'))):
             return {"success": 'false', "reason": 'Unauthorized Action'}
         filepath = logsPath + secure_filename(kwargs['filename'])
         try:
