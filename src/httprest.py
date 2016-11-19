@@ -36,6 +36,7 @@ if (external_login == 'TRUE'):
 
 #userpoint = env.getenv('USER_IP') + ":" + env.getenv('USER_PORT')
 userpoint = "http://0.0.0.0:9100"
+G_userip = "0.0.0.0" #env.getenv("USER_IP")
 
 def post_to_user(url = '/', data={}):
     return requests.post(userpoint+url,data=data).json()
@@ -82,6 +83,19 @@ def worker_ip_required(func):
            return json.dumps({'success':'false','message':'Worker\'s ip is required!'})
        else:
            return func(*args, **kwargs)
+
+    return wrapper
+
+def user_ip_required(func):
+    @wraps(func)
+    def wrapper(*args,**kwargs):
+        global G_userip
+        ip = request.remote_addr
+        #logger.info(str(ip) + " " + str(G_userip))
+        if ip == '127.0.0.1' or ip == '0.0.0.0' or ip == G_userip:
+           return func(*args, **kwargs)
+        else:
+           return json.dumps({'success':'false','message':'User node\'s ip is required!'})
 
     return wrapper
 
@@ -249,7 +263,7 @@ def list_cluster(user, beans, form):
         return json.dumps({'success':'false', 'action':'list cluster', 'message':clusterlist})
 
 @app.route("/cluster/stopall/",methods=['POST'])
-@worker_ip_required
+@user_ip_required
 def stopall_cluster():
     global G_vclustermgr
     user = request.form.get('username',None)
@@ -474,9 +488,16 @@ def listphynodes_monitor(user, beans, form):
     res['allnodes'] = G_nodemgr.get_allnodes()
     return json.dumps({'success':'true', 'monitor':res})
 
-'''
-@app.route("/beans/mail/", methods=['POST'])
+@app.route("/billing/beans/", methods=['POST'])
 @worker_ip_required
+def billing_beans():
+    form = request.form
+    res = post_to_user("/billing/beans/",data=form)
+    logger.info(res)
+    return json.dumps(res)
+
+@app.route("/beans/mail/", methods=['POST'])
+@user_ip_required
 def beans_mail():
     logger.info("handle request: beans/mail/")
     addr = request.form.get("to_address",None)
@@ -488,7 +509,7 @@ def beans_mail():
         logger.info("send email to "+addr+" and username:"+username+" beans:"+beans)
         beansapplicationmgr.send_beans_email(addr,username,int(beans))
         return json.dumps({'success':'true'})
-'''
+
 
 @app.route("/system/parmList/", methods=['POST'])
 @login_required

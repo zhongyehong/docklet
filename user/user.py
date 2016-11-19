@@ -21,13 +21,14 @@ from log import logger
 import tools, env
 config = env.getenv("CONFIG")
 tools.loadenv(config)
+G_masterip = env.getenv("MASTER_IP")
 
 
 from flask import Flask, request, session, render_template, redirect, send_from_directory, make_response, url_for, abort
 from functools import wraps
 import userManager,beansapplicationmgr, notificationmgr
-import threading
-
+import threading,traceback
+from model import User,db
 
 app = Flask(__name__)
 
@@ -47,6 +48,26 @@ def login_required(func):
 
     return wrapper
 
+def master_ip_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+       global G_masterip
+       ip = request.remote_addr
+       #logger.info(str(ip) + " " + str(G_masterip))
+       if ip == '127.0.0.1' or ip == '0.0.0.0' or ip == G_masterip:
+           return func(*args, **kwargs)
+       else:
+           return json.dumps({'success':'false','message':'Master\'s ip is required!'})
+
+    return wrapper
+
+# send http request to master
+def request_master(url,data):
+    global G_masterip
+    header = {'Content-Type':'application/x-www-form-urlencoded'}
+    http = Http()
+    [resp,content] = http.request("http://"+G_masterip+url,"POST",urlencode(data),headers = header)
+    logger.info("response from master:"+content.decode('utf-8'))  
 
 
 @app.route("/login/", methods=['POST'])
@@ -365,6 +386,43 @@ def query_self_notifications_infos(cur_user, user, form):
     result = G_notificationmgr.query_self_notifications_infos(cur_user=cur_user, form=form)
     return json.dumps(result)
 
+@app.route("/billing/beans/", methods=['POST'])
+@master_ip_required
+def billing_beans():
+        logger.info("handle request: /billing/beans/")
+        form = request.form
+        owner_name = form.get("owner_name",None)
+        billing = int(form.get("billing",None))
+        if owner_name is None  or billing is None:
+            return json.dumps({'success':'false', 'message':'owner_name and beans fields are required.'})
+        # update users' tables in database
+        owner = User.query.filter_by(username=owner_name).first()
+        if owner is None:
+            logger.warning("Error!!! Billing User %s doesn't exist!" % (owner_name))
+        else:
+            #logger.info("Billing User:"+str(owner))
+            oldbeans = owner.beans
+            owner.beans -= billing
+            #logger.info(str(oldbeans) + " " + str(owner.beans))
+            if oldbeans > 0 and owner.beans <= 0 or oldbeans >= 100 and owner.beans < 100 or oldbeans >= 500 and owner.beans < 500 or oldbeans >= 1000 and owner.beans < 1000:
+                # send mail to remind users of their beans if their beans decrease to 0,100,500 and 1000
+                data = {"to_address":owner.e_mail,"username":owner.username,"beans":owner.beans}
+                request_master("/beans/mail/",data)
+            try:
+                db.session.commit()
+            except Exception as err:
+                db.session.rollback()
+                logger.warning(traceback.format_exc())
+                logger.warning(err)
+                return json.dumps({'success':'false', 'message':'Fail to wirte to databases.'})
+            #logger.info("Billing User:"+str(owner))
+            if owner.beans <= 0:
+                # stop all vcluster of the user if his beans are equal to or lower than 0.
+                logger.info("The beans of User(" + str(owner) + ") are less than or equal to zero, the container("+vnode_name+") will be stopped.")
+                form = {'username':owner.username}
+                request_master("/cluster/stopall/",form)
+        return json.dumps({'success':'true'})
+
 @app.route("/beans/<issue>/", methods=['POST'])
 @login_required
 def beans_apply(cur_user,user,form,issue):
@@ -407,6 +465,13 @@ def beans_admin(cur_user,user,form,issue):
         return json.dumps(result)
     else:
         return json.dumps({'success':'false', 'message':'Unsupported URL!'})
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    logger.debug("An internel server error occured")
+    logger.error(traceback.format_exc())
+    return json.dumps({'success':'false', 'message':'500 Internal Server Error', 'Unauthorized': 'True'})
+
 
 if __name__  ==  '__main__':
     logger.info('Start Flask...:')
