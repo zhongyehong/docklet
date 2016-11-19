@@ -21,7 +21,7 @@ from log import logger
 import tools, env
 config = env.getenv("CONFIG")
 tools.loadenv(config)
-G_masterip = env.getenv("MASTER_IP")
+G_masterip = env.getenv("MASTER_IP") + ":" + str(env.getenv("MASTER_PORT"))
 
 
 from flask import Flask, request, session, render_template, redirect, send_from_directory, make_response, url_for, abort
@@ -29,6 +29,8 @@ from functools import wraps
 import userManager,beansapplicationmgr, notificationmgr
 import threading,traceback
 from model import User,db
+from httplib2 import Http
+from urllib.parse import urlencode
 
 app = Flask(__name__)
 
@@ -64,6 +66,7 @@ def master_ip_required(func):
 # send http request to master
 def request_master(url,data):
     global G_masterip
+    #logger.info("master_ip:"+str(G_masterip))
     header = {'Content-Type':'application/x-www-form-urlencoded'}
     http = Http()
     [resp,content] = http.request("http://"+G_masterip+url,"POST",urlencode(data),headers = header)
@@ -418,7 +421,7 @@ def billing_beans():
             #logger.info("Billing User:"+str(owner))
             if owner.beans <= 0:
                 # stop all vcluster of the user if his beans are equal to or lower than 0.
-                logger.info("The beans of User(" + str(owner) + ") are less than or equal to zero, the container("+vnode_name+") will be stopped.")
+                logger.info("The beans of User(" + str(owner) + ") are less than or equal to zero, all his or her vclusters will be stopped.")
                 form = {'username':owner.username}
                 request_master("/cluster/stopall/",form)
         return json.dumps({'success':'true'})
