@@ -22,7 +22,7 @@ import time,threading,json,traceback,platform
 import env
 from datetime import datetime
 
-from model import db,VNode,History,User
+from model import db,VNode,History
 from log import logger
 from httplib2 import Http
 from urllib.parse import urlencode
@@ -214,30 +214,8 @@ class Container_Collector(threading.Thread):
             raise
         # update users' tables in database
         owner_name = get_owner(vnode_name)
-        owner = User.query.filter_by(username=owner_name).first()
-        if owner is None:
-            logger.warning("Error!!! Billing User %s doesn't exist!" % (owner_name))
-        else:
-            #logger.info("Billing User:"+str(owner))
-            oldbeans = owner.beans
-            owner.beans -= billingval
-            #logger.info(str(oldbeans) + " " + str(owner.beans))
-            if oldbeans > 0 and owner.beans <= 0 or oldbeans >= 100 and owner.beans < 100 or oldbeans >= 500 and owner.beans < 500 or oldbeans >= 1000 and owner.beans < 1000:
-                # send mail to remind users of their beans if their beans decrease to 0,100,500 and 1000
-                data = {"to_address":owner.e_mail,"username":owner.username,"beans":owner.beans}
-                request_master("/beans/mail/",data)
-            try:
-                db.session.commit()
-            except Exception as err:
-                db.session.rollback()
-                logger.warning(traceback.format_exc())
-                logger.warning(err)
-            #logger.info("Billing User:"+str(owner))
-            if owner.beans <= 0:
-                # stop all vcluster of the user if his beans are equal to or lower than 0.
-                logger.info("The beans of User(" + str(owner) + ") are less than or equal to zero, the container("+vnode_name+") will be stopped.")
-                form = {'username':owner.username}
-                request_master("/cluster/stopall/",form)
+        data = {"owner_name":owner_name,"billing":billingval}
+        request_master("/billing/beans/",data)
         return billingval
 
     # the main function to collect monitoring data of a container
