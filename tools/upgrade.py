@@ -162,19 +162,19 @@ def update_image():
                 if os.path.isdir(currentdir+image+"/"):
                     try:
                         sys_run("tar -zcvf %s -C %s ." % (currentdir+image+".tgz",currentdir+image))
-                        sys_run("rm -rf %s" % currentdir+image)
+                        #sys_run("rm -rf %s" % currentdir+image)
                     except Exception as e:
                         print(e)
     userdirs = os.listdir(public_imagepath)
     for userdir in userdirs:
-        if os.path.isdir(userdir):
+        if os.path.isdir(public_imagepath+userdir+"/"):
             currentdir = public_imagepath+userdir+"/"
             images = os.listdir(currentdir)
             for image in images:
                 if os.path.isdir(currentdir+image+"/"):
                     try:
                         sys_run("tar -zcvf %s -C %s ." % (currentdir+image+".tgz",currentdir+image))
-                        sys_run("rm -rf %s" % currentdir+image)
+                        #sys_run("rm -rf %s" % currentdir+image)
                     except Exception as e:
                         print(e)
 
