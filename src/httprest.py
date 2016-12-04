@@ -60,7 +60,7 @@ def beans_check(func):
     def wrapper(*args, **kwargs):
         user = args[0]
         if user.beans <= 0:
-            return json.dumps({'success':'false','message':'user\'s beans are less than or equal to zero!'})
+            return json.dumps({'success':'false','message':'user\'s beans are less than or equal to 0! Please apply for more beans by clicking the \'apply\' button or the beans icon on the left side.'})
         else:
             return func(*args, **kwargs)
 
@@ -558,6 +558,20 @@ def listphynodes_monitor(cur_user, user, form):
     res = {}
     res['allnodes'] = G_nodemgr.get_allnodes()
     return json.dumps({'success':'true', 'monitor':res})
+
+@app.route("/beans/mail/", methods=['POST'])
+@worker_ip_required
+def beans_mail():
+    logger.info("handle request: beans/mail/")
+    addr = request.form.get("to_address",None)
+    username = request.form.get("username",None)
+    beans = request.form.get("beans",None)
+    if addr is None or username is None or beans is None:
+        return json.dumps({'success':'false', 'message':"to_address,username and beans fields are required!"})
+    else:
+        logger.info("send email to "+addr+" and username:"+username+" beans:"+beans)
+        beansapplicationmgr.send_beans_email(addr,username,int(beans))
+        return json.dumps({'success':'true'})
 
 @app.route("/beans/<issue>/", methods=['POST'])
 @login_required

@@ -293,12 +293,19 @@ class ImageMgr():
     def update_basefs(self,image):
         imgpath = self.imgpath + "private/root/"
         basefs = self.NFS_PREFIX+"/local/basefs/"
+        tmppath = self.NFS_PREFIX + "/local/tmpimg/"
+        tmpimage = str(random.randint(0,10000000)) + ".tgz"
         try:
+            sys_run("cp %s %s" % (imgpath+image+".tgz",tmppath+tmpimage))
+            sys_run("mkdir -p %s" % tmppath+tmpimage[:-4])
+            sys_run("tar -C %s -zxvf %s" % (tmppath+tmpimage[:-4],tmppath+tmpimage),True)
             logger.info("start updating base image")
-            updatebase.aufs_update_base(imgpath+image, basefs)
+            updatebase.aufs_update_base(tmppath+tmpimage[:-4], basefs)
             logger.info("update base image success")
         except Exception as e:
             logger.error(e)
+        sys_run("rm -f %s" % tmppath+tmpimage)
+        sys_run("rm -rf %s" % tmppath+tmpimage[:-4])
         return True
     
     def update_base_image(self, user, vclustermgr, image):
@@ -351,6 +358,8 @@ class ImageMgr():
             Ret = sys_run("ls %s" % imgpath, True)
             private_images = str(Ret.stdout,"utf-8").split()
             for image in private_images:
+                if not image[-4:] == '.tgz':
+                    continue
                 imagename = image[:-4]
                 fimage={}
                 fimage["name"] = imagename
@@ -373,6 +382,8 @@ class ImageMgr():
                     public_images = str(Ret.stdout,"utf-8").split()
                     images["public"][public_user] = []
                     for image in public_images:
+                        if not image[-4:] == '.tgz':
+                            continue
                         imagename = image[:-4]
                         fimage = {}
                         fimage["name"] = imagename

@@ -1,27 +1,97 @@
 #!/usr/bin/python3
 
+'''
+Monitor for Docklet
+Description:Monitor system for docklet will collect data on resources usages and status of vnode 
+            and phyiscal machines. And master can fetch these data and then show them on the web page.
+            Besides, Monitor will also bill the vnodes according to their resources usage amount.
+
+Design:Monitor mainly consists of three parts: Collectors, Master_Collector and Fetchers.
+       1.Collectors will collect data every two seconds on each worker. And 'Container_Collector' will 
+       collect data of containers(vnodes), while 'Collector' will collect data of physical machines.
+       2.'Master_Collector' only runs on Master. It fetches the data on workers every two seconds by rpc 
+       and stores them in the memory of Master.
+       3.Fetchers are classes that Master will use them to fetch specific data in the memory and then show 
+       them on the web. 'Container_Fetcher' is the class to fetch the containers data in 'monitor_vnodes', 
+       while 'Fetcher' is the class to fetch the data of physical machines in 'monitor_hosts'.
+'''
+
+
 import subprocess,re,os,etcdlib,psutil,math,sys
 import time,threading,json,traceback,platform
+import env
+from datetime import datetime
 
 from model import db,VNode,History,User
 from log import logger
 from httplib2 import Http
 from urllib.parse import urlencode
 
+# billing parameters
+a_cpu = 500         # seconds
+b_mem = 2000000     # MB
+c_disk = 4000       # MB
+
+# major dict to store the monitoring data
+# only use on Master
+# monitor_hosts: use workers' ip addresses as first key.
+# second key: cpuinfo,diskinfo,meminfo,osinfo,cpuconfig,running,containers,containerslist
+# 1.cpuinfo stores the cpu usages data, and it has keys: user,system,idle,iowait
+# 2.diskinfo stores the disks usages data, and it has keys: device,mountpoint,total,used,free,percent
+# 3.meminfo stores the memory usages data, and it has keys: total,used,free,buffers,cached,percent
+# 4.osinfo stores the information of operating system, 
+# and it has keys: platform,system,node,release,version,machine,processor              
+# 5.cpuconfig stores the information of processors, and it is a list, each element of list is a dict
+# which stores the information of a processor, each element has key: processor,model name,
+# core id, cpu MHz, cache size, physical id.
+# 6.running indicates the status of worker,and it has two values: True, False.
+# 7.containers store the amount of containers on the worker.
+# 8.containers store a list which consists of the names of containers on the worker.
 monitor_hosts = {}
+
+# monitor_vnodes: use the owners' names of vnodes(containers) as first key.
+# use the names of vnodes(containers) as second key.
+# third key: cpu_use,mem_use,disk_use,basic_info,quota
+# 1.cpu_use has keys: val,unit,hostpercent
+# 2.mem_use has keys: val,unit,usedp
+# 3.disk_use has keys: device,mountpoint,total,used,free,percent
+# 4.basic_info has keys: Name,State,PID,IP,RunningTime,billing,billing_this_hour
+# 5.quota has keys: cpu,memeory
 monitor_vnodes = {}
 
+# major dict to store the monitoring data on Worker
+# only use on Worker
+# workerinfo: only store the data collected on current Worker, 
+# has the first keys same as the second keys in monitor_hosts.
 workerinfo = {}
+
+# workercinfo: only store the data collected on current Worker,
+# use the names of vnodes(containers) as second key.
+# has the second keys same as the third keys in monitor_vnodes.
 workercinfo = {}
+
+# only use on worker
 containerpids = []
 pid2name = {}
 G_masterip = ""
 
+# only use on worker
 laststopcpuval = {}
 laststopruntime = {}
-lastbillingtime = {}
-increment = {}
+lastbillingtime = {}        
+# increment has keys: lastcputime,memincrement. 
+# record the cpu val at last billing time and accumulate the memory usages during this billing hour.    
+increment = {}  
 
+# send http request to master
+def request_master(url,data):
+    global G_masterip
+    header = {'Content-Type':'application/x-www-form-urlencoded'}
+    http = Http()
+    [resp,content] = http.request("http://"+G_masterip+url,"POST",urlencode(data),headers = header)
+    logger.info("response from master:"+content.decode('utf-8'))  
+
+# The class is to collect data of containers on each worker
 class Container_Collector(threading.Thread):
 
     def __init__(self,test=False):
@@ -29,15 +99,15 @@ class Container_Collector(threading.Thread):
         global workercinfo
         threading.Thread.__init__(self)
         self.thread_stop = False
-        self.interval = 2
-        self.billingtime = 3600
+        self.interval = 2       
+        self.billingtime = 3600     # billing interval
         self.test = test
         self.cpu_last = {}
         self.cpu_quota = {}
         self.mem_quota = {}
         self.cores_num = int(subprocess.getoutput("grep processor /proc/cpuinfo | wc -l"))
         containers = self.list_container()
-        for container in containers:
+        for container in containers:    # recovery
             if not container == '':
                 try:
                     vnode = VNode.query.get(container)
@@ -51,13 +121,15 @@ class Container_Collector(threading.Thread):
                     laststopcpuval[container] = 0
                     laststopruntime[container] = 0
         return
-
+    
+    # list containers on this worker
     def list_container(self):
         output = subprocess.check_output(["sudo lxc-ls"],shell=True)
         output = output.decode('utf-8')
         containers = re.split('\s+',output)
         return containers
-
+    
+    # get running time of a process, return seconds
     def get_proc_etime(self,pid):
         fmt = subprocess.getoutput("ps -A -opid,etime | grep '^ *%d ' | awk '{print $NF}'" % pid).strip()
         if fmt == '':
@@ -72,40 +144,58 @@ class Container_Collector(threading.Thread):
         seconds = int(parts[1])
         return ((days * 24 + hours) * 60 + minutes) * 60 + seconds
     
+    # compute the billing val this running hour
+    # if isreal is True, it will also make users' beans decrease to pay for the bill.
+    # return the billing value in this running hour
     @classmethod
-    def billing_increment(cls,vnode_name):
+    def billing_increment(cls,vnode_name,isreal=True):
         global increment
         global workercinfo
         global G_masterip
+        global a_cpu
+        global b_mem
+        global c_disk
         cpu_val = '0'
         if vnode_name not in workercinfo.keys():
-            return
+            return 0
         if 'cpu_use' in workercinfo[vnode_name].keys():
             cpu_val = workercinfo[vnode_name]['cpu_use']['val']
         if vnode_name not in increment.keys():
             increment[vnode_name] = {}
             increment[vnode_name]['lastcputime'] = cpu_val
             increment[vnode_name]['memincrement'] = 0
+        # compute cpu used time during this running hour
         cpu_increment = float(cpu_val) - float(increment[vnode_name]['lastcputime'])
         #logger.info("billing:"+str(cpu_increment)+" "+str(increment[container_name]['lastcputime']))
         if cpu_increment == 0.0:
             avemem = 0
         else:
+            # avemem = (average memory used) * (cpu used time)
             avemem = cpu_increment*float(increment[vnode_name]['memincrement'])/1800.0
-        increment[vnode_name]['lastcputime'] = cpu_val
-        increment[vnode_name]['memincrement'] = 0
         if 'disk_use' in workercinfo[vnode_name].keys():
             disk_quota = workercinfo[vnode_name]['disk_use']['total']
         else:
             disk_quota = 0
-        #logger.info("cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
-        billingval = cpu_increment/1000.0 + avemem/500000.0 + float(disk_quota)/1024.0/1024.0/2000
+        # billing value = cpu used/a + memory used/b + disk quota/c
+        billingval = math.ceil(cpu_increment/a_cpu + avemem/b_mem + float(disk_quota)/1024.0/1024.0/c_disk)
+        if billingval > 100:
+            # report outsize billing value
+            logger.info("Huge Billingval for "+vnode_name+". cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
+        if not isreal:
+            # only compute
+            return math.ceil(billingval)
+        # initialize increment for next billing
+        increment[vnode_name]['lastcputime'] = cpu_val
+        increment[vnode_name]['memincrement'] = 0
         if 'basic_info' not in workercinfo[vnode_name].keys():
             workercinfo[vnode_name]['basic_info'] = {}
             workercinfo[vnode_name]['basic_info']['billing'] = 0
             workercinfo[vnode_name]['basic_info']['RunningTime'] = 0
+        # update monitoring data
         nowbillingval = workercinfo[vnode_name]['basic_info']['billing']
-        nowbillingval += math.ceil(billingval)
+        nowbillingval += billingval
+        workercinfo[vnode_name]['basic_info']['billing'] = nowbillingval
+        # update vnodes' tables in database
         try:
             vnode = VNode.query.get(vnode_name)
             vnode.billing = nowbillingval
@@ -121,25 +211,35 @@ class Container_Collector(threading.Thread):
             logger.warning(traceback.format_exc())
             logger.warning(err)
             raise
-        workercinfo[vnode_name]['basic_info']['billing'] = nowbillingval
+        # update users' tables in database
         owner_name = get_owner(vnode_name)
         owner = User.query.filter_by(username=owner_name).first()
         if owner is None:
             logger.warning("Error!!! Billing User %s doesn't exist!" % (owner_name))
         else:
             #logger.info("Billing User:"+str(owner))
-            owner.beans -= math.ceil(billingval)
-            db.session.commit()
+            oldbeans = owner.beans
+            owner.beans -= billingval
+            #logger.info(str(oldbeans) + " " + str(owner.beans))
+            if oldbeans > 0 and owner.beans <= 0 or oldbeans >= 100 and owner.beans < 100 or oldbeans >= 500 and owner.beans < 500 or oldbeans >= 1000 and owner.beans < 1000:
+                # send mail to remind users of their beans if their beans decrease to 0,100,500 and 1000
+                data = {"to_address":owner.e_mail,"username":owner.username,"beans":owner.beans}
+                request_master("/beans/mail/",data)
+            try:
+                db.session.commit()
+            except Exception as err:
+                db.session.rollback()
+                logger.warning(traceback.format_exc())
+                logger.warning(err)
             #logger.info("Billing User:"+str(owner))
             if owner.beans <= 0:
+                # stop all vcluster of the user if his beans are equal to or lower than 0.
                 logger.info("The beans of User(" + str(owner) + ") are less than or equal to zero, the container("+vnode_name+") will be stopped.")
-                token = owner.generate_auth_token()
                 form = {'username':owner.username}
-                header = {'Content-Type':'application/x-www-form-urlencoded'}
-                http = Http()
-                [resp,content] = http.request("http://"+G_masterip+"/cluster/stopall/","POST",urlencode(form),headers = header)
-                logger.info("response from master:"+content.decode('utf-8'))
+                request_master("/cluster/stopall/",form)
+        return billingval
 
+    # the main function to collect monitoring data of a container
     def collect_containerinfo(self,container_name):
         global workerinfo
         global workercinfo
@@ -149,6 +249,7 @@ class Container_Collector(threading.Thread):
         global pid2name
         global laststopcpuval
         global laststopruntime
+        # collect basic information, such as running time,state,pid,ip,name
         output = subprocess.check_output("sudo lxc-info -n %s" % (container_name),shell=True)
         output = output.decode('utf-8')
         parts = re.split('\n',output)
@@ -160,6 +261,8 @@ class Container_Collector(threading.Thread):
         else:
             basic_info['RunningTime'] = 0
             basic_info['billing'] = 0
+        if 'billing_this_hour' not in basic_info.keys():
+            basic_info['billing_this_hour'] = 0
         for part in parts:
             if not part == '':
                 key_val = re.split(':',part)
@@ -184,10 +287,12 @@ class Container_Collector(threading.Thread):
         basic_info['RunningTime'] = running_time
         workercinfo[container_name]['basic_info'] = basic_info
 
+        # deal with cpu used value
         cpu_parts = re.split(' +',info['CPU use'])
         cpu_val = float(cpu_parts[0].strip())
         cpu_unit = cpu_parts[1].strip()
         if not container_name in self.cpu_last.keys():
+            # read quota from config of container
             confpath = "/var/lib/lxc/%s/config"%(container_name)
             if os.path.exists(confpath):
                 confile = open(confpath,'r')
@@ -197,8 +302,10 @@ class Container_Collector(threading.Thread):
                     words = re.split('=',line)
                     key = words[0].strip()
                     if key == "lxc.cgroup.memory.limit_in_bytes":
+                        # get memory quota, change unit to KB
                         self.mem_quota[container_name] = float(words[1].strip().strip("M"))*1000000/1024
                     elif key == "lxc.cgroup.cpu.cfs_quota_us":
+                        # get cpu quota, change unit to cores
                         tmp = int(words[1].strip())
                         if tmp < 0:
                             self.cpu_quota[container_name] = self.cores_num
@@ -210,7 +317,8 @@ class Container_Collector(threading.Thread):
             else:
                 logger.error("Cant't find config file %s"%(confpath))
                 return False
-            self.cpu_last[container_name] = 0 
+            self.cpu_last[container_name] = 0
+        # compute cpu used percent 
         cpu_use = {}
         lastval = 0
         try:
@@ -229,30 +337,38 @@ class Container_Collector(threading.Thread):
         workercinfo[container_name]['cpu_use'] = cpu_use
         
         if container_name not in increment.keys():
+            # initialize increment
             increment[container_name] = {}
             increment[container_name]['lastcputime'] = cpu_val
             increment[container_name]['memincrement'] = 0
-
+        
+        # deal with memory used data
         mem_parts = re.split(' +',info['Memory use'])
         mem_val = mem_parts[0].strip()
         mem_unit = mem_parts[1].strip()
         mem_use = {}
         mem_use['val'] = mem_val
         mem_use['unit'] = mem_unit
+        # change unit to KiB
         if(mem_unit == "MiB"):
-            mem_val = float(mem_val) * 1024
             increment[container_name]['memincrement'] += float(mem_val)
+            mem_val = float(mem_val) * 1024
         elif (mem_unit == "GiB"):
-            mem_val = float(mem_val) * 1024 * 1024
             increment[container_name]['memincrement'] += float(mem_val)*1024
+            mem_val = float(mem_val) * 1024 * 1024
+        # compute used percent
         mem_usedp = float(mem_val) / self.mem_quota[container_name]
         mem_use['usedp'] = mem_usedp
         workercinfo[container_name]['mem_use'] = mem_use
+        # compute billing value during this running hour up to now
+        workercinfo[container_name]['basic_info']['billing_this_hour'] = self.billing_increment(container_name,False)
         
+         
         if not container_name in lastbillingtime.keys():
             lastbillingtime[container_name] = int(running_time/self.billingtime)
         lasttime = lastbillingtime[container_name]
         #logger.info(lasttime)
+        # process real billing if running time reach an hour
         if not int(running_time/self.billingtime) == lasttime:
             #logger.info("billing:"+str(float(cpu_val)))
             lastbillingtime[container_name] = int(running_time/self.billingtime)
@@ -261,6 +377,7 @@ class Container_Collector(threading.Thread):
         #print(parts)
         return True
 
+    # run function in the thread
     def run(self):
         global workercinfo
         global workerinfo
@@ -270,6 +387,7 @@ class Container_Collector(threading.Thread):
             countR = 0
             conlist = []
             for container in containers:
+                # collect data of each container
                 if not container == '':
                     conlist.append(container)
                     if not container in workercinfo.keys():
@@ -288,6 +406,7 @@ class Container_Collector(threading.Thread):
             workerinfo['containers'] = concnt
             time.sleep(self.interval)
             if cnt == 0:
+                # update containers list on the worker each 5 times
                 workerinfo['containerslist'] = conlist
             cnt = (cnt+1)%5
             if self.test:
@@ -297,7 +416,7 @@ class Container_Collector(threading.Thread):
     def stop(self):
         self.thread_stop = True
 
-
+# the class is to colect monitoring data of the worker
 class Collector(threading.Thread):
 
     def __init__(self,test=False):
@@ -309,6 +428,7 @@ class Collector(threading.Thread):
         workerinfo['concpupercent'] = {}
         return
 
+    # collect memory used information
     def collect_meminfo(self):
         meminfo = psutil.virtual_memory()
         memdict = {}
@@ -322,6 +442,7 @@ class Collector(threading.Thread):
         #print(memparts)
         return memdict
 
+    # collect cpu used information and processors information
     def collect_cpuinfo(self):
         cpuinfo = psutil.cpu_times_percent(interval=1,percpu=False)
         cpuset = {}
@@ -329,6 +450,7 @@ class Collector(threading.Thread):
         cpuset['system'] = cpuinfo.system
         cpuset['idle'] = cpuinfo.idle
         cpuset['iowait'] = cpuinfo.iowait
+        # get processors information from /proc/cpuinfo
         output = subprocess.check_output(["cat /proc/cpuinfo"],shell=True)
         output = output.decode('utf-8')
         parts = output.split('\n')
@@ -346,12 +468,14 @@ class Collector(threading.Thread):
                     info[idx][key] = val
         return [cpuset, info]
 
+    # collect disk used information
     def collect_diskinfo(self):
         global workercinfo
         parts = psutil.disk_partitions()
         setval = []
         devices = {}
         for part in parts:
+            # deal with each partition
             if not part.device in devices:
                 devices[part.device] = 1
                 diskval = {}
@@ -364,12 +488,13 @@ class Collector(threading.Thread):
                     diskval['free'] = usage.free
                     diskval['percent'] = usage.percent
                     if(part.mountpoint.startswith('/opt/docklet/local/volume')):
+                        # the mountpoint indicate that the data is the disk used information of a container
                         names = re.split('/',part.mountpoint)
                         container = names[len(names)-1]
                         if not container in workercinfo.keys():
                             workercinfo[container] = {}
                         workercinfo[container]['disk_use'] = diskval 
-                    setval.append(diskval)
+                    setval.append(diskval)  # make a list
                 except Exception as err:
                     logger.warning(traceback.format_exc())
                     logger.warning(err)
@@ -377,6 +502,7 @@ class Collector(threading.Thread):
         #print(diskparts)
         return setval
 
+    # collect operating system information
     def collect_osinfo(self):
         uname = platform.uname()
         osinfo = {}
@@ -389,41 +515,13 @@ class Collector(threading.Thread):
         osinfo['processor'] = uname.processor
         return osinfo
 
-    def collect_concpuinfo(self):
-        global workerinfo
-        global containerpids
-        global pid2name
-        l = len(containerpids)
-        if l == 0:
-            return
-        cmd = "sudo top -bn 1"
-        for pid in containerpids:
-            cmd = cmd + " -p " + pid
-        #child = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        #[stdout,errout] = child.communicate()
-        #logger.info(errout)
-        #logger.info(stdout)
-        output = ""
-        output = subprocess.check_output(cmd,shell=True)
-        output = output.decode('utf-8')
-        parts = re.split("\n",output)
-        concpupercent = workerinfo['concpupercent']
-        for line in parts[7:]:
-            if line == "":
-                continue
-            info = re.split(" +",line)
-            pid = info[1].strip()
-            cpupercent = float(info[9].strip())
-            name = pid2name[pid]
-            concpupercent[name] = cpupercent
-
+    # run function in the thread
     def run(self):
         global workerinfo
         workerinfo['osinfo'] = self.collect_osinfo()
         while not self.thread_stop:
             workerinfo['meminfo'] = self.collect_meminfo()
             [cpuinfo,cpuconfig] = self.collect_cpuinfo()
-            #self.collect_concpuinfo()
             workerinfo['cpuinfo'] = cpuinfo
             workerinfo['cpuconfig'] = cpuconfig
             workerinfo['diskinfo'] = self.collect_diskinfo()
@@ -437,17 +535,21 @@ class Collector(threading.Thread):
     def stop(self):
         self.thread_stop = True
 
+# the function used by rpc to fetch data from worker
 def workerFetchInfo(master_ip):
     global workerinfo
     global workercinfo
     global G_masterip
+    # tell the worker the ip address of the master
     G_masterip = master_ip
     return str([workerinfo, workercinfo])
 
+# get owner name of a container
 def get_owner(container_name):
     names = container_name.split('-')
     return names[0]
 
+# the thread to collect data from each worker and store them in monitor_hosts and monitor_vnodes
 class Master_Collector(threading.Thread):
 
     def __init__(self,nodemgr,master_ip):
@@ -467,8 +569,10 @@ class Master_Collector(threading.Thread):
             for worker in workers:
                 try:
                     ip = self.nodemgr.rpc_to_ip(worker)
+                    # fetch data
                     info = list(eval(worker.workerFetchInfo(self.master_ip)))
                     #logger.info(info[0])
+                    # store data in monitor_hosts and monitor_vnodes
                     monitor_hosts[ip] = info[0]
                     for container in info[1].keys():
                         owner = get_owner(container)
@@ -487,6 +591,7 @@ class Master_Collector(threading.Thread):
         self.thread_stop = True
         return
 
+# master use this class to fetch specific data of containers(vnodes)
 class Container_Fetcher:
     def __init__(self,container_name):
         self.owner = get_owner(container_name)
@@ -535,6 +640,7 @@ class Container_Fetcher:
             res = {}
         return res
 
+# Master use this class to fetch specific data of physical machines(hosts)
 class Fetcher:
 
     def __init__(self,host):
@@ -635,6 +741,7 @@ class Fetcher:
             res = {}
         return res
 
+# To record data when the status of containers change
 class History_Manager:
     
     def __init__(self):
@@ -647,6 +754,8 @@ class History_Manager:
     def getAll(self):
         return History.query.all()
     
+    # log to the database, it will record runnint time, cpu time, billing val and action
+    # action may be 'Create', 'Stop', 'Start', 'Recover', 'Delete'
     def log(self,vnode_name,action):
         global workercinfo
         global laststopcpuval
@@ -692,6 +801,7 @@ class History_Manager:
             res = History.query.filter_by(vnode=vnode_name).all()
             return list(eval(str(res)))
 
+    # get all created containers(including those have been deleted) of a owner
     def getCreatedVNodes(self,owner):
         vnodes = VNode.query.filter(VNode.name.startswith(owner)).all()
         res = []

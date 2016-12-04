@@ -107,18 +107,29 @@ def send_remind_activating_email(username):
                <br/><br/>
                <p> Docklet Team, SEI, PKU</p>
             ''' % (username, env.getenv("PORTAL_URL"), env.getenv("PORTAL_URL"))
-    text += '<p>'+  str(datetime.now()) + '</p>'
+    text += '<p>'+  str(datetime.utcnow()) + '</p>'
     text += '</html>'
     subject = 'An activating request in Docklet has been sent'
+    if admin_email_address[0] == '"':
+        admins_addr = admin_email_address[1:-1].split(" ")
+    else:
+        admins_addr = admin_email_address.split(" ")
+    alladdr=""
+    for addr in admins_addr:
+        alladdr = alladdr+addr+", "
+    alladdr=alladdr[:-2]
     msg = MIMEMultipart()
     textmsg = MIMEText(text,'html','utf-8')
     msg['Subject'] = Header(subject, 'utf-8')
     msg['From'] = email_from_address
-    msg['To'] = admin_email_address
+    msg['To'] = alladdr 
     msg.attach(textmsg)
     s = smtplib.SMTP()
     s.connect()
-    s.sendmail(email_from_address, admin_email_address, msg.as_string())
+    try:
+        s.sendmail(email_from_address, admins_addr, msg.as_string())
+    except Exception as e:
+        logger.error(e)
     s.close()
 
 
