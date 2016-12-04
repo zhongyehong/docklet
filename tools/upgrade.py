@@ -3,6 +3,7 @@
 import os, json, sys
 sys.path.append("../src/")
 from model import db, User
+from lvmtool import sys_run
 fspath="/opt/docklet"
 
 def update_quotainfo():
@@ -149,8 +150,38 @@ def enable_gluster_quota():
         nfspath = "/users/%s/data" % user.username
         sys_run("gluster volume quota %s limit-usage %s %sGB" % (volume_name,nfspath,nfs_quota))
 
+def update_image():
+    private_imagepath = fspath + "/global/images/private/"
+    public_imagepath = fspath + "/global/images/public/"
+    userdirs = os.listdir(private_imagepath)
+    for userdir in userdirs:
+        if os.path.isdir(private_imagepath+userdir+"/"):
+            currentdir = private_imagepath+userdir+"/"
+            images = os.listdir(currentdir)
+            for image in images:
+                if os.path.isdir(currentdir+image+"/"):
+                    try:
+                        sys_run("tar -zcvf %s -C %s ." % (currentdir+image+".tgz",currentdir+image))
+                        #sys_run("rm -rf %s" % currentdir+image)
+                    except Exception as e:
+                        print(e)
+    userdirs = os.listdir(public_imagepath)
+    for userdir in userdirs:
+        if os.path.isdir(public_imagepath+userdir+"/"):
+            currentdir = public_imagepath+userdir+"/"
+            images = os.listdir(currentdir)
+            for image in images:
+                if os.path.isdir(currentdir+image+"/"):
+                    try:
+                        sys_run("tar -zcvf %s -C %s ." % (currentdir+image+".tgz",currentdir+image))
+                        #sys_run("rm -rf %s" % currentdir+image)
+                    except Exception as e:
+                        print(e)
+
 if __name__ == '__main__':
-    update_quotainfo()
+#    update_quotainfo()
     if "fix-name-error" in sys.argv:
         name_error()
 #    enable_gluster_quota()
+    if "update-image" in sys.argv:
+        update_image()
