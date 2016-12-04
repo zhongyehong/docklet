@@ -140,3 +140,11 @@ class external_login_callbackView(normalView):
 class external_loginView(normalView):
     if (env.getenv('EXTERNAL_LOGIN') == 'True'):
         template_path = external_generate.html_path
+    
+    @classmethod
+    def post(self):
+        return render_template(self.template_path)
+
+    @classmethod
+    def get(self):
+        return self.post()
