@@ -111,7 +111,7 @@ class ImageMgr():
             #sys_run("rsync -a --delete --exclude=lost+found/ --exclude=root/nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (imgpath+imagename,self.dealpath(fspath)),True)
         except Exception as e:
             logger.error(e)
-        sys_run("rm -f %s" % tmppath+tmpimage)
+        #sys_run("rm -f %s" % tmppath+tmpimage)
 
         #self.sys_call("rsync -a --delete --exclude=nfs/ %s/ %s/" % (imgpath+image,self.dealpath(fspath)))
         #self.updatetime(imgpath,image)
