@@ -97,6 +97,7 @@ def send_activated_email(to_address, username):
     s.close()
 
 def send_remind_activating_email(username):
+    admin_email_address = env.getenv('ADMIN_EMAIL_ADDRESS')
     nulladdr = ['\'\'', '\"\"', '']
     if (email_from_address in nulladdr or admin_email_address in nulladdr):
         return
