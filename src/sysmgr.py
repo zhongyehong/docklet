@@ -112,6 +112,7 @@ class SystemManager():
         for line in lines:
             configFile.write(line)
         configFile.close()
+        os.environ[parm] = val
         return [True, ""]
 
     def clear(self, field, parm):

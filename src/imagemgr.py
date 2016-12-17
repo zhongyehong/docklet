@@ -63,8 +63,8 @@ class ImageMgr():
     def createImage(self,user,image,lxc,description="Not thing", imagenum=10):
         fspath = self.NFS_PREFIX + "/local/volume/" + lxc
         imgpath = self.imgpath + "private/" + user + "/"
-        tmppath = self.NFS_PREFIX + "/local/tmpimg/"
-        tmpimage = str(random.randint(0,10000000)) + ".tgz"
+        #tmppath = self.NFS_PREFIX + "/local/tmpimg/"
+        #tmpimage = str(random.randint(0,10000000)) + ".tz"
 
         if not os.path.exists(imgpath+image) and os.path.exists(imgpath):
             cur_imagenum = 0
@@ -73,18 +73,18 @@ class ImageMgr():
                     cur_imagenum += 1
             if cur_imagenum >= int(imagenum):
                 return [False,"image number limit exceeded"]
-        sys_run("mkdir -p %s" % tmppath, True)
+        #sys_run("mkdir -p %s" % tmppath, True)
         sys_run("mkdir -p %s" % imgpath,True)
         try:
-            sys_run("tar -zcvf %s -C %s ." % (tmppath+tmpimage,self.dealpath(fspath)), True)
+            sys_run("tar -cvf %s -C %s ." % (imgpath+image+".tz",self.dealpath(fspath)), True)
         except Exception as e:
             logger.error(e)
-        try: 
-            sys_run("cp %s %s" % (tmppath+tmpimage, imgpath+image+".tgz"), True)
+        #try: 
+            #sys_run("cp %s %s" % (tmppath+tmpimage, imgpath+image+".tz"), True)
             #sys_run("rsync -a --delete --exclude=lost+found/ --exclude=root/nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (self.dealpath(fspath),imgpath+image),True)
-        except Exception as e:
-            logger.error(e)
-        sys_run("rm -f %s" % tmppath+tmpimage, True)    
+        #except Exception as e:
+        #    logger.error(e)
+        #sys_run("rm -f %s" % tmppath+tmpimage, True)    
         #sys_run("rm -f %s" % (imgpath+"."+image+"_docklet_share"),True)
         self.updateinfo(imgpath,image,description)
         logger.info("image:%s from LXC:%s create success" % (image,lxc))
@@ -94,24 +94,24 @@ class ImageMgr():
         imagename = image['name']
         imagetype = image['type']
         imageowner = image['owner']
-        tmppath = self.NFS_PREFIX + "/local/tmpimg/"
-        tmpimage = str(random.randint(0,10000000)) + ".tgz"
+        #tmppath = self.NFS_PREFIX + "/local/tmpimg/"
+        #tmpimage = str(random.randint(0,10000000)) + ".tz"
         if imagename == "base" and imagetype == "base":
             return
         if imagetype == "private":
             imgpath = self.imgpath + "private/" + user + "/"
         else:
             imgpath = self.imgpath + "public/" + imageowner + "/"
+        #try:
+        #    sys_run("cp %s %s" % (imgpath+imagename+".tz", tmppath+tmpimage))
+        #except Exception as e:
+        #    logger.error(e)
         try:
-            sys_run("cp %s %s" % (imgpath+imagename+".tgz", tmppath+tmpimage))
-        except Exception as e:
-            logger.error(e)
-        try:
-            sys_run("tar -C %s -zxvf %s" % (self.dealpath(fspath),tmppath+tmpimage), True)
+            sys_run("tar -C %s -xvf %s" % (self.dealpath(fspath),imgpath+imagename+".tz"), True)
             #sys_run("rsync -a --delete --exclude=lost+found/ --exclude=root/nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (imgpath+imagename,self.dealpath(fspath)),True)
         except Exception as e:
             logger.error(e)
-        sys_run("rm -f %s" % tmppath+tmpimage)
+        #sys_run("rm -f %s" % tmppath+tmpimage)
 
         #self.sys_call("rsync -a --delete --exclude=nfs/ %s/ %s/" % (imgpath+image,self.dealpath(fspath)))
         #self.updatetime(imgpath,image)
@@ -210,7 +210,7 @@ class ImageMgr():
     def removeImage(self,user,image):
         imgpath = self.imgpath + "private/" + user + "/"
         try:
-            sys_run("rm -rf %s/" % imgpath+image+".tgz", True)
+            sys_run("rm -rf %s/" % imgpath+image+".tz", True)
             sys_run("rm -f %s" % imgpath+"."+image+".info", True)
             sys_run("rm -f %s" % (imgpath+"."+image+".description"), True)
         except Exception as e:
@@ -228,7 +228,7 @@ class ImageMgr():
         image_info_file.close()
         sys_run("mkdir -p %s" % share_imgpath, True)
         try:
-            sys_run("cp %s %s" % (imgpath+image+".tgz", share_imgpath+image+".tgz"), True)
+            sys_run("cp %s %s" % (imgpath+image+".tz", share_imgpath+image+".tz"), True)
             #sys_run("rsync -a --delete %s/ %s/" % (imgpath+image,share_imgpath+image), True)
         except Exception as e:
             logger.error(e)
@@ -240,7 +240,7 @@ class ImageMgr():
     def unshareImage(self,user,image):
         public_imgpath = self.imgpath + "public/" + user + "/"
         imgpath = self.imgpath + "private/" + user + "/"
-        if os.path.isfile(imgpath + image + ".tgz"):
+        if os.path.isfile(imgpath + image + ".tz"):
             image_info_file = open(imgpath+"."+image+".info", 'r')
             [createtime, isshare] = image_info_file.readlines()
             isshare = "unshare"
@@ -250,7 +250,7 @@ class ImageMgr():
             image_info_file.close()
         try:
             #sys_run("rm -rf %s/" % public_imgpath+image, True)
-            sys_run("rm -f %s" % public_imgpath+image+".tgz", True)
+            sys_run("rm -f %s" % public_imgpath+image+".tz", True)
             sys_run("rm -f %s" % public_imgpath+"."+image+".info", True)
             sys_run("rm -f %s" % public_imgpath+"."+image+".description", True)
         except Exception as e:
@@ -294,18 +294,16 @@ class ImageMgr():
         imgpath = self.imgpath + "private/root/"
         basefs = self.NFS_PREFIX+"/local/basefs/"
         tmppath = self.NFS_PREFIX + "/local/tmpimg/"
-        tmpimage = str(random.randint(0,10000000)) + ".tgz"
+        tmpimage = str(random.randint(0,10000000))
         try:
-            sys_run("cp %s %s" % (imgpath+image+".tgz",tmppath+tmpimage))
-            sys_run("mkdir -p %s" % tmppath+tmpimage[:-4])
-            sys_run("tar -C %s -zxvf %s" % (tmppath+tmpimage[:-4],tmppath+tmpimage),True)
+            sys_run("mkdir -p %s" % tmppath+tmpimage)
+            sys_run("tar -C %s -xvf %s" % (tmppath+tmpimage,imgpath+image+".tz"),True)
             logger.info("start updating base image")
-            updatebase.aufs_update_base(tmppath+tmpimage[:-4], basefs)
+            updatebase.aufs_update_base(tmppath+tmpimage, basefs)
             logger.info("update base image success")
         except Exception as e:
             logger.error(e)
-        sys_run("rm -f %s" % tmppath+tmpimage)
-        sys_run("rm -rf %s" % tmppath+tmpimage[:-4])
+        sys_run("rm -rf %s" % tmppath+tmpimage)
         return True
     
     def update_base_image(self, user, vclustermgr, image):
@@ -358,9 +356,9 @@ class ImageMgr():
             Ret = sys_run("ls %s" % imgpath, True)
             private_images = str(Ret.stdout,"utf-8").split()
             for image in private_images:
-                if not image[-4:] == '.tgz':
+                if not image[-3:] == '.tz':
                     continue
-                imagename = image[:-4]
+                imagename = image[:-3]
                 fimage={}
                 fimage["name"] = imagename
                 fimage["isshared"] = self.isshared(user,imagename)
@@ -382,9 +380,9 @@ class ImageMgr():
                     public_images = str(Ret.stdout,"utf-8").split()
                     images["public"][public_user] = []
                     for image in public_images:
-                        if not image[-4:] == '.tgz':
+                        if not image[-3:] == '.tz':
                             continue
-                        imagename = image[:-4]
+                        imagename = image[:-3]
                         fimage = {}
                         fimage["name"] = imagename
                         [time, description] = self.get_image_info(public_user, imagename, "public")
