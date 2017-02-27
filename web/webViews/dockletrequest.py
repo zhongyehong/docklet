@@ -3,6 +3,7 @@ from flask import abort, session
 from webViews.log import logger
 import os,sys,inspect
 
+
 this_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe    ()))[0]))
 src_folder = os.path.realpath(os.path.abspath(os.path.join(this_folder,"../..", "src")))
 if src_folder not in sys.path:
@@ -51,11 +52,14 @@ class dockletRequest():
         if (result.get('Unauthorized', None) == 'True'):
             session['401'] = 'Token Expired'
             abort(401)
-        logger.info ("Docklet Response: user = %s result = %s, url = %s"%(session['username'], result, url))
+        logstr = "Docklet Response: user = %s result = %s, url = %s" % (session['username'], result, url)
+        if (sys.getsizeof(logstr) > 512):
+            logstr = "Docklet Response: user = %s, url = %s"%(session['username'], url)
+        logger.info(logstr)
         return result
         #except:
             #abort(500)
-    
+
     @classmethod
     def post_to_all(self, url = '/', data={}):
         if (url == '/'):

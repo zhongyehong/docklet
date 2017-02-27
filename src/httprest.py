@@ -24,6 +24,8 @@ import http.server, cgi, json, sys, shutil
 import xmlrpc.client
 from socketserver import ThreadingMixIn
 import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr
+from settings import settings
+from logs import logs
 import userManager,beansapplicationmgr
 import monitor,traceback
 import threading
@@ -108,6 +110,30 @@ def beans_check(func):
 @login_required
 def isalive(user, beans, form):
     return json.dumps({'success':'true'})
+
+@app.route("/settings/list/", methods=['POST'])
+@login_required
+def settings_list(cur_user, user, form):
+    return json.dumps(settings.list(cur_user = cur_user))
+
+@app.route("/settings/update/", methods=['POST'])
+@login_required
+def settings_update(cur_user, user, form):
+    newSetting = {}
+    newSetting['ADMIN_EMAIL_ADDRESS'] = form.get('ADMIN_EMAIL_ADDRESS', '')
+    newSetting['EMAIL_FROM_ADDRESS'] = form.get('EMAIL_FROM_ADDRESS', '')
+    return json.dumps(settings.update(cur_user = cur_user, newSetting = newSetting))
+
+@app.route("/logs/list/", methods=['POST'])
+@login_required
+def logs_list(cur_user, user, form):
+    return json.dumps(logs.list(cur_user = cur_user))
+
+@app.route("/logs/get/", methods=['POST'])
+@login_required
+def logs_get(cur_user, user, form):
+    return json.dumps(logs.get(cur_user = cur_user, filename = form.get('filename', '')))
+
 
 @app.route("/cluster/create/", methods=['POST'])
 @login_required
