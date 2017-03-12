@@ -14,8 +14,9 @@ import proxytool
 ##################################################
 
 class VclusterMgr(object):
-    def __init__(self, nodemgr, networkmgr, etcdclient, addr, mode):
+    def __init__(self, nodemgr, networkmgr, etcdclient, addr, mode, distributedgw='False'):
         self.mode = mode
+        self.distributedgw = distributedgw
         self.nodemgr = nodemgr
         self.imgmgr = imagemgr.ImageMgr()
         self.networkmgr = networkmgr
@@ -109,6 +110,10 @@ class VclusterMgr(object):
         containers = []
         for i in range(0, clustersize):
             onework = workers[random.randint(0, len(workers)-1)]
+            if i == 0 and not self.networkmgr.has_usrgw(username):
+                [success,message] = self.networkmgr.setup_usrgw(username, self.nodemgr, onework)
+                if not success:
+                    return [False, message]
             lxc_name = username + "-" + str(clusterid) + "-" + str(i)
             hostname = "host-"+str(i)
             logger.info ("create container with : name-%s, username-%s, clustername-%s, clusterid-%s, hostname-%s, ip-%s, gateway-%s, image-%s" % (lxc_name, username, clustername, str(clusterid), hostname, ips[i], gateway, image_json))
@@ -282,6 +287,7 @@ class VclusterMgr(object):
         [status, clusters] = self.list_clusters(username)
         if len(clusters) == 0:
             self.networkmgr.del_user(username, isshared = True if str(groupname) == "fundation" else False)
+            self.networkmgr.del_usrgw(username, self.nodemgr)
             logger.info("vlanid release triggered")
         
         return [True, "cluster delete"]

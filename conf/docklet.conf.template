@@ -145,3 +145,6 @@
 # default: "gluster volume quota docklet-volume limit-usage %s %s"
 # DATA_QUOTA_CMD="gluster volume quota docklet-volume limit-usage %s %s"
 
+# DISTRIBUTED_GATEWAY : whether the users' gateways are distributed or not
+# True or False, default: False
+# DISTRIBUTED_GATEWAY=False

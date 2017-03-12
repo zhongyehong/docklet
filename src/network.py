@@ -290,6 +290,7 @@ class NetworkMgr(object):
             # maybe for system, the last IP address of CIDR is available
             # But, EnumPool drop the last IP address in its pool -- it is not important
             self.system = EnumPool(sysaddr+"/"+str(syscidr))
+            self.usrgws = {}
             self.users = {}
             self.vlanids = {}
             self.init_vlanids(4095, 60)
@@ -300,6 +301,7 @@ class NetworkMgr(object):
             logger.info("init network manager from etcd")
             self.center = None
             self.system = None
+            self.usrgws = {}
             self.users = {}
             self.vlanids = {}
             self.load_center()
@@ -435,6 +437,29 @@ class NetworkMgr(object):
             self.dump_vlanids()
         return [True, "Release VLAN ID success"]
 
+    def has_usrgw(self, username):
+        return username in self.usrgws.keys()
+
+    def setup_usrgw(self, username, nodemgr, worker=None):
+        if not self.has_user(username):
+            return [False,"user doesn't exist."]
+        if username in self.usrgws.keys():
+            return [False,"user's gateway has been set up."]
+        self.load_user(username)
+        usrpools = self.users[username]
+        if(worker is not None):
+            ip = nodemgr.rpc_to_ip(worker)
+            logger.info("setup gateway for %s with %s and vlan=%s on %s" % (username, usrpools.get_gateway_cidr(), str(usrpools.vlanid), ip))
+            self.usrgws[username] = ip
+            worker.setup_gw('docklet-br', username, usrpools.get_gateway_cidr(), str(usrpools.vlanid))
+        else:
+            logger.info("setup gateway for %s with %s and vlan=%s on master" % (username, usrpools.get_gateway_cidr(), str(usrpools.vlanid)))
+            self.usrgws[username] = "m"
+            netcontrol.setup_gw('docklet-br', username, self.usrpools.get_gateway_cidr(), str(usrpools.vlanid))
+        self.dump_user(username)
+        del self.users[username]
+        return [True, "set up gateway success"]
+
     def add_user(self, username, cidr, isshared = False):
         logger.info ("add user %s with cidr=%s" % (username, str(cidr)))
         if self.has_user(username):
@@ -451,11 +476,23 @@ class NetworkMgr(object):
             self.dump_center()
             return [False, vlanid]
         self.users[username] = UserPool(addr_cidr = result+"/"+str(cidr), vlanid=vlanid)
-        logger.info("setup gateway for %s with %s and vlan=%s" % (username, self.users[username].get_gateway_cidr(), str(vlanid)))
-        netcontrol.setup_gw('docklet-br', username, self.users[username].get_gateway_cidr(), str(vlanid))
+        #logger.info("setup gateway for %s with %s and vlan=%s" % (username, self.users[username].get_gateway_cidr(), str(vlanid)))
+        #netcontrol.setup_gw('docklet-br', username, self.users[username].get_gateway_cidr(), str(vlanid))
         self.dump_user(username)
         del self.users[username]
         return [True, 'add user success']
+
+    def del_usrgw(self, username, nodemgr):
+        if username not in self.usrgws.keys():
+            return [False, "user does't have gateway or user doesn't exist."]
+        ip = self.usrgws[username]
+        if ip == 'm':
+            netcontrol.del_gw('docklet-br', username)
+        else:
+            worker = nodemgr.ip_to_rpc(ip)
+            worker.del_gw('docklet-br', username)
+        del self.usrgws[username]
+        return [True, 'delete user\' gateway success']
 
     def del_user(self, username, isshared = False):
         if not self.has_user(username):
@@ -467,7 +504,7 @@ class NetworkMgr(object):
         self.dump_center()
         if not isshared:
             self.release_vlanid(self.users[username].vlanid)
-        netcontrol.del_gw('docklet-br', username)
+        #netcontrol.del_gw('docklet-br', username)
         self.etcd.deldir("network/users/"+username)
         del self.users[username]
         return [True, 'delete user success']

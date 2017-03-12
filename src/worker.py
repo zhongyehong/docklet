@@ -125,6 +125,8 @@ class Worker(object):
         self.rpcserver.register_introspection_functions()
         self.rpcserver.register_instance(Containers)
         self.rpcserver.register_function(monitor.workerFetchInfo)
+        self.rpcserver.register_function(netcontrol.setup_gw)
+        self.rpcserver.register_function(netcontrol.del_gw)
         # register functions or instances to server for rpc
         #self.rpcserver.register_function(function_name)
 

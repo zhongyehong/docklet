@@ -1071,7 +1071,8 @@ if __name__ == '__main__':
     # start NodeMgr and NodeMgr will wait for all nodes to start ...
     G_nodemgr = nodemgr.NodeMgr(G_networkmgr, etcdclient, addr = ipaddr, mode=mode)
     logger.info("nodemgr started")
-    G_vclustermgr = vclustermgr.VclusterMgr(G_nodemgr, G_networkmgr, etcdclient, ipaddr, mode)
+    distributedgw = env.getenv("DISTRIBUTED_GATEWAY")
+    G_vclustermgr = vclustermgr.VclusterMgr(G_nodemgr, G_networkmgr, etcdclient, ipaddr, mode, distributedgw)
     logger.info("vclustermgr started")
     G_imagemgr = imagemgr.ImageMgr()
     logger.info("imagemgr started")
