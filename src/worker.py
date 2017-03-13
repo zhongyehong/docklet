@@ -127,6 +127,7 @@ class Worker(object):
         self.rpcserver.register_function(monitor.workerFetchInfo)
         self.rpcserver.register_function(netcontrol.setup_gw)
         self.rpcserver.register_function(netcontrol.del_gw)
+        self.rpcserver.register_function(netcontrol.check_gw)
         # register functions or instances to server for rpc
         #self.rpcserver.register_function(function_name)
 

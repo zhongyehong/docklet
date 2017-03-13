@@ -344,7 +344,7 @@ class VclusterMgr(object):
         # check gateway for user
         # after reboot, user gateway goes down and lose its configuration
         # so, check is necessary
-        self.networkmgr.check_usergw(username)
+        self.networkmgr.check_usergw(username, self.nodemgr)
         # set proxy 
         try:
             target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000" 
@@ -378,7 +378,7 @@ class VclusterMgr(object):
         if info['status'] == 'stopped':
             return [True, "cluster no need to start"]
         # need to check and recover gateway of this user
-        self.networkmgr.check_usergw(username)
+        self.networkmgr.check_usergw(username, self.nodemgr)
         # recover proxy of cluster
         try:
             target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000" 

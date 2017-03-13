@@ -509,9 +509,16 @@ class NetworkMgr(object):
         del self.users[username]
         return [True, 'delete user success']
 
-    def check_usergw(self, username):
+    def check_usergw(self, username, nodemgr):
+        if username not in self.usrgws.keys():
+            return [False, 'user does not exist.']
+        ip = self.usrgws[username]
         self.load_user(username)
-        netcontrol.check_gw('docklet-br', username, self.users[username].get_gateway_cidr(), str(self.users[username].vlanid))
+        if ip == 'm':
+            netcontrol.check_gw('docklet-br', username, self.users[username].get_gateway_cidr(), str(self.users[username].vlanid))
+        else:
+            worker = nodemgr.ip_to_rpc(ip)
+            worker.check_gw('docklet-br', username, self.users[username].get_gateway_cidr(), str(self.users[username].vlanid))
         del self.users[username]
         return [True, 'check gw ok']
 
