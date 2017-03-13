@@ -12,6 +12,17 @@ if [[ "`whoami`" != "root" ]]; then
 	exit 1
 fi
 
+# install packages that docklet needs (in ubuntu)
+# some packages' name maybe different in debian
+apt-get install -y cgmanager lxc lxcfs lxc-templates lvm2 bridge-utils curl exim4 openssh-server openvswitch-switch 
+apt-get install -y python3 python3-netifaces python3-flask python3-flask-sqlalchemy python3-pampy python3-httplib2
+apt-get install -y python3-psutil
+apt-get install -y python3-lxc
+apt-get install -y python3-requests python3-suds
+apt-get install -y nodejs nodejs-legacy npm
+apt-get install -y etcd
+apt-get install -y glusterfs-client
+
 # check cgroup control
 which cgm &> /dev/null || { echo "FAILED : cgmanager is required, please install cgmanager" && exit 1; }
 cpucontrol=$(cgm listkeys cpu)
@@ -25,15 +36,6 @@ if [[ -z $(echo $memcontrol | grep limit_in_bytes) ]]; then
 	exit 1
 fi
 
-# install packages that docklet needs (in ubuntu)
-# some packages' name maybe different in debian
-apt-get install -y cgmanager lxc lxcfs lxc-templates lvm2 bridge-utils curl exim4 openssh-server openvswitch-switch 
-apt-get install -y python3 python3-netifaces python3-flask python3-flask-sqlalchemy python3-pampy python3-httplib2
-apt-get install -y python3-psutil
-apt-get install -y python3-lxc
-apt-get install -y python3-requests python3-suds
-apt-get install -y nodejs nodejs-legacy npm
-apt-get install -y etcd
 
 # check and install configurable-http-proxy
 which configurable-http-proxy &>/dev/null || npm install -g configurable-http-proxy
@@ -42,6 +44,10 @@ which configurable-http-proxy &>/dev/null || { echo "Error: install configurable
 echo ""
 [[ -f conf/docklet.conf ]] || { echo "Generating docklet.conf from template" && cp conf/docklet.conf.template conf/docklet.conf; }
 [[ -f web/templates/home.html ]] || { echo "Generating HomePage from home.template" && cp web/templates/home.template web/templates/home.html; }
+
+mkdir -p /opt/docklet/global
+mkdir -p /opt/docklet/local
+echo "directory /opt/docklet have been created"
 
 echo ""
 echo "All preparation installations are done."
@@ -54,7 +60,7 @@ echo "Before staring : you need a basefs image. "
 echo "basefs images are provided at: "
 echo "  http://docklet.unias.org/download"
 echo "please download it to FS_PREFIX/local and then extract it. (defalut FS_PRERIX is /opt/docklet)"
-echo "you will get a dicectory structure like"
+echo "you will get a directory structure like"
 echo "  /opt/docklet/local/basefs/etc "
 echo "  /opt/docklet/local/basefs/bin "
 echo "  /opt/docklet/local/basefs/..."
