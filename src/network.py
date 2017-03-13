@@ -455,7 +455,7 @@ class NetworkMgr(object):
         else:
             logger.info("setup gateway for %s with %s and vlan=%s on master" % (username, usrpools.get_gateway_cidr(), str(usrpools.vlanid)))
             self.usrgws[username] = "m"
-            netcontrol.setup_gw('docklet-br', username, self.usrpools.get_gateway_cidr(), str(usrpools.vlanid))
+            netcontrol.setup_gw('docklet-br', username, usrpools.get_gateway_cidr(), str(usrpools.vlanid))
         self.dump_user(username)
         del self.users[username]
         return [True, "set up gateway success"]

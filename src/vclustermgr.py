@@ -94,6 +94,10 @@ class VclusterMgr(object):
         # check user IP pool status, should be moved to user init later
         if not self.networkmgr.has_user(username):
             self.networkmgr.add_user(username, cidr=29, isshared = True if str(groupname) == "fundation" else False)
+            if self.distributedgw == "False":
+                [success,message] = self.networkmgr.setup_usrgw(username, self.nodemgr)
+                if not success:
+                    return [False, message]
         [status, result] = self.networkmgr.acquire_userips_cidr(username, clustersize)
         gateway = self.networkmgr.get_usergw(username)
         vlanid = self.networkmgr.get_uservlanid(username)
@@ -110,7 +114,7 @@ class VclusterMgr(object):
         containers = []
         for i in range(0, clustersize):
             onework = workers[random.randint(0, len(workers)-1)]
-            if i == 0 and not self.networkmgr.has_usrgw(username):
+            if self.distributedgw == "True" and i == 0 and not self.networkmgr.has_usrgw(username):
                 [success,message] = self.networkmgr.setup_usrgw(username, self.nodemgr, onework)
                 if not success:
                     return [False, message]
