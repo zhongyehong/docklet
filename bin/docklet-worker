@@ -1,4 +1,4 @@
-#!/bin/sh 
+#!/bin/sh
 
 [ $(id -u) != '0' ] && echo "root is needed" && exit 1
 
@@ -20,6 +20,10 @@ FS_PREFIX=/opt/docklet
 
 # cluster net ip range,  default is 172.16.0.1/16
 CLUSTER_NET="172.16.0.1/16"
+#configurable-http-proxy public port, default is 8000
+PROXY_PORT=8000
+#configurable-http-proxy api port, default is 8001
+PROXY_API_PORT=8001
 
 RUN_DIR=$FS_PREFIX/local/run
 LOG_DIR=$FS_PREFIX/local/log
@@ -37,6 +41,12 @@ DAEMON_NAME=docklet-worker
 DAEMON_OPTS=
 # The process ID of the script when it runs is stored here:
 PIDFILE=$RUN_DIR/$DAEMON_NAME.pid
+
+# settings for docklet proxy, which is required for web access
+DAEMON_PROXY=`which configurable-http-proxy`
+DAEMON_NAME_PROXY=docklet-proxy
+PIDFILE_PROXY=$RUN_DIR/proxy.pid
+DAEMON_OPTS_PROXY=
 
 DOCKMETER_NAME=$DAEMON_NAME-metering
 DOCKMETER_PIDFILE=$RUN_DIR/$DOCKMETER_NAME.pid
@@ -87,9 +97,22 @@ do_start() {
     log_end_msg $?
 }
 
+do_start_proxy () {
+    log_daemon_msg "Starting $DAEMON_NAME_PROXY daemon in $FS_PREFIX"
+    DAEMON_OPTS_PROXY="--port $PROXY_PORT --api-port $PROXY_API_PORT --default-target=http://localhost:8888"
+    start-stop-daemon --start --background --pidfile $PIDFILE_PROXY --make-pidfile --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON_PROXY -- $DAEMON_OPTS_PROXY
+    log_end_msg $?
+}
+
 do_stop () {
     log_daemon_msg "Stopping $DAEMON_NAME daemon"
     start-stop-daemon --stop --quiet --oknodo --remove-pidfile --pidfile $PIDFILE --retry 10
+    log_end_msg $?
+}
+
+do_stop_proxy () {
+    log_daemon_msg "Stopping $DAEMON_NAME_PROXY daemon"
+    start-stop-daemon --stop --quiet --oknodo --remove-pidfile --pidfile $PIDFILE_PROXY --retry 10
     log_end_msg $?
 }
 
@@ -111,10 +134,12 @@ do_stop_meter() {
 case "$1" in
     start)
         do_start
+        do_start_proxy
         ;;
 
     stop)
         do_stop
+        do_stop_proxy
         ;;
     start-meter)
         do_start_meter
@@ -124,6 +149,14 @@ case "$1" in
         do_stop_meter
         ;;
 
+    start_proxy)
+        do_start_proxy
+        ;;
+
+    stop_proxy)
+        do_stop_proxy
+        ;;
+
     console)
         pre_start
         cprofilev $DAEMON $DAEMON_OPTS
@@ -131,11 +164,14 @@ case "$1" in
 
     restart)
         do_stop
+        do_stop_proxy
         do_start
+        do_start_proxy
         ;;
 
     status)
         status_of_proc -p $PIDFILE "$DAEMON" "$DAEMON_NAME" && exit 0 || exit $?
+        status_of_proc -p $PIDFILE_PROXY "$DAEMON_PROXY" "$DAEMON_NAME_PROXY" || status=$?
         ;;
     *)
         echo "Usage: $DAEMON_NAME {start|stop|restart|status}"
