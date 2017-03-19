@@ -544,24 +544,24 @@ class userManager:
             db.session.commit()
             usage = UserUsage.query.filter_by(username = cur_user.username).first()
         if int(modification['cpu']) <= 0 or int(modification['memory']) <= 0 or int(modification['disk']) <= 0:
-            return [False, "cpu,memory and disk setting cannot less than zero"]
+            return {'success':False, 'result':"cpu,memory and disk setting cannot less than zero"}
         cpu = int(usage.cpu) + int(modification['cpu'])
         memory = int(usage.memory) + int(modification['memory'])
         disk = int(usage.disk) + int(modification['disk'])
         if cpu > int(groupinfo['cpu']):
             logger.error("cpu quota exceed, user:%s" % cur_user.username)
-            return [False, "cpu quota exceed"]
+            return {'success':False, 'result':"cpu quota exceed"}
         if memory > int(groupinfo['memory']):
             logger.error("memory quota exceed, user:%s" % cur_user.username)
-            return [False, "memory quota exceed"]
+            return {'success':False, 'result':"memory quota exceed"}
         if disk > int(groupinfo['disk']):
             logger.error("disk quota exceed, user:%s" % cur_user.username)
-            return [False, "disk quota exceed"]
+            return {'success':False, 'result':"disk quota exceed"}
         usage.cpu = str(cpu)
         usage.memory = str(memory)
         usage.disk = str(disk)
         db.session.commit()
-        return [True, "distribute the resource"]
+        return {'success':True, 'result':"distribute the resource"}
 
     @token_required
     def usageRecover(self, *args, **kwargs):
@@ -592,7 +592,7 @@ class userManager:
         usage.memory = str(memory)
         usage.disk = str(disk)
         db.session.commit()
-        return True
+        return {'success':True}
 
     @token_required
     def usageRelease(self, *args, **kwargs):
@@ -647,7 +647,7 @@ class userManager:
         usage.memory = str(nowmemory)
         usage.disk = str(nowdisk)
         db.session.commit()
-        return True
+        return {'success':True}
 
     def initUsage(*args, **kwargs):
         """

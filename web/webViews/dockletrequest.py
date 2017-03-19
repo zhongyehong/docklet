@@ -4,6 +4,7 @@ from webViews.log import logger
 
 
 endpoint = "http://0.0.0.0:9000"
+user_endpoint = "http://0.0.0.0:9100"
 
 class dockletRequest():
 
@@ -13,8 +14,18 @@ class dockletRequest():
         data = dict(data)
         data['token'] = session['token']
         logger.info ("Docklet Request: user = %s data = %s, url = %s"%(session['username'], data, url))
-
-        result = requests.post(endpoint + url, data=data).json()
+        reqtype = url.split("/")[1]
+        userreq = {
+                'login',
+                'register',
+                'user',
+                'beans',
+                'notification'
+                }
+        if reqtype in userreq:
+            result = requests.post(user_endpoint + url, data=data).json()
+        else:
+            result = requests.post(endpoint + url, data=data).json()
         # logger.info('response content: %s'%response.content)
         # result = response.json()
         if (result.get('success', None) == "false" and result.get('reason', None) == "Unauthorized Action"):
@@ -32,6 +43,6 @@ class dockletRequest():
         data = dict(data)
         data_log = {'user': data.get('user', 'external')}
         logger.info("Docklet Unauthorized Request: data = %s, url = %s" % (data_log, url))
-        result = requests.post(endpoint + url, data = data).json()
+        result = requests.post(user_endpoint + url, data = data).json()
         logger.info("Docklet Unauthorized Response: result = %s, url = %s"%(result, url))
         return result
