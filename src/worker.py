@@ -132,11 +132,14 @@ class Worker(object):
         self.rpcserver.register_function(netcontrol.check_gw)
         self.rpcserver.register_function(proxytool.set_route)
         self.rpcserver.register_function(proxytool.delete_route)
+<<<<<<< b342a996b65eb0e33802eb93aa123deab2743fd9
 =======
 >>>>>>> Enable user gateway to be set up on the worker.
 =======
         self.rpcserver.register_function(netcontrol.check_gw)
 >>>>>>> check_gw by rpc
+=======
+>>>>>>> Set proxy route by rpc.
         # register functions or instances to server for rpc
         #self.rpcserver.register_function(function_name)
 
