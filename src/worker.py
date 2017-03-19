@@ -15,7 +15,7 @@ from socketserver import ThreadingMixIn
 import threading
 import etcdlib, network, container
 from nettools import netcontrol
-import monitor
+import monitor, proxytool
 from lvmtool import new_group, recover_group
 
 ##################################################################
@@ -27,7 +27,7 @@ from lvmtool import new_group, recover_group
 #      register rpc functions
 #      initialize network
 #      initialize lvm group
-# Start() : 
+# Start() :
 #      register in etcd
 #      setup GRE tunnel
 #      start rpc service
@@ -128,6 +128,8 @@ class Worker(object):
         self.rpcserver.register_function(netcontrol.setup_gw)
         self.rpcserver.register_function(netcontrol.del_gw)
         self.rpcserver.register_function(netcontrol.check_gw)
+        self.rpcserver.register_function(proxytool.set_route)
+        self.rpcserver.register_function(proxytool.delete_route)
         # register functions or instances to server for rpc
         #self.rpcserver.register_function(function_name)
 
@@ -142,7 +144,7 @@ class Worker(object):
             logger.info ("master also on this node. reuse master's network")
         else:
             logger.info ("initialize network")
-            # 'docklet-br' of worker do not need IP Addr. 
+            # 'docklet-br' of worker do not need IP Addr.
             #[status, result] = self.etcd.getkey("network/workbridge")
             #if not status:
             #    logger.error ("get bridge IP failed, please check whether master set bridge IP for worker")
@@ -189,7 +191,7 @@ class Worker(object):
             else:
                 logger.error("get key %s failed, master crashed or initialized. restart worker please." % self.addr)
                 sys.exit(1)
-    
+
 if __name__ == '__main__':
 
     etcdaddr = env.getenv("ETCD")
