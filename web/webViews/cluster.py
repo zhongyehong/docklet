@@ -26,7 +26,7 @@ class addClusterView(normalView):
         else:
             defaultcpu = str(restcpu)
 
-        if restmemory >= int(default['memory']): 
+        if restmemory >= int(default['memory']):
             defaultmemory = default['memory']
         elif restmemory <= 0:
             defaultmemory = "0"
@@ -111,6 +111,8 @@ class scaleoutView(normalView):
             return self.render(self.error_path, message = result.get('message'))
 
 class scaleinView(normalView):
+    error_path = "error.html"
+
     @classmethod
     def get(self):
         data = {
@@ -118,10 +120,10 @@ class scaleinView(normalView):
             "containername":self.containername
         }
         result = dockletRequest.post("/cluster/scalein/", data)
-        if(result):
+        if(result.get('success', None) == "true"):
             return redirect("/config/")
         else:
-            self.error()
+            return self.render(self.error_path, message = result.get('message'))
 
 class listClusterView(normalView):
     template_path = "listCluster.html"
@@ -153,6 +155,7 @@ class startClusterView(normalView):
 
 class stopClusterView(normalView):
     template_path = "dashboard.html"
+    error_path = "error.html"
 
     @classmethod
     def get(self):
@@ -160,10 +163,10 @@ class stopClusterView(normalView):
                 "clustername": self.clustername
         }
         result = dockletRequest.post("/cluster/stop/", data)
-        if(result):
+        if(result.get('success', None) == "true"):
             return redirect("/dashboard/")
         else:
-            return self.error()
+            return self.render(self.error_path, message = result.get('message'))
 
 class flushClusterView(normalView):
     success_path = "opsuccess.html"
@@ -187,6 +190,7 @@ class flushClusterView(normalView):
 
 class deleteClusterView(normalView):
     template_path = "dashboard.html"
+    error_path = "error.html"
 
     @classmethod
     def get(self):
@@ -194,10 +198,10 @@ class deleteClusterView(normalView):
                 "clustername": self.clustername
         }
         result = dockletRequest.post("/cluster/delete/", data)
-        if(result):
+        if(result.get('success', None) == "true"):
             return redirect("/dashboard/")
         else:
-            return self.error()
+            return self.render(self.error_path, message = result.get('message'))
 
 class detailClusterView(normalView):
     template_path = "listcontainer.html"
@@ -234,7 +238,7 @@ class saveImageView(normalView):
         if(result):
             if result.get('success') == 'true':
                 #return self.render(self.success_path, user = session['username'])
-                return redirect("/config/") 
+                return redirect("/config/")
                 #res = detailClusterView()
                 #res.clustername = self.clustername
                 #return res.as_view()
@@ -345,7 +349,7 @@ class configView(normalView):
         else:
             defaultcpu = str(restcpu)
 
-        if restmemory >= int(default['memory']): 
+        if restmemory >= int(default['memory']):
             defaultmemory = default['memory']
         elif restmemory <= 0:
             defaultmemory = "0"
@@ -358,7 +362,7 @@ class configView(normalView):
             defaultdisk = "0"
         else:
             defaultdisk = str(restdisk)
-        
+
         defaultsetting = {
                 'cpu': defaultcpu,
                 'memory': defaultmemory,
