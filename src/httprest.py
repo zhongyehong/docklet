@@ -240,6 +240,7 @@ def delete_cluster(user, beans, form):
 @app.route("/cluster/info/", methods=['POST'])
 @login_required
 def info_cluster(user, beans, form):
+
     global G_vclustermgr
     clustername = form.get('clustername', None)
     if (clustername == None):

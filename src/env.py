@@ -23,6 +23,8 @@ def getenv(key):
         return os.environ.get("NETWORK_DEVICE", "eth0")
     elif key == "MASTER_IP":
         return os.environ.get("MASTER_IP", "0.0.0.0")
+    elif key == "MASTER_IPS":
+        return os.environ.get("MASTER_IPS", "0.0.0.0")
     elif key == "MASTER_PORT":
         return int(os.environ.get("MASTER_PORT", 9000))
     elif key == "WORKER_PORT":

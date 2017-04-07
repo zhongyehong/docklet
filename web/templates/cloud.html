@@ -1,0 +1,153 @@
+{% extends "base_AdminLTE.html"%}
+{% block title %}Docklet | Cloud{% endblock %}
+
+{% block panel_title %}Cloud{% endblock %}
+
+{% block panel_list %}
+<ol class="breadcrumb">
+  <li>
+      <a href="/dashboard/"><i class="fa fa-dashboard"></i>Home</a>
+  </li>
+  <li class="active">
+      <strong>Cloud</strong>
+  </li>
+</ol>
+{% endblock %}
+
+{% block css_src %}
+
+<link href="//cdn.bootcss.com/datatables/1.10.11/css/dataTables.bootstrap.min.css" rel="stylesheet">
+<link href="//cdn.bootcss.com/datatables/1.10.11/css/jquery.dataTables_themeroller.css" rel="stylesheet">
+<link href="/static/dist/css/modalconfig.css" rel="stylesheet">
+
+{% endblock %}
+
+
+{% block content %}
+<div class="row">
+ <div class="col-md-12">
+     <div class="box box-info">
+         <div class="box-header with-border">
+             <h3 class="box-title">Cloud</h3>
+
+             <div class="box-tools pull-right">
+                 <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+                 </button>
+                 <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i>
+                 </button>
+             </div>
+         </div>
+         <div class="box-body">
+		 <p>
+             <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#AddAccountModal"><i class="fa fa-plus"></i> Add Account</button>
+		 </p>
+           <div class="modal inmodal" id="AddAccountModal" tabindex="-1" role="dialog" aria-hidden="true">
+               <div class="modal-dialog">
+               <div class="modal-content animated fadeIn">
+                       <div class="modal-header">
+                           <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                           <i class="fa fa-laptop modal-icon"></i>
+                           <h4 class="modal-title">Add Account</h4>
+                           <small class="font-bold">Add a Cloud Account</small>
+                       </div>
+                       <div class="modal-body">
+
+                            <form action="/cloud/account/add/" method="POST" id="addAccountForm">
+                                <div class="form-group">
+                                    <label>Cloud name</label>
+                                    <input type="text" class="form-control" name="cloudname"/>
+                                </div>
+                                <div class="form-group">
+                                    <label>username</label>
+                                    <input type="text" class="form-control" name="username" />
+                                </div>
+				<div class="form-group">
+				    <label>password</label>
+				    <input type="text" class="form-control" name="password" />
+				</div>
+                            </form>
+
+                       </div>
+                       <div class="modal-footer">
+                           <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
+                           <button type="button" class="btn btn-primary" onClick="javascript:sendAddAccount();">Submit</button>
+                       </div>
+                   </div>
+               </div>
+           </div>
+        <div class="table table-responsive">
+         <table id="accountTable" class="table table-striped table-bordered">
+           <thead>
+               <tr>
+                   <th>Cloud Name</th>
+                   <th>username</th>
+		   <th>password</th>
+                   <th>Command</th>
+               </tr>
+           </thead>
+           <tbody>
+               {% for account in accounts %}
+               <tr>
+                   <th>{{ account['cloudname'] }}</th>
+                   <th>{{ account['username'] }}</th>
+		   <th>{{ account['password'] }}</th>
+                   <th><a class="btn btn-xs btn-info" data-toggle="modal" data-target="#ModifyAccountModal_{{ account['cloudname'] }}">Edit</a>&nbsp;
+			   <a class="btn btn-xs btn-danger" href="/cloud/account/delete/{{account['cloudname']}}">Delete</a>&nbsp;
+                    </th>
+                    <div class="modal inmodal" id="ModifyAccountModal_{{ account['cloudname'] }}" tabindex="-1" role="dialog" aria-hidden="true">
+                        <div class="modal-dialog">
+                        <div class="modal-content animated fadeIn">
+                                <div class="modal-header">
+                                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                                    <i class="fa fa-laptop modal-icon"></i>
+                                    <h4 class="modal-title">Modify Account</h4>
+                                    <small class="font-bold">Modify a Cloud Account</small>
+                                </div>
+                                <form action="/cloud/account/modify/{{account['cloudname']}}/" method="POST" >
+                                    <div class="modal-body">
+                                      <div class="form-group">
+                                          <label>Cloud Name</label>
+                                          <input type="text" placeholder="Enter Name" class="form-control" name="cloudname" readonly="true" value={{ account['cloudname'] }} />
+                                      </div>
+                                      <div class="form-group">
+                                          <label>username</label>
+					  <input type="text" class="form-control" name="username" value={{ account['username']}} />
+                                      </div>
+                                      <div class="form-group">
+                                          <label>password</label>
+					  <input type="text" class="form-control" name="password" value={{ account['password']}} />
+                                      </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-primary">Submit</button>
+                                    </div>
+                                </form>
+                        </div>
+                        </div>
+                    </div>
+               </tr>
+               {% endfor %}
+           </tbody>
+         </table>
+       </div>
+       </div>
+     </div>
+ </div>
+
+{% endblock %}
+
+{% block script_src %}
+<script src="//cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.min.js"></script>
+<script src="//cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.min.js"></script>
+<script src="http://cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
+
+<script type="text/javascript">
+    $(document).ready(function() {
+      $('#accountTable').DataTable();
+    })
+    function sendAddAccount(){
+        document.getElementById("addAccountForm").submit();
+    }
+</script>
+{% endblock %}

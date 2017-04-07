@@ -29,6 +29,9 @@
                 </div>
               </div>
                      <div class="box-body table-responsive">
+			     <p>
+			     <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"><i class="fa fa-plus"></i>Add Host</button>
+			     </p>
                          <table class="table table-bordered">
                              <thead>
                              <tr>
@@ -40,6 +43,7 @@
 				 <th>Mem used</th>
 				 <th>Disk used</th>
 				 <th>Summary</th>
+				 <th>Delete</th>
                              </tr>
                              </thead>
                              <tbody>
@@ -60,6 +64,7 @@
                                  <td id='{{ loop.index }}_mem'>--</td>
                                  <td id='{{ loop.index }}_disk'>--</td>
                                  <td><a class="btn btn-info btn-xs" href='/hosts/{{ phym['ip'] }}/'>Realtime</a></td>
+				 <td><button class="btn btn-xs btn-default">Delete</button></td>
 			     </tr>
                              {% endfor %}
                              </tbody>

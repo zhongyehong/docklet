@@ -34,6 +34,7 @@ from webViews.cluster import *
 from webViews.admin import *
 from webViews.monitor import *
 from webViews.beansapplication import *
+from webViews.cloud import *
 from webViews.authenticate.auth import login_required, administration_required,activated_required
 from webViews.authenticate.register import registerView
 from webViews.authenticate.login import loginView, logoutView
@@ -121,54 +122,62 @@ def config():
 def addCluster():
     return addClusterView.as_view()
 
-@app.route("/workspace/list/", methods=['GET'])
+@app.route("/workspace/list/<masterip>/", methods=['GET'])
 @login_required
-def listCluster():
+def listCluster(masterip):
+    listClusterView.masterip = masterip
     return listClusterView.as_view()
 
-@app.route("/workspace/add/", methods=['POST'])
+@app.route("/workspace/add/<masterip>/", methods=['POST'])
 @login_required
-def createCluster():
+def createCluster(masterip):
     createClusterView.clustername = request.form["clusterName"]
     createClusterView.image = request.form["image"]
+    createClusterView.masterip = masterip
     return createClusterView.as_view()
 
-@app.route("/workspace/scaleout/<clustername>/", methods=['POST'])
+@app.route("/workspace/scaleout/<clustername>/<masterip>/", methods=['POST'])
 @login_required
-def scaleout(clustername):
+def scaleout(clustername,masterip):
     scaleoutView.image = request.form["image"]
+    scaleoutView.masterip = masterip
     scaleoutView.clustername = clustername
     return scaleoutView.as_view()
 
-@app.route("/workspace/scalein/<clustername>/<containername>/", methods=['GET'])
+@app.route("/workspace/scalein/<clustername>/<containername>/<masterip>/", methods=['GET'])
 @login_required
-def scalein(clustername,containername):
+def scalein(clustername,containername,masterip):
     scaleinView.clustername = clustername
     scaleinView.containername = containername
+    scaleinView.masterip = masterip
     return scaleinView.as_view()
 
-@app.route("/workspace/start/<clustername>/", methods=['GET'])
+@app.route("/workspace/start/<clustername>/<masterip>/", methods=['GET'])
 @login_required
-def startClustet(clustername):
+def startClustet(clustername,masterip):
     startClusterView.clustername = clustername
+    startClusterView.masterip = masterip
     return startClusterView.as_view()
 
-@app.route("/workspace/stop/<clustername>/", methods=['GET'])
+@app.route("/workspace/stop/<clustername>/<masterip>/", methods=['GET'])
 @login_required
-def stopClustet(clustername):
+def stopClustet(clustername,masterip):
     stopClusterView.clustername = clustername
+    stopClusterView.masterip = masterip
     return stopClusterView.as_view()
 
-@app.route("/workspace/delete/<clustername>/", methods=['GET'])
+@app.route("/workspace/delete/<clustername>/<masterip>/", methods=['GET'])
 @login_required
-def deleteClustet(clustername):
+def deleteClustet(clustername,masterip):
     deleteClusterView.clustername = clustername
+    deleteClusterView.masterip = masterip
     return deleteClusterView.as_view()
 
-@app.route("/workspace/detail/<clustername>/", methods=['GET'])
+@app.route("/workspace/detail/<clustername>/<masterip>/", methods=['GET'])
 @login_required
-def detailCluster(clustername):
+def detailCluster(clustername,masterip):
     detailClusterView.clustername = clustername
+    detailClusterView.masterip = masterip
     return detailClusterView.as_view()
 
 @app.route("/workspace/flush/<clustername>/<containername>/", methods=['GET'])
@@ -178,21 +187,23 @@ def flushCluster(clustername,containername):
     flushClusterView.containername = containername
     return flushClusterView.as_view()
 
-@app.route("/workspace/save/<clustername>/<containername>/", methods=['POST'])
+@app.route("/workspace/save/<clustername>/<containername>/<masterip>/", methods=['POST'])
 @login_required
-def saveImage(clustername,containername):
+def saveImage(clustername,containername,masterip):
     saveImageView.clustername = clustername
     saveImageView.containername = containername
+    saveImageView.masterip = masterip
     saveImageView.isforce = "false"
     saveImageView.imagename = request.form['ImageName']
     saveImageView.description = request.form['description']
     return saveImageView.as_view()
 
-@app.route("/workspace/save/<clustername>/<containername>/force/", methods=['POST'])
+@app.route("/workspace/save/<clustername>/<containername>/force/<masterip>/", methods=['POST'])
 @login_required
-def saveImage_force(clustername,containername):
+def saveImage_force(clustername,containername,masterip):
     saveImageView.clustername = clustername
     saveImageView.containername = containername
+    saveImageView.masterip = masterip
     saveImageView.isforce = "true"
     saveImageView.imagename = request.form['ImageName']
     saveImageView.description = request.form['description']
@@ -212,10 +223,11 @@ def deleteproxy(clustername):
     deleteproxyView.clustername = clustername
     return deleteproxyView.as_view()
 
-@app.route("/image/description/<image>/", methods=['GET'])
+@app.route("/image/description/<image>/<masterip>/", methods=['GET'])
 @login_required
-def descriptionImage(image):
+def descriptionImage(image,masterip):
     descriptionImageView.image = image
+    descriptionImageView.masterip = masterip
     return descriptionImageView.as_view()
 
 @app.route("/image/share/<image>/", methods=['GET'])
@@ -400,6 +412,28 @@ def userinfo():
 def userquery():
     return userqueryView.as_view()
 
+@app.route("/cloud/", methods=['GET', 'POST'])
+@administration_required
+def cloud():
+    return cloudView.as_view()
+
+@app.route("/cloud/account/add/", methods = ['POST'])
+@administration_required
+def cloud_account_add():
+    return cloudAccountAddView.as_view()
+
+@app.route("/cloud/account/delete/<cloudname>/", methods = ['POST', 'GET'])
+@administration_required
+def cloud_account_del(cloudname):
+    cloudAccountDelView.cloudname = cloudname
+    return cloudAccountDelView.as_view()
+
+
+@app.route("/cloud/account/modify/<cloudname>/", methods = ['POST'])
+@administration_required
+def cloud_account_modify(cloudname):
+    return cloudAccountModifyView.as_view()
+
 
 @app.route("/notification/", methods=['GET'])
 @administration_required
@@ -583,4 +617,4 @@ if __name__ == '__main__':
         elif opt in ("-p", "--port"):
             webport = int(arg)
 
-    app.run(host = webip, port = webport, threaded=True,)
+    app.run(host = webip, port = webport, debug=True, threaded=True,)

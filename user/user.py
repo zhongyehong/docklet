@@ -21,7 +21,10 @@ from log import logger
 import tools, env
 config = env.getenv("CONFIG")
 tools.loadenv(config)
-G_masterip = env.getenv("MASTER_IP") + ":" + str(env.getenv("MASTER_PORT"))
+masterips = env.getenv("MASTER_IPS").split(",")
+G_masterips = []
+for masterip in masterips:
+    G_masterips.append(masterip.split("@")[0] + ":" + str(env.getenv("MASTER_PORT")))
 
 
 from flask import Flask, request, session, render_template, redirect, send_from_directory, make_response, url_for, abort
@@ -56,7 +59,7 @@ def master_ip_required(func):
        global G_masterip
        ip = request.remote_addr
        #logger.info(str(ip) + " " + str(G_masterip))
-       if ip == '127.0.0.1' or ip == '0.0.0.0' or ip == G_masterip:
+       if ip == '127.0.0.1' or ip == '0.0.0.0' or ip in G_masterips:
            return func(*args, **kwargs)
        else:
            return json.dumps({'success':'false','message':'Master\'s ip is required!'})
@@ -143,6 +146,39 @@ def auth_token(cur_user, user, form):
      req = json.dumps({'success':'true','username':cur_user.username,'beans':cur_user.beans})
      logger.info("auth success")
      return req
+
+@app.route("/cloud/account/query/", methods=['POST']) 
+@login_required
+def query_account_cloud(cur_user, user, form):
+    global G_usermgr
+    logger.info("handle request: cloud/account/query/")
+    result = G_usermgr.cloud_account_query(cur_user = cur_user)
+    return json.dumps(result)
+
+@app.route("/cloud/account/add/", methods=['POST']) 
+@login_required
+def add_account_cloud(cur_user, user, form):
+    global G_usermgr
+    logger.info("handle request: cloud/account/add/")
+    result = G_usermgr.cloud_account_add(cur_user = cur_user, form = form)
+    return json.dumps(result)
+
+@app.route("/cloud/account/delete/", methods=['POST']) 
+@login_required
+def del_account_cloud(cur_user, user, form):
+    global G_usermgr
+    logger.info("handle request: cloud/account/delete/")
+    result = G_usermgr.cloud_account_del(cur_user = cur_user, form = form)
+    return json.dumps(result)
+
+@app.route("/cloud/account/modify/", methods=['POST']) 
+@login_required
+def modify_account_cloud(cur_user, user, form):
+    global G_usermgr
+    logger.info("handle request: cloud/account/modify/")
+    result = G_usermgr.cloud_account_modify(cur_user = cur_user, form = form)
+    return json.dumps(result)
+
 
 @app.route("/user/modify/", methods=['POST'])
 @login_required
