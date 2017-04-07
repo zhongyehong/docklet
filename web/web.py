@@ -662,8 +662,5 @@ if __name__ == '__main__':
         elif opt in ("-p", "--port"):
             webport = int(arg)
 
-<<<<<<< ff1c562b79e061a82a3a80e157b2937e5fc3b5af
-    app.run(host = webip, port = webport, threaded=True)
-=======
-    app.run(host = webip, port = webport, threaded=True, debug = True)
->>>>>>> change the time of reading e-mail address
+
+app.run(host = webip, port = webport, debug = False, threaded=True)
