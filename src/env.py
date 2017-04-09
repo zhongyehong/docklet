@@ -24,11 +24,7 @@ def getenv(key):
     elif key == "MASTER_IP":
         return os.environ.get("MASTER_IP", "0.0.0.0")
     elif key == "MASTER_IPS":
-<<<<<<< 14ed490029469f18398a26e21c921bbbf3247df2
         return os.environ.get("MASTER_IPS", "0.0.0.0@docklet")
-=======
-        return os.environ.get("MASTER_IPS", "0.0.0.0")
->>>>>>> multiple master
     elif key == "MASTER_PORT":
         return int(os.environ.get("MASTER_PORT", 9000))
     elif key == "WORKER_PORT":
