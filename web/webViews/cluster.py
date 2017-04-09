@@ -307,12 +307,13 @@ class addproxyView(normalView):
 
     @classmethod
     def post(self):
+        masterip = self.masterip
         data = {
             "clustername": self.clustername,
             "ip": self.ip,
             "port": self.port
         }
-        result = dockletRequest.post("/addproxy/", data)
+        result = dockletRequest.post("/addproxy/", data, masterip)
         if(result):
             return redirect("/config/")
         else:
@@ -322,10 +323,11 @@ class deleteproxyView(normalView):
 
     @classmethod
     def get(self):
+        masterip = self.masterip
         data = {
             "clustername":self.clustername
         }
-        result = dockletRequest.post("/deleteproxy/", data)
+        result = dockletRequest.post("/deleteproxy/", data, masterip)
         if(result):
             return redirect("/config/")
         else:

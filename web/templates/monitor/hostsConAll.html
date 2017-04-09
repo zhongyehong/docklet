@@ -84,10 +84,10 @@
 
 {% block script_src %}
 <script type='text/javascript'>
-   function update(url,name)
+   function update(url,masterip,name)
    {
 
-       $.post(url+"/basic_info/",{},function(data){
+       $.post(url+"/basic_info/"+masterip+"/",{},function(data){
 		var state = data.monitor.basic_info.State;
 		if(state == 'RUNNING')
        		{
@@ -111,7 +111,7 @@
 		    return;
        		}
 
-       		$.post(url+"/cpu_use/",{},function(data){
+       		$.post(url+"/cpu_use/"+masterip+"/",{},function(data){
 		       	var val = (data.monitor.cpu_use.val).toFixed(2);
 			    var unit = data.monitor.cpu_use.unit;
                 var hostpercent = data.monitor.cpu_use.hostpercent;
@@ -121,7 +121,7 @@
 		       	},"json");
 
 
-       		$.post(url+"/mem_use/",{},function(data){
+       		$.post(url+"/mem_use/"+masterip+"/",{},function(data){
 		       	var val = data.monitor.mem_use.val;
 			    var unit = data.monitor.mem_use.unit
 		       	$("#"+name+"_mem").html(val+" "+unit);
@@ -137,7 +137,7 @@
 
 	{% for container in containerslist %}
         url = url0 + '{{ container['Name'] }}';
-   	update(url,'{{ container['Name'] }}');
+	update(url,'{{masterip}}','{{ container['Name'] }}');
 	{% endfor %}
         url =  "http://" + host + "/monitor/hosts/" + "{{  com_ip }}";
     /*$.post(url+"/concpuinfo/",{},function(data){

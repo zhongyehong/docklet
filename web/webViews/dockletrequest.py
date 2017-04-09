@@ -11,8 +11,8 @@ if src_folder not in sys.path:
 import env
 
 masterips=env.getenv('MASTER_IPS').split(",")
-#endpoint = "http://0.0.0.0:9000"
-user_endpoint = "http://0.0.0.0:9100"
+user_endpoint = "http://" + env.getenv('USER_IP') + ":" + str(env.getenv('USER_PORT'))
+master_port=str(env.getenv('MASTER_PORT'))
 
 def getip(masterip):
     return masterip.split("@")[0]
@@ -38,7 +38,7 @@ class dockletRequest():
                 'cloud'
                 }
         if ":" not in endpoint:
-            endpoint = "http://"+endpoint+":9000"
+            endpoint = "http://"+endpoint+":"+master_port
         if reqtype in userreq:
             result = requests.post(user_endpoint + url, data=data).json()
         else:
@@ -64,7 +64,12 @@ class dockletRequest():
         logger.info("Docklet Request: user = %s data = %s, url = %s"%(session['username'], data, url))
         result = {}
         for masterip in masterips:
-            result[masterip] = requests.post("http://"+getip(masterip)+":9000"+url,data=data).json()
+            try:
+                res = requests.post("http://"+getip(masterip)+":"+master_port+url,data=data).json()
+            except Exception as e:
+                logger.debug(e)
+                continue
+            result[masterip] = res
             logger.debug("get result from " + getip(masterip))
 
         return result

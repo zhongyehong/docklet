@@ -56,5 +56,9 @@ def getenv(key):
         return os.environ.get("DATA_QUOTA", "False")
     elif key =="DATA_QUOTA_CMD":
         return os.environ.get("DATA_QUOTA_CMD", "gluster volume quota docklet-volume limit-usage %s %s")
+    elif key =="USER_IP":
+        return os.environ.get("USER_IP","0.0.0.0")
+    elif key =="USER_PORT":
+        return int(os.environ.get("USER_PORT",9100))
     else:
         return os.environ[key]

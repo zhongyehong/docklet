@@ -16,11 +16,12 @@
 {% endblock %}
 
 {% block content %}
+{% for master in allmachines %}
 	  <div class="row">
 	     <div class="col-md-12">
          <div class="box box-info">
               <div class="box-header with-border">
-                <h3 class="box-title">All Hosts Info</h3>
+		      <h3 class="box-title">{{master.split("@")[1]}}</h3>
 
                 <div class="box-tools pull-right">
                   <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
@@ -47,23 +48,23 @@
                              </tr>
                              </thead>
                              <tbody>
-                             {% for phym in machines %}
+                             {% for phym in allmachines[master] %}
                              <tr>
                                  <td>{{ loop.index }}</td>
                                  <td>{{ phym['ip'] }}</td>
                                  {% if phym['status'] == 'STOPPED' %}
-                                 <td><div id='{{ loop.index }}_status' class="label label-danger">Stopped</div></td>
+				 <td><div id='{{master.split("@")[1]}}_{{ loop.index }}_status' class="label label-danger">Stopped</div></td>
                                  {% else %}
-                                 <td><div id='{{ loop.index }}_status' class="label label-primary">Running</div></td>
+				 <td><div id='{{master.split("@")[1]}}_{{ loop.index }}_status' class="label label-primary">Running</div></td>
                                  {% endif %}
                                  <td>
-					<label id='{{ loop.index }}_conrunning'>{{ phym['containers']['running'] }}</label> /
-                                 	<a href='/hosts/{{ phym['ip'] }}/containers/' id='{{ loop.index }}_contotal' >{{ phym['containers']['total'] }}</a>
+					 <label id='{{master.split("@")[1]}}_{{ loop.index }}_conrunning'>{{ phym['containers']['running'] }}</label> /
+					 <a href='/hosts/{{ phym['ip'] }}/containers/{{master.split("@")[0]}}/' id='{{master.split("@")[1]}}_{{ loop.index }}_contotal' >{{ phym['containers']['total'] }}</a>
 				 </td>
-                                 <td id='{{ loop.index }}_cpu'>--</td>
-                                 <td id='{{ loop.index }}_mem'>--</td>
-                                 <td id='{{ loop.index }}_disk'>--</td>
-                                 <td><a class="btn btn-info btn-xs" href='/hosts/{{ phym['ip'] }}/'>Realtime</a></td>
+				 <td id='{{master.split("@")[1]}}_{{ loop.index }}_cpu'>--</td>
+				 <td id='{{master.split("@")[1]}}_{{ loop.index }}_mem'>--</td>
+				 <td id='{{master.split("@")[1]}}_{{ loop.index }}_disk'>--</td>
+				 <td><a class="btn btn-info btn-xs" href='/hosts/{{ phym['ip'] }}/{{master.split("@")[0]}}/'>Realtime</a></td>
 				 <td><button class="btn btn-xs btn-default">Delete</button></td>
 			     </tr>
                              {% endfor %}
@@ -74,16 +75,16 @@
                  </div>
              </div>
 	   </div>
-
+{% endfor %}
 {% endblock %}
 
 {% block script_src %}
 <script type='text/javascript'>
-   function update(url,index)
+   function update(url,masterip,index)
    {
 
        var MB = 1024;
-       $.post(url+"/status/",{},function(data){
+       $.post(url+"/status/"+masterip+"/",{},function(data){
 		var status = data.monitor.status;
 		if(status == 'RUNNING')
        		{
@@ -100,7 +101,7 @@
 	   	    tmp.html("Stopped");
        		}
 
-       		$.post(url+"/containers/",{},function(data){
+       		$.post(url+"/containers/"+masterip+"/",{},function(data){
        			var containers = data.monitor.containers;
        			$("#"+index+"_contotal").html(containers.total);
        			$("#"+index+"_conrunning").html(containers.running);
@@ -114,20 +115,20 @@
 			return;
 		}
 
-       		$.post(url+"/cpuinfo/",{},function(data){
+       		$.post(url+"/cpuinfo/"+masterip+"/",{},function(data){
 		       	var idle = data.monitor.cpuinfo.idle;
 			    var usedp = (100 - idle).toFixed(2);
 		       	$("#"+index+"_cpu").html(String(usedp)+"%");
 		       	},"json");
 
-       		$.post(url+"/meminfo/",{},function(data){
+       		$.post(url+"/meminfo/"+masterip+"/",{},function(data){
 			var used = data.monitor.meminfo.used;
 			var total = data.monitor.meminfo.total;
 			var usedp = String(((used/total)*100).toFixed(2))+"%";
 		       	$("#"+index+"_mem").html(usedp);
 		       	},"json");
 
-  	     	$.post(url+"/diskinfo/",{},function(data){
+  	     	$.post(url+"/diskinfo/"+masterip+"/",{},function(data){
 		       	var val = data.monitor.diskinfo;
                 var usedp = val[0].percent;
 		       	$("#"+index+"_disk").html(String(usedp)+"%");
@@ -139,9 +140,11 @@
    {
         var host = window.location.host;
         var url0 = "http://" + host + "/monitor/hosts/";
-   {% for phym in machines %}
+   {% for master in allmachines %}
+   {% for phym in allmachines[master] %}
         url = url0 + '{{ phym['ip'] }}';
-   	update(url,'{{ loop.index }}');
+	update(url,'{{master.split("@")[0]}}','{{master.split("@")[1]}}_{{ loop.index }}');
+   {% endfor %}
    {% endfor %}
    }
    setInterval(updateAll,5000);

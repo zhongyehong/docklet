@@ -300,19 +300,19 @@
 				<td>private</td>
 				<td>{{mysession['username']}}</td>
 				<td>{{image['time']}}</td>
-				<td><a href="/image/description/{{image['name']}}_{{mysession['username']}}_private/" target="_blank">{{image['description']}}</a></td>
+				<td><a href="/image/description/{{image['name']}}_{{mysession['username']}}_private/{{master.split("@")[0]}}/" target="_blank">{{image['description']}}</a></td>
 				<td>{{master.split("@")[1]}}</td>
 				{% if image['isshared'] == 'false' %}
 					<td>unshared</td>
 					<td>
-						<a href="/image/share/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-success">share</button></a>
-						<a href="/image/delete/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
+						<a href="/image/share/{{ image['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-success">share</button></a>
+						<a href="/image/delete/{{ image['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
 					</td>
 				{% else %}
 					<td>shared</td>
 					<td>
-						<a href="/image/unshare/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-warning">unshare</button></a>
-						<a href="/image/delete/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
+						<a href="/image/unshare/{{ image['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-warning">unshare</button></a>
+						<a href="/image/delete/{{ image['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
 					</td>
 				{% endif %}
               		 </tr>
@@ -324,11 +324,11 @@
 				<td>public</td>
 				<td>{{p_user}}</td>
 				<td>{{image['time']}}</td>
-				<td><a href="/image/description/{{image['name']}}_{{p_user}}_public/" target="_blank">{{image['description']}}</a></td>
+				<td><a href="/image/description/{{image['name']}}_{{p_user}}_public/{{master.split("@")[0]}}/" target="_blank">{{image['description']}}</a></td>
 				<td>{{master.split("@")[1]}}</td>
 				<td></td>
 				{% if p_user == mysession['username'] %}
-				<td><a href="/image/unshare/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-warning">unshare</button></a></td>
+				<td><a href="/image/unshare/{{ image['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-warning">unshare</button></a></td>
 				{% else %}
 				<td></td>
 				{% endif %}

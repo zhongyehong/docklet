@@ -9,23 +9,27 @@ class statusView(normalView):
     @classmethod
     def get(self):
         data = {}
-        result = dockletRequest.post('/cluster/list/', data)
-        clusters = result.get('clusters')
+        allclusters = dockletRequest.post_to_all('/cluster/list/')
+        for master in allclusters:
+            allclusters[master] = allclusters[master].get('clusters')
         result = dockletRequest.post('/monitor/user/quotainfo/', data)
         quotainfo = result.get('quotainfo')
         quotainfo['cpu'] = int(int(quotainfo['cpu']))
         print(quotainfo)
+        allcontainers = {}
         if (result):
             containers = {}
-            for cluster in clusters:
-                data["clustername"] = cluster
-                message = dockletRequest.post('/cluster/info/', data)
-                if (message):
-                   message = message.get('message')
-                else:
-                   self.error()
-                containers[cluster] = message
-            return self.render(self.template_path, clusters = clusters, quotainfo = quotainfo, containers = containers, user = session['username'])
+            for master in allclusters:
+                allcontainers[master] = {}
+                for cluster in allclusters[master]:
+                    data["clustername"] = cluster
+                    message = dockletRequest.post('/cluster/info/', data, master.split("@")[0])
+                    if (message):
+                        message = message.get('message')
+                    else:
+                        self.error()
+                    allcontainers[master][cluster] = message
+            return self.render(self.template_path,  quotainfo = quotainfo, allcontainers = allcontainers, user = session['username'])
         else:
             self.error()
 
@@ -35,12 +39,13 @@ class statusRealtimeView(normalView):
 
     @classmethod
     def get(self):
+        masterip = self.masterip
         data = {
             "user": session['username'],
         }
-        result = dockletRequest.post('/monitor/vnodes/%s/basic_info/'%(self.node_name), data)
+        result = dockletRequest.post('/monitor/vnodes/%s/basic_info/'%(self.node_name), data, masterip)
         basic_info = result.get('monitor').get('basic_info')
-        return self.render(self.template_path, node_name = self.node_name, user = session['username'], container = basic_info)
+        return self.render(self.template_path, node_name = self.node_name, user = session['username'], container = basic_info, masterip=masterip)
 
 class historyView(normalView):
     template_path = "monitor/history.html"
@@ -50,9 +55,11 @@ class historyView(normalView):
         data = {
             "user": session['username'],
         }
-        result = dockletRequest.post('/monitor/user/createdvnodes/', data)
-        vnodes = result.get('createdvnodes')
-        return self.render(self.template_path, user = session['username'],vnodes = vnodes)
+        allvnodes = {}
+        result = dockletRequest.post_to_all('/monitor/user/createdvnodes/', data)
+        for master in result:
+            allvnodes[master] = result[master].get('createdvnodes')
+        return self.render(self.template_path, user = session['username'],allvnodes = allvnodes)
 
 class historyVNodeView(normalView):
     template_path = "monitor/historyVNode.html"
@@ -60,10 +67,11 @@ class historyVNodeView(normalView):
     
     @classmethod
     def get(self):
+        masterip = self.masterip
         data = {
             "user": session['username'],
         }
-        result = dockletRequest.post('/monitor/vnodes/%s/history/'%(self.vnode_name), data)
+        result = dockletRequest.post('/monitor/vnodes/%s/history/'%(self.vnode_name), data, masterip)
         history = result.get('monitor').get('history')
         return self.render(self.template_path, vnode_name = self.vnode_name, user = session['username'], history = history)
 
@@ -73,17 +81,18 @@ class hostsRealtimeView(normalView):
 
     @classmethod
     def get(self):
+        masterip = self.masterip
         data = {
             "user": session['username'],
         }
-        result = dockletRequest.post('/monitor/hosts/%s/cpuconfig/'%(self.com_ip), data)
+        result = dockletRequest.post('/monitor/hosts/%s/cpuconfig/'%(self.com_ip), data,masterip)
         proc = result.get('monitor').get('cpuconfig')
-        result = dockletRequest.post('/monitor/hosts/%s/osinfo/'%(self.com_ip), data)
+        result = dockletRequest.post('/monitor/hosts/%s/osinfo/'%(self.com_ip), data,masterip)
         osinfo = result.get('monitor').get('osinfo')
-        result = dockletRequest.post('/monitor/hosts/%s/diskinfo/'%(self.com_ip), data)
+        result = dockletRequest.post('/monitor/hosts/%s/diskinfo/'%(self.com_ip), data,masterip)
         diskinfos = result.get('monitor').get('diskinfo')
 
-        return self.render(self.template_path, com_ip = self.com_ip, user = session['username'],processors = proc, OSinfo = osinfo, diskinfos = diskinfos)
+        return self.render(self.template_path, com_ip = self.com_ip, user = session['username'],processors = proc, OSinfo = osinfo, diskinfos = diskinfos, masterip = masterip)
 
 class hostsConAllView(normalView):
     template_path = "monitor/hostsConAll.html"
@@ -91,20 +100,21 @@ class hostsConAllView(normalView):
 
     @classmethod
     def get(self):
+        masterip = self.masterip
         data = {
             "user": session['username'],
         }
-        result = dockletRequest.post('/monitor/hosts/%s/containerslist/'%(self.com_ip), data)
+        result = dockletRequest.post('/monitor/hosts/%s/containerslist/'%(self.com_ip), data, masterip)
         containers = result.get('monitor').get('containerslist')
         containerslist = []
         for container in containers:
-            result = dockletRequest.post('/monitor/vnodes/%s/basic_info/'%(container), data)
+            result = dockletRequest.post('/monitor/vnodes/%s/basic_info/'%(container), data, masterip)
             basic_info = result.get('monitor').get('basic_info')
-            result = dockletRequest.post('/monitor/vnodes/%s/owner/'%(container), data)
+            result = dockletRequest.post('/monitor/vnodes/%s/owner/'%(container), data, masterip)
             owner = result.get('monitor')
             basic_info['owner'] = owner
             containerslist.append(basic_info)
-        return self.render(self.template_path, containerslist = containerslist, com_ip = self.com_ip, user = session['username'])
+        return self.render(self.template_path, containerslist = containerslist, com_ip = self.com_ip, user = session['username'], masterip = masterip)
 
 class hostsView(normalView):
     template_path = "monitor/hosts.html"
@@ -114,18 +124,20 @@ class hostsView(normalView):
         data = {
             "user": session['username'],
         }
-        result = dockletRequest.post('/monitor/listphynodes/', data)
-        iplist = result.get('monitor').get('allnodes')
-        machines = []
-        for ip in iplist:
-           containers = {}
-           result = dockletRequest.post('/monitor/hosts/%s/containers/'%(ip), data)
-           containers = result.get('monitor').get('containers')
-           result = dockletRequest.post('/monitor/hosts/%s/status/'%(ip), data)
-           status = result.get('monitor').get('status')
-           machines.append({'ip':ip,'containers':containers, 'status':status})
+        allresult = dockletRequest.post_to_all('/monitor/listphynodes/', data)
+        allmachines = {}
+        for master in allresult:
+            allmachines[master] = []
+            iplist = allresult[master].get('monitor').get('allnodes')
+            for ip in iplist:
+                containers = {}
+                result = dockletRequest.post('/monitor/hosts/%s/containers/'%(ip), data, master.split("@")[0])
+                containers = result.get('monitor').get('containers')
+                result = dockletRequest.post('/monitor/hosts/%s/status/'%(ip), data, master.split("@")[0])
+                status = result.get('monitor').get('status')
+                allmachines[master].append({'ip':ip,'containers':containers, 'status':status})
         #print(machines)
-        return self.render(self.template_path, machines = machines, user = session['username'])
+        return self.render(self.template_path, allmachines = allmachines, user = session['username'])
 
 class monitorUserAllView(normalView):
     template_path = "monitor/monitorUserAll.html"
