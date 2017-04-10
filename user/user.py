@@ -58,7 +58,6 @@ def master_ip_required(func):
     def wrapper(*args, **kwargs):
        global G_masterip
        ip = request.remote_addr
-       #logger.info(str(ip) + " " + str(G_masterip))
        if ip == '127.0.0.1' or ip == '0.0.0.0' or ip in G_masterips:
            return func(*args, **kwargs)
        else:
@@ -72,8 +71,9 @@ def request_master(url,data):
     #logger.info("master_ip:"+str(G_masterip))
     header = {'Content-Type':'application/x-www-form-urlencoded'}
     http = Http()
-    [resp,content] = http.request("http://"+G_masterip+url,"POST",urlencode(data),headers = header)
-    logger.info("response from master:"+content.decode('utf-8'))  
+    for masterip in G_masterips:
+        [resp,content] = http.request("http://"+masterip+url,"POST",urlencode(data),headers = header)
+        logger.info("response from master:"+content.decode('utf-8'))  
 
 
 @app.route("/login/", methods=['POST'])
@@ -446,7 +446,8 @@ def billing_beans():
             if oldbeans > 0 and owner.beans <= 0 or oldbeans >= 100 and owner.beans < 100 or oldbeans >= 500 and owner.beans < 500 or oldbeans >= 1000 and owner.beans < 1000:
                 # send mail to remind users of their beans if their beans decrease to 0,100,500 and 1000
                 data = {"to_address":owner.e_mail,"username":owner.username,"beans":owner.beans}
-                request_master("/beans/mail/",data)
+                # request_master("/beans/mail/",data)
+                beansapplicationmgr.send_beans_email(owner.e_mail,owner.username,int(owner.beans))
             try:
                 db.session.commit()
             except Exception as err:
