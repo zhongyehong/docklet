@@ -128,7 +128,7 @@ class VclusterMgr(object):
             lxc_name = username + "-" + str(clusterid) + "-" + str(i)
             hostname = "host-"+str(i)
             logger.info ("create container with : name-%s, username-%s, clustername-%s, clusterid-%s, hostname-%s, ip-%s, gateway-%s, image-%s" % (lxc_name, username, clustername, str(clusterid), hostname, ips[i], gateway, image_json))
-            [success,message] = onework.create_container(lxc_name, username, json.dumps(setting) , clustername, str(clusterid), str(i), hostname, ips[i], gateway, str(vlanid), image_json)
+            [success,message] = onework.create_container(lxc_name, proxy_server_ip, username, json.dumps(setting) , clustername, str(clusterid), str(i), hostname, ips[i], gateway, str(vlanid), image_json)
             if success is False:
                 logger.info("container create failed, so vcluster create failed")
                 return [False, message]
@@ -358,7 +358,7 @@ class VclusterMgr(object):
         try:
             target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000"
             worker = self.nodemgr.ip_to_rpc(info['proxy_server_ip'])
-            worker.set_route('/go/'+username+'/'+clustername, target)
+            worker.set_route('/'+info['proxy_server_ip']+'/go/'+username+'/'+clustername, target)
         except:
             return [False, "start cluster failed with setting proxy failed"]
         for container in info['containers']:

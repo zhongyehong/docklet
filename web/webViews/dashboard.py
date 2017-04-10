@@ -24,7 +24,7 @@ class dashboardView(normalView):
                     message = message.get("message")
                     single_cluster['status'] = message['status']
                     single_cluster['id'] = message['clusterid']
-                    single_cluster['proxy_server_url'] = "http://" + message['proxy_server_ip'] + ":" + str(message['proxy_server_port'])
+                    single_cluster['proxy_server_ip'] = message['proxy_server_ip']
                     full_clusters.append(single_cluster)
                 else:
                     self.error()
