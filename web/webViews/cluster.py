@@ -10,8 +10,10 @@ class addClusterView(normalView):
 
     @classmethod
     def get(self):
-        result = dockletRequest.post("/image/list/")
-        images = result.get("images")
+        result = dockletRequest.post_to_all("/image/list/")
+        allimages={}
+        for master in result:
+            allimages[master] = result[master].get("images")
         result = dockletRequest.post("/user/usageQuery/")
         quota = result.get("quota")
         usage = result.get("usage")
@@ -46,7 +48,7 @@ class addClusterView(normalView):
                 'disk': defaultdisk
                 }
         if (result):
-            return self.render(self.template_path, user = session['username'], images = images, quota = quota, usage = usage, defaultsetting = defaultsetting)
+            return self.render(self.template_path, user = session['username'], allimages = allimages, quota = quota, usage = usage, defaultsetting = defaultsetting)
         else:
             self.error()
 
@@ -56,6 +58,7 @@ class createClusterView(normalView):
 
     @classmethod
     def post(self):
+        masterip = self.masterip
         index1 = self.image.rindex("_")
         index2 = self.image[:index1].rindex("_")
         checkname(self.clustername)
@@ -65,7 +68,7 @@ class createClusterView(normalView):
             'imageowner': self.image[index2+1:index1],
             'imagetype': self.image[index1+1:],
         }
-        result = dockletRequest.post("/cluster/create/", dict(data, **(request.form)))
+        result = dockletRequest.post("/cluster/create/", dict(data, **(request.form)), masterip)
         if(result.get('success', None) == "true"):
            return redirect("/dashboard/")
             #return self.render(self.template_path, user = session['username'])
@@ -77,6 +80,7 @@ class descriptionImageView(normalView):
 
     @classmethod
     def get(self):
+        masterip = self.masterip
         index1 = self.image.rindex("_")
         index2 = self.image[:index1].rindex("_")
         data = {
@@ -84,7 +88,7 @@ class descriptionImageView(normalView):
                 "imageowner": self.image[index2+1:index1],
                 "imagetype": self.image[index1+1:]
         }
-        result = dockletRequest.post("/image/description/", data)
+        result = dockletRequest.post("/image/description/", data, masterip)
         if(result):
             description = result.get("message")
             return self.render(self.template_path, description = description)
@@ -96,6 +100,7 @@ class scaleoutView(normalView):
 
     @classmethod
     def post(self):
+        masterip = self.masterip
         index1 = self.image.rindex("_")
         index2 = self.image[:index1].rindex("_")
         data = {
@@ -104,7 +109,7 @@ class scaleoutView(normalView):
             'imageowner': self.image[index2+1:index1],
             'imagetype': self.image[index1+1:]
         }
-        result = dockletRequest.post("/cluster/scaleout/", dict(data, **(request.form)))
+        result = dockletRequest.post("/cluster/scaleout/", dict(data, **(request.form)), masterip)
         if(result.get('success', None) == "true"):
             return redirect("/config/")
         else:
@@ -115,11 +120,12 @@ class scaleinView(normalView):
 
     @classmethod
     def get(self):
+        masterip = self.masterip
         data = {
             "clustername": self.clustername,
             "containername":self.containername
         }
-        result = dockletRequest.post("/cluster/scalein/", data)
+        result = dockletRequest.post("/cluster/scalein/", data, masterip)
         if(result.get('success', None) == "true"):
             return redirect("/config/")
         else:
@@ -130,7 +136,8 @@ class listClusterView(normalView):
 
     @classmethod
     def get(self):
-        result = dockletRequest.post("/cluster/list/")
+        masterip = self.masterip
+        result = dockletRequest.post("/cluster/list/", {},  masterip)
         clusters = result.get("clusters")
         if(result):
             return self.render(self.template_path, user = session['username'], clusters = clusters)
@@ -142,11 +149,12 @@ class startClusterView(normalView):
     error_path = "error.html"
 
     @classmethod
-    def get(self):
+    def get(self): 
+        masterip = self.masterip
         data = {
                 "clustername": self.clustername
         }
-        result = dockletRequest.post("/cluster/start/", data)
+        result = dockletRequest.post("/cluster/start/", data, masterip)
         if(result.get('success', None) == "true"):
            return redirect("/dashboard/")
             #return self.render(self.template_path, user = session['username'])
@@ -159,10 +167,11 @@ class stopClusterView(normalView):
 
     @classmethod
     def get(self):
+        masterip = self.masterip
         data = {
                 "clustername": self.clustername
         }
-        result = dockletRequest.post("/cluster/stop/", data)
+        result = dockletRequest.post("/cluster/stop/", data, masterip)
         if(result.get('success', None) == "true"):
             return redirect("/dashboard/")
         else:
@@ -194,10 +203,11 @@ class deleteClusterView(normalView):
 
     @classmethod
     def get(self):
+        masterip = self.masterip
         data = {
                 "clustername": self.clustername
         }
-        result = dockletRequest.post("/cluster/delete/", data)
+        result = dockletRequest.post("/cluster/delete/", data, masterip)
         if(result.get('success', None) == "true"):
             return redirect("/dashboard/")
         else:
@@ -207,11 +217,12 @@ class detailClusterView(normalView):
     template_path = "listcontainer.html"
 
     @classmethod
-    def get(self):
+    def get(self): 
+        masterip = self.masterip
         data = {
                 "clustername": self.clustername
         }
-        result = dockletRequest.post("/cluster/info/", data)
+        result = dockletRequest.post("/cluster/info/", data, masterip)
         if(result):
             message = result.get('message')
             containers = message['containers']
@@ -227,6 +238,7 @@ class saveImageView(normalView):
 
     @classmethod
     def post(self):
+        masterip = self.masterip
         data = {
                 "clustername": self.clustername,
                 "image": self.imagename,
@@ -234,7 +246,7 @@ class saveImageView(normalView):
                 "description": self.description,
                 "isforce": self.isforce
         }
-        result = dockletRequest.post("/cluster/save/", data)
+        result = dockletRequest.post("/cluster/save/", data, masterip)
         if(result):
             if result.get('success') == 'true':
                 #return self.render(self.success_path, user = session['username'])
@@ -255,10 +267,11 @@ class shareImageView(normalView):
 
     @classmethod
     def get(self):
+        masterip = self.masterip
         data = {
                 "image": self.image
         }
-        result = dockletRequest.post("/image/share/", data)
+        result = dockletRequest.post("/image/share/", data, masterip)
         if(result):
             return redirect("/config/")
         else:
@@ -269,10 +282,11 @@ class unshareImageView(normalView):
 
     @classmethod
     def get(self):
+        masterip = self.masterip
         data = {
                 "image": self.image
         }
-        result = dockletRequest.post("/image/unshare/", data)
+        result = dockletRequest.post("/image/unshare/", data, masterip)
         if(result):
             return redirect("/config/")
         else:
@@ -283,10 +297,11 @@ class deleteImageView(normalView):
 
     @classmethod
     def get(self):
+        masterip = self.masterip
         data = {
                 "image": self.image
         }
-        result = dockletRequest.post("/image/delete/", data)
+        result = dockletRequest.post("/image/delete/", data, masterip)
         if(result):
             return redirect("/config/")
         else:
@@ -296,12 +311,13 @@ class addproxyView(normalView):
 
     @classmethod
     def post(self):
+        masterip = self.masterip
         data = {
             "clustername": self.clustername,
             "ip": self.ip,
             "port": self.port
         }
-        result = dockletRequest.post("/addproxy/", data)
+        result = dockletRequest.post("/addproxy/", data, masterip)
         if(result):
             return redirect("/config/")
         else:
@@ -311,10 +327,11 @@ class deleteproxyView(normalView):
 
     @classmethod
     def get(self):
+        masterip = self.masterip
         data = {
             "clustername":self.clustername
         }
-        result = dockletRequest.post("/deleteproxy/", data)
+        result = dockletRequest.post("/deleteproxy/", data, masterip)
         if(result):
             return redirect("/config/")
         else:
@@ -327,14 +344,21 @@ class deleteproxyView(normalView):
 class configView(normalView):
     @classmethod
     def get(self):
-        images = dockletRequest.post('/image/list/').get('images')
-        clusters = dockletRequest.post("/cluster/list/").get("clusters")
+        allimages = dockletRequest.post_to_all('/image/list/')
+        for master in allimages:
+            allimages[master] = allimages[master].get('images')
+        allclusters = dockletRequest.post_to_all("/cluster/list/")
+        for master in allclusters:
+            allclusters[master] = allclusters[master].get('clusters')
+        allclusters_info = {}
         clusters_info = {}
         data={}
-        for cluster in clusters:
-            data["clustername"] = cluster
-            result = dockletRequest.post("/cluster/info/",data).get("message")
-            clusters_info[cluster] = result
+        for master in allclusters:
+            allclusters_info[master] = {}
+            for cluster in allclusters[master]:
+                data["clustername"] = cluster
+                result = dockletRequest.post("/cluster/info/", data, master.split("@")[0]).get("message")
+                allclusters_info[master][cluster] = result
         result = dockletRequest.post("/user/usageQuery/")
         quota = result.get("quota")
         usage = result.get("usage")
@@ -368,7 +392,7 @@ class configView(normalView):
                 'memory': defaultmemory,
                 'disk': defaultdisk
                 }
-        return self.render("config.html", images = images, clusters = clusters_info, mysession=dict(session), quota = quota, usage = usage, defaultsetting = defaultsetting)
+        return self.render("config.html", allimages = allimages, allclusters = allclusters_info, mysession=dict(session), quota = quota, usage = usage, defaultsetting = defaultsetting)
 
     @classmethod
     def post(self):

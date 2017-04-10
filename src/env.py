@@ -23,6 +23,8 @@ def getenv(key):
         return os.environ.get("NETWORK_DEVICE", "eth0")
     elif key == "MASTER_IP":
         return os.environ.get("MASTER_IP", "0.0.0.0")
+    elif key == "MASTER_IPS":
+        return os.environ.get("MASTER_IPS", "0.0.0.0@docklet")
     elif key == "MASTER_PORT":
         return int(os.environ.get("MASTER_PORT", 9000))
     elif key == "WORKER_PORT":
@@ -54,5 +56,9 @@ def getenv(key):
         return os.environ.get("DATA_QUOTA", "False")
     elif key =="DATA_QUOTA_CMD":
         return os.environ.get("DATA_QUOTA_CMD", "gluster volume quota docklet-volume limit-usage %s %s")
+    elif key =="USER_IP":
+        return os.environ.get("USER_IP","0.0.0.0")
+    elif key =="USER_PORT":
+        return int(os.environ.get("USER_PORT",9100))
     else:
         return os.environ[key]

@@ -60,12 +60,13 @@
              </div>
 	   </div>
 
-{% for cluster in clusters %}
+{% for master in allcontainers %}
+{% for clustername, clusterinfo in allcontainers[master].items() %}
 	  <div class="row">
 	     <div class="col-md-12">
          <div class="box box-info">
               <div class="box-header with-border">
-                <h3 class="box-title">VCluster Name: {{ cluster }}</h3>
+		      <h3 class="box-title">VCluster Name: {{ clustername }}<strong> @ {{master.split("@")[1]}}</strong></h3>
 
                 <div class="box-tools pull-right">
                   <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
@@ -92,24 +93,24 @@
                              </tr>
                              </thead>
                              <tbody>
-                             {% for container in containers[cluster]['containers'] %}
+                             {% for container in clusterinfo['containers'] %}
                              <tr>
                                  <td>{{ loop.index }}</td>
                                  <td>{{ container['containername'] }}</td>
                                  <td>{{ container['ip'] }}</td>
 
-                                 {% if containers[cluster]['status'] == 'stopped' %}
-                                 <td><div id='{{cluster}}_{{ loop.index }}_state' class="label label-danger">Stopped</div></td>
+                                 {% if clusterinfo['status'] == 'stopped' %}
+				 <td><div id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_state' class="label label-danger">Stopped</div></td>
                                  {% else %}
-                                 <td><div id='{{cluster}}_{{ loop.index }}_state' class="label label-primary">Running</div></td>
+                                 <td><div id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_state' class="label label-primary">Running</div></td>
                                  {% endif %}
-                                 <td id='{{cluster}}_{{ loop.index }}_time'>--</td>
-                                 <td id='{{cluster}}_{{ loop.index }}_cpu'>--</td>
-                                 <td id='{{cluster}}_{{ loop.index }}_mem'>--</td>
-                                 <td id='{{cluster}}_{{ loop.index }}_disk'>--</td>
-                                 <td id='{{cluster}}_{{ loop.index }}_billing'>--</td>
-                                 <td id='{{cluster}}_{{ loop.index }}_billingthishour'>--</td>
-                                 <td><a class="btn btn-info btn-xs" href='/vclusters/{{ cluster }}/{{ container['containername'] }}/'>Realtime</a></td>
+				 <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_time'>--</td>
+                                 <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_cpu'>--</td>
+                                 <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_mem'>--</td>
+                                 <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_disk'>--</td>
+                                 <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing'>--</td>
+                                 <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billingthishour'>--</td>
+				 <td><a class="btn btn-info btn-xs" href='/vclusters/{{ clustername }}/{{ container['containername'] }}/{{master.split("@")[0]}}/'>Realtime</a></td>
 			     </tr>
                              {% endfor %}
                              </tbody>
@@ -121,16 +122,17 @@
 	   </div>
 
 {% endfor %}
+{% endfor %}
 {% endblock %}
 
 {% block script_src %}
 <script type='text/javascript'>
-   function update(url,index)
+   function update(url,masterip,index)
    {
 
-       $.post(url+"/basic_info/",{},function(data){
+       $.post(url+"/basic_info/"+masterip+"/",{},function(data){
 
-       		$.post(url+"/disk_use/",{},function(data){
+       		$.post(url+"/disk_use/"+masterip+"/",{},function(data){
                 var diskuse = data.monitor.disk_use;
 		       	var usedp = diskuse.percent;
                 var total = diskuse.total/1024.0/1024.0;
@@ -142,6 +144,7 @@
             var hour = Math.floor(total / 3600);
             var min = Math.floor(total % 3600 / 60);
             var secs = Math.floor(total % 3600 % 60);
+	    console.log(index,hour,min,secs);
             $("#"+index+"_time").html(hour+"h "+min+"m "+secs+"s")
             $("#"+index+"_billing").html(data.monitor.basic_info.billing+" <img src='/static/img/bean.png' />")
             $("#"+index+"_billingthishour").html(data.monitor.basic_info.billing_this_hour+" <img src='/static/img/bean.png' />")
@@ -169,7 +172,7 @@
 		    return;
        		}
 
-       		$.post(url+"/cpu_use/",{},function(data){
+       		$.post(url+"/cpu_use/"+masterip+"/",{},function(data){
 		       	var usedp = data.monitor.cpu_use.usedp;
                 var quota = data.monitor.cpu_use.quota.cpu;
                 var quotaout = "("+quota;
@@ -180,7 +183,7 @@
 		       	$("#"+index+"_cpu").html((usedp/0.01).toFixed(2)+"%<br/>"+quotaout);
 		       	},"json");
 
-       		$.post(url+"/mem_use/",{},function(data){
+       		$.post(url+"/mem_use/"+masterip+"/",{},function(data){
 		       	var usedp = data.monitor.mem_use.usedp;
 			var unit = data.monitor.mem_use.unit;
 			var quota = data.monitor.mem_use.quota.memory/1024.0;
@@ -196,11 +199,14 @@
    {
         var host = window.location.host;
         var url0 = "http://" + host + "/monitor/vnodes/";
+	var masterip;
 
-	{% for cluster in clusters %}
-	{% for container in containers[cluster]['containers'] %}
-        url = url0 + '{{ container['containername'] }}';
-   	update(url,'{{cluster}}_{{ loop.index }}');
+	{% for master in allcontainers %}
+ 	{% for clustername, clusterinfo in allcontainers[master].items() %}
+	{% for container in clusterinfo['containers'] %}
+	url = url0 + '{{ container['containername'] }}';
+	update(url,'{{master.split("@")[0]}}','{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}');
+	{% endfor %}
 	{% endfor %}
 	{% endfor %}
    }

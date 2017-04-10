@@ -8,18 +8,17 @@ class dashboardView(normalView):
 
     @classmethod
     def get(self):
-        result = dockletRequest.post('/cluster/list/')
-        images = dockletRequest.post('/image/list/').get("images")
-        ok = result and result.get('clusters')
-        clusters = result.get("clusters")
-        if (result):
+        result = dockletRequest.post_to_all('/cluster/list/')
+        allclusters={}
+        for master in result:
+            clusters = result[master].get("clusters")
             full_clusters = []
             data={}
             for cluster in clusters:
                 data["clustername"] = cluster
                 single_cluster = {}
                 single_cluster['name'] = cluster
-                message = dockletRequest.post("/cluster/info/", data)
+                message = dockletRequest.post("/cluster/info/", data , master.split("@")[0])
                 if(message):
                     message = message.get("message")
                     single_cluster['status'] = message['status']
@@ -27,9 +26,10 @@ class dashboardView(normalView):
                     full_clusters.append(single_cluster)
                 else:
                     self.error()
-            return self.render(self.template_path, ok = ok, clusters = full_clusters, images = images)
-        else:
-            self.error()
+            allclusters[master] = full_clusters
+        return self.render(self.template_path,  allclusters = allclusters)
+        #else:
+        #    self.error()
 
     @classmethod
     def post(self):
