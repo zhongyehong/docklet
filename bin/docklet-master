@@ -135,6 +135,8 @@ pre_start_web () {
     [ $? != 0 ] && echo "set AUTH_COOKIE_URL failed in etcd" && exit 1
 }
 
+
+
 do_start_web () {
     pre_start_web
 
