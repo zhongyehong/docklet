@@ -232,28 +232,28 @@ def descriptionImage(image,masterip):
     descriptionImageView.masterip = masterip
     return descriptionImageView.as_view()
 
-@app.route("/image/share/<image>/<masterip>", methods=['GET'])
+@app.route("/image/share/<image>/<masterip>/", methods=['GET'])
 @login_required
 def shareImage(image,masterip):
     shareImageView.image = image
     shareImageView.masterip = masterip
     return shareImageView.as_view()
 
-@app.route("/image/unshare/<image>/<masterip>", methods=['GET'])
+@app.route("/image/unshare/<image>/<masterip>/", methods=['GET'])
 @login_required
 def unshareImage(image,masterip):
     unshareImageView.image = image
     unshareImageView.masterip = masterip
     return unshareImageView.as_view()
 
-@app.route("/image/delete/<image>/<masterip>", methods=['GET'])
+@app.route("/image/delete/<image>/<masterip>/", methods=['GET'])
 @login_required
 def deleteImage(image,masterip):
     deleteImageView.image = image
     deleteImageView.masterip = masterip
     return deleteImageView.as_view()
 
-@app.route("/image/updatebase/<image>/<masterip>", methods=['GET'])
+@app.route("/image/updatebase/<image>/<masterip>/", methods=['GET'])
 @login_required
 def updatebaseImage(image,masterip):
     updatebaseImageView.image = image

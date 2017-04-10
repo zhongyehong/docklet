@@ -106,16 +106,16 @@
                     </div>
 
 				    <div class="hr-line-dashed"></div>
-                    <div class="panel-group" id="accordion">
+				    <div class="panel-group" id="accordion_{{master.split("@")[1]}}">
                         <div class="panel panel-default">
                             <div class="panel-heading">
                                 <h4 class="panel-title">
-                                    <a data-toggle="collapse" data-panel="#accordion" href="#collapseOne">
+					<a data-toggle="collapse" data-panel="#accordion_{{master.split("@")[1]}}" href="#collapseOne_{{master.split("@")[1]}}">
                                         show advanced options
                                     </a>
                                 </h4>
                             </div>
-                            <div id="collapseOne" class="panel-collapse collapse">
+			    <div id="collapseOne_{{master.split("@")[1]}}" class="panel-collapse collapse">
                                 <div class="panel-body">
 				                    <div class="form-group">
                                         <label class="col-sm-2 control-label">CPU</label>
@@ -177,6 +177,7 @@
     <script>
         $(document).ready(function(){
  	        $(".table-image").DataTable();
+		$(".table-image").attr("style","");
 		$('#myTabs a').click(function (e) {
 			  e.preventDefault();
 		          $(this).tab('show');

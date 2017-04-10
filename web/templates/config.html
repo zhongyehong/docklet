@@ -60,9 +60,9 @@
                  </div>
 						<div class="box-body">
 							<p>
-			     <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#Scaleout_{{ clustername }}"><i class="fa fa-plus"></i>Add Node</button>
+							<button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#Scaleout_{{ clustername }}_{{master.split("@")[1]}}"><i class="fa fa-plus"></i>Add Node</button>
 			     				</p>
-			     <div class="modal inmodal" id="Scaleout_{{ clustername }}" tabindex="-1" role="dialog" aria-hidden="true">
+							<div class="modal inmodal" id="Scaleout_{{ clustername }}_{{master.split("@")[1]}}" tabindex="-1" role="dialog" aria-hidden="true">
                                    <div class="modal-dialog">
                                    <div class="modal-content animated fadeIn">
                                            <div class="modal-header">
@@ -111,16 +111,16 @@
 								</tbody>
 							</table>
  	                    	<div class="hr-line-dashed"></div>
-                                 <div class="panel-group" id="accordion">
+				<div class="panel-group" id="accordion_{{clustername}}_{{master.split("@")[1]}}">
                                      <div class="panel panel-default">
                                          <div class="panel-heading">
                                              <h4 class="panel-title">
-                                                 <a data-toggle="collapse" data-panel="#accordion" href="#collapseOne">
+						     <a data-toggle="collapse" data-panel="#accordion_{{clustername}}_{{master.split("@")[1]}}" href="#collapseOne_{{clustername}}_{{master.split("@")[1]}}">
                                                      show advanced options
                                                  </a>
                                              </h4>
                                          </div>
-                                         <div id="collapseOne" class="panel-collapse collapse">
+					 <div id="collapseOne_{{clustername}}_{{master.split("@")[1]}}" class="panel-collapse collapse">
                                              <div class="panel-body">
 				                                 <div class="form-group">
                                                      <label class="control-label">CPU</label>
@@ -177,13 +177,13 @@
                                  {% endif %}
 
 				 <td>{{ container['image'] }}</td>
-				 <td><button type="button" class="btn btn-success btn-xs" data-toggle="modal" data-target="#DelModal_{{ container['containername'] }}">Save</button></td>
+				 <td><button type="button" class="btn btn-success btn-xs" data-toggle="modal" data-target="#DelModal_{{ container['containername'] }}_{{master.split("@")[1]}}">Save</button></td>
                 {% if container['containername'][-2:] == '-0' %}
                 <td><button class="btn btn-xs btn-default">Delete</button></td>
                 {% else %}
 		<td><a class="btn btn-xs btn-danger" href="/workspace/scalein/{{ clustername }}/{{ container['containername'] }}/{{master.split("@")[0]}}/">Delete</a></td>
                 {% endif %}
-				<div class="modal inmodal" id="DelModal_{{ container['containername'] }}" tabindex="-1" role="dialog" aria-hidden="true">
+		<div class="modal inmodal" id="DelModal_{{ container['containername'] }}_{{master.split("@")[1]}}" tabindex="-1" role="dialog" aria-hidden="true">
                                    <div class="modal-dialog">
                                    <div class="modal-content animated fadeIn">
                                            <div class="modal-header">
@@ -354,6 +354,7 @@
 <script>
          $(document).ready(function() {
             $(".table-image").DataTable();
+            $(".table-image").attr("style","");
          });
 
  </script>
