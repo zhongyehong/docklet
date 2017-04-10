@@ -246,44 +246,28 @@ def descriptionImage(image,masterip):
     descriptionImageView.masterip = masterip
     return descriptionImageView.as_view()
 
-<<<<<<< 3b17bd33a3fbe1246abdc45dcb5f08d927eae2dd
 @app.route("/image/share/<image>/<masterip>/", methods=['GET'])
-=======
-@app.route("/image/share/<image>/<masterip>", methods=['GET'])
->>>>>>> monitor part of multiple master
 @login_required
 def shareImage(image,masterip):
     shareImageView.image = image
     shareImageView.masterip = masterip
     return shareImageView.as_view()
 
-<<<<<<< 3b17bd33a3fbe1246abdc45dcb5f08d927eae2dd
 @app.route("/image/unshare/<image>/<masterip>/", methods=['GET'])
-=======
-@app.route("/image/unshare/<image>/<masterip>", methods=['GET'])
->>>>>>> monitor part of multiple master
 @login_required
 def unshareImage(image,masterip):
     unshareImageView.image = image
     unshareImageView.masterip = masterip
     return unshareImageView.as_view()
 
-<<<<<<< 3b17bd33a3fbe1246abdc45dcb5f08d927eae2dd
 @app.route("/image/delete/<image>/<masterip>/", methods=['GET'])
-=======
-@app.route("/image/delete/<image>/<masterip>", methods=['GET'])
->>>>>>> monitor part of multiple master
 @login_required
 def deleteImage(image,masterip):
     deleteImageView.image = image
     deleteImageView.masterip = masterip
     return deleteImageView.as_view()
 
-<<<<<<< 3b17bd33a3fbe1246abdc45dcb5f08d927eae2dd
 @app.route("/image/updatebase/<image>/<masterip>/", methods=['GET'])
-=======
-@app.route("/image/updatebase/<image>/<masterip>", methods=['GET'])
->>>>>>> monitor part of multiple master
 @login_required
 def updatebaseImage(image,masterip):
     updatebaseImageView.image = image
@@ -345,10 +329,7 @@ def monitor_request(comid,infotype,masterip):
     path = path[:path.rfind("/")+1]
     logger.debug(path + "_____" + masterip)
     result = dockletRequest.post(path, data, masterip)
-<<<<<<< 3b17bd33a3fbe1246abdc45dcb5f08d927eae2dd
     logger.debug("monitor" + str(type(result)))
-=======
->>>>>>> monitor part of multiple master
     return json.dumps(result)
 
 @app.route("/beans/application/", methods=['GET'])
@@ -680,6 +661,5 @@ if __name__ == '__main__':
             webip = arg
         elif opt in ("-p", "--port"):
             webport = int(arg)
-
 
 app.run(host = webip, port = webport, debug = False, threaded=True)
