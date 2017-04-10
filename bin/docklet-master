@@ -189,7 +189,6 @@ do_stop_user () {
 case "$1" in
     init)
         do_start_master "new"
-        do_start_web
         ;;
     start)
         do_start_master "recovery"
@@ -228,9 +227,6 @@ case "$1" in
     status)
         status=0
         status_of_proc -p $PIDFILE_MASTER "$DAEMON_MASTER" "$DAEMON_NAME_MASTER" || status=$?
-        status_of_proc -p $PIDFILE_PROXY "$DAEMON_PROXY" "$DAEMON_NAME_PROXY" || status=$?
-        status_of_proc -p $PIDFILE_WEB "$DAEMON_WEB" "$DAEMON_NAME_WEB" || status=$?
-        status_of_proc -p $PIDFILE_USER "$DAEMON_USER" "$DAEMON_NAME_USER" || status=$?
         exit $status
         ;;
 
