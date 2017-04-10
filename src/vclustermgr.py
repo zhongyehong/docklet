@@ -51,7 +51,7 @@ class VclusterMgr(object):
                 logger.info ("recovering cluster:%s for user:%s ..." % (cluster, user))
                 self.recover_cluster(cluster, user)
         logger.info("recovered all vclusters for all users")
-    
+
     def mount_allclusters(self):
         logger.info("mounting all vclusters for all users...")
         usersdir = self.fspath+"/global/users/"
@@ -69,7 +69,7 @@ class VclusterMgr(object):
                 logger.info ("stopping cluster:%s for user:%s ..." % (cluster, user))
                 self.stop_cluster(cluster, user)
         logger.info("stopped all vclusters for all users")
-    
+
     def detach_allclusters(self):
         logger.info("detaching all vclusters for all users...")
         usersdir = self.fspath+"/global/users/"
@@ -78,7 +78,7 @@ class VclusterMgr(object):
                 logger.info ("detaching cluster:%s for user:%s ..." % (cluster, user))
                 self.detach_cluster(cluster, user)
         logger.info("detached all vclusters for all users")
-     
+
     def create_cluster(self, clustername, username, image, user_info, setting):
         if self.is_cluster(clustername, username):
             return [False, "cluster:%s already exists" % clustername]
@@ -176,12 +176,12 @@ class VclusterMgr(object):
         if 'proxy_ip' in clusterinfo:
             return [False, "proxy already exists"]
         target = "http://" + ip + ":" + port
-        clusterinfo['proxy_ip'] = ip + ":" + port 
+        clusterinfo['proxy_ip'] = ip + ":" + port
         clusterfile = open(self.fspath + "/global/users/" + username + "/clusters/" + clustername, 'w')
         clusterfile.write(json.dumps(clusterinfo))
         clusterfile.close()
         proxytool.set_route("/_web/" + username + "/" + clustername, target)
-        return [True, clusterinfo]        
+        return [True, clusterinfo]
 
     def deleteproxy(self, username, clustername):
         [status, clusterinfo] = self.get_clusterinfo(clustername, username)
@@ -193,7 +193,7 @@ class VclusterMgr(object):
         clusterfile.close()
         proxytool.delete_route("/_web/" + username + "/" + clustername)
         return [True, clusterinfo]
-         
+
     def flush_cluster(self,username,clustername,containername):
         begintime = datetime.datetime.now()
         [status, info] = self.get_clusterinfo(clustername, username)
@@ -233,7 +233,7 @@ class VclusterMgr(object):
 
 
     def image_check(self,username,imagename):
-        imagepath = self.fspath + "/global/images/private/" + username + "/" 
+        imagepath = self.fspath + "/global/images/private/" + username + "/"
         if os.path.exists(imagepath + imagename):
             return [False, "image already exists"]
         else:
@@ -248,6 +248,8 @@ class VclusterMgr(object):
             if container['containername'] == containername:
                 logger.info("container: %s found" % containername)
                 onework = self.nodemgr.ip_to_rpc(container['host'])
+                if onework is None:
+                    return [False, "The worker can't be found or has been stopped."]
                 res = onework.create_image(username,imagename,containername,description,imagenum)
                 container['lastsave'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 container['image'] = imagename
@@ -270,6 +272,8 @@ class VclusterMgr(object):
         ips = []
         for container in info['containers']:
             worker = self.nodemgr.ip_to_rpc(container['host'])
+            if worker is None:
+                return [False, "The worker can't be found or has been stopped."]
             worker.delete_container(container['containername'])
             ips.append(container['ip'])
         logger.info("delete vcluster and release vcluster ips")
@@ -277,13 +281,13 @@ class VclusterMgr(object):
         self.networkmgr.printpools()
         os.remove(self.fspath+"/global/users/"+username+"/clusters/"+clustername)
         os.remove(self.fspath+"/global/users/"+username+"/hosts/"+str(info['clusterid'])+".hosts")
-        
+
         groupname = json.loads(user_info)["data"]["group"]
         [status, clusters] = self.list_clusters(username)
         if len(clusters) == 0:
             self.networkmgr.del_user(username, isshared = True if str(groupname) == "fundation" else False)
             logger.info("vlanid release triggered")
-        
+
         return [True, "cluster delete"]
 
     def scale_in_cluster(self, clustername, username, containername):
@@ -294,6 +298,8 @@ class VclusterMgr(object):
         for container in info['containers']:
             if container['containername'] == containername:
                 worker = self.nodemgr.ip_to_rpc(container['host'])
+                if worker is None:
+                    return [False, "The worker can't be found or has been stopped."]
                 worker.delete_container(containername)
                 self.networkmgr.release_userips(username, container['ip'])
                 self.networkmgr.printpools()
@@ -335,14 +341,16 @@ class VclusterMgr(object):
         # after reboot, user gateway goes down and lose its configuration
         # so, check is necessary
         self.networkmgr.check_usergw(username)
-        # set proxy 
+        # set proxy
         try:
-            target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000" 
+            target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000"
             proxytool.set_route('/go/'+username+'/'+clustername, target)
         except:
             return [False, "start cluster failed with setting proxy failed"]
         for container in info['containers']:
             worker = self.nodemgr.ip_to_rpc(container['host'])
+            if worker is None:
+                return [False, "The worker can't be found or has been stopped."]
             worker.start_container(container['containername'])
             worker.start_services(container['containername'])
         info['status']='running'
@@ -358,6 +366,8 @@ class VclusterMgr(object):
             return [False, "cluster not found"]
         for container in info['containers']:
             worker = self.nodemgr.ip_to_rpc(container['host'])
+            if worker is None:
+                return [False, "The worker can't be found or has been stopped."]
             worker.mount_container(container['containername'])
         return [True, "mount cluster"]
 
@@ -371,13 +381,15 @@ class VclusterMgr(object):
         self.networkmgr.check_usergw(username)
         # recover proxy of cluster
         try:
-            target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000" 
+            target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000"
             proxytool.set_route('/go/'+username+'/'+clustername, target)
         except:
             return [False, "start cluster failed with setting proxy failed"]
         # recover containers of this cluster
         for container in info['containers']:
             worker = self.nodemgr.ip_to_rpc(container['host'])
+            if worker is None:
+                return [False, "The worker can't be found or has been stopped."]
             worker.recover_container(container['containername'])
         return [True, "start cluster"]
 
@@ -391,6 +403,8 @@ class VclusterMgr(object):
             return [False, 'cluster is already stopped']
         for container in info['containers']:
             worker = self.nodemgr.ip_to_rpc(container['host'])
+            if worker is None:
+                return [False, "The worker can't be found or has been stopped."]
             worker.stop_container(container['containername'])
         info['status']='stopped'
         info['start_time']="------"
@@ -398,7 +412,7 @@ class VclusterMgr(object):
         infofile.write(json.dumps(info))
         infofile.close()
         return [True, "stop cluster"]
-    
+
     def detach_cluster(self, clustername, username):
         [status, info] = self.get_clusterinfo(clustername, username)
         if not status:
@@ -407,6 +421,8 @@ class VclusterMgr(object):
             return [False, 'cluster is running, please stop it first']
         for container in info['containers']:
             worker = self.nodemgr.ip_to_rpc(container['host'])
+            if worker is None:
+                return [False, "The worker can't be found or has been stopped."]              
             worker.detach_container(container['containername'])
         return [True, "detach cluster"]
 
