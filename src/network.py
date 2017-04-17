@@ -391,6 +391,14 @@ class NetworkMgr(object):
     def dump_user(self, username):
         self.etcd.setkey("network/users/"+username, json.dumps({'info':self.users[username].info, 'vlanid':self.users[username].vlanid, 'gateway':self.users[username].gateway, 'pool':self.users[username].pool}))
 
+    def load_usrgw(self,username):
+        [status, data] = self.etcd.getkey("network/usergws/"+username)
+        if status:
+            self.usergws[username] = data
+
+    def dump_usrgw(self, username):
+        self.etcd.setkey("network/usrgws/"+username, self.usrgws[username])
+
     def printpools(self):
         print ("<Center>")
         self.center.printpool()
@@ -439,11 +447,13 @@ class NetworkMgr(object):
         return [True, "Release VLAN ID success"]
 
     def has_usrgw(self, username):
+        self.load_usrgw(username)
         return username in self.usrgws.keys()
 
     def setup_usrgw(self, username, nodemgr, worker=None):
         if not self.has_user(username):
             return [False,"user doesn't exist."]
+        self.load_usrgw(username)
         if username in self.usrgws.keys():
             return [False,"user's gateway has been set up."]
         self.load_user(username)
@@ -452,10 +462,12 @@ class NetworkMgr(object):
             ip = nodemgr.rpc_to_ip(worker)
             logger.info("setup gateway for %s with %s and vlan=%s on %s" % (username, usrpools.get_gateway_cidr(), str(usrpools.vlanid), ip))
             self.usrgws[username] = ip
+            self.dump_usrgw(username)
             worker.setup_gw('docklet-br', username, usrpools.get_gateway_cidr(), str(usrpools.vlanid))
         else:
             logger.info("setup gateway for %s with %s and vlan=%s on master" % (username, usrpools.get_gateway_cidr(), str(usrpools.vlanid)))
             self.usrgws[username] = self.masterip
+            self.dump_usrgw(username)
             netcontrol.setup_gw('docklet-br', username, usrpools.get_gateway_cidr(), str(usrpools.vlanid))
         self.dump_user(username)
         del self.users[username]
@@ -493,6 +505,7 @@ class NetworkMgr(object):
             worker = nodemgr.ip_to_rpc(ip)
             worker.del_gw('docklet-br', username)
         del self.usrgws[username]
+        self.etcd.delkey("network/usrgws/"+username)
         return [True, 'delete user\' gateway success']
 
     def del_user(self, username, isshared = False):
@@ -511,6 +524,7 @@ class NetworkMgr(object):
         return [True, 'delete user success']
 
     def check_usergw(self, username, nodemgr):
+        self.load_usrgw(username)
         if username not in self.usrgws.keys():
             return [False, 'user does not exist.']
         ip = self.usrgws[username]

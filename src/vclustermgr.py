@@ -120,6 +120,7 @@ class VclusterMgr(object):
                 if not success:
                     return [False, message]
             if i == 0:
+                self.networkmgr.load_usrgw(username)
                 proxy_server_ip = self.networkmgr.usrgws[username]
             lxc_name = username + "-" + str(clusterid) + "-" + str(i)
             hostname = "host-"+str(i)
@@ -391,7 +392,7 @@ class VclusterMgr(object):
         try:
             target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000"
             worker = self.nodemgr.ip_to_rpc(info['proxy_server_ip'])
-            worker.set_route('/go/'+username+'/'+clustername, target)
+            worker.set_route('/'+info['proxy_server_ip']+'/go/'+username+'/'+clustername, target)
         except:
             return [False, "start cluster failed with setting proxy failed"]
         # recover containers of this cluster
