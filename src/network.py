@@ -2,7 +2,6 @@
 
 import json, sys, netifaces
 from nettools import netcontrol
-
 from log import logger
 
 # getip : get ip from network interface
