@@ -31,6 +31,7 @@ class dockletRequest():
         reqtype = url.split("/")[1]
         userreq = {
                 'login',
+                'external_login',
                 'register',
                 'user',
                 'beans',
