@@ -1065,7 +1065,7 @@ if __name__ == '__main__':
 
     G_sysmgr = sysmgr.SystemManager()
 
-    G_networkmgr = network.NetworkMgr(clusternet, etcdclient, mode)
+    G_networkmgr = network.NetworkMgr(clusternet, etcdclient, mode, ipaddr)
     G_networkmgr.printpools()
 
     # start NodeMgr and NodeMgr will wait for all nodes to start ...

@@ -108,7 +108,7 @@ class IntervalPool(object):
             #self.pool[str(i)].sort(key=ip_to_int)  # cidr between thiscidr and upcidr are null, no need to sort
         return [True, upinterval]
 
-    # check whether the addr/cidr overlaps the self.pool 
+    # check whether the addr/cidr overlaps the self.pool
     # for example, addr/cidr=172.16.0.48/29 overlaps self.pool['24']=[172.16.0.0]
     def overlap(self, addr, cidr):
         cidr=int(cidr)
@@ -226,7 +226,7 @@ class EnumPool(object):
             ips = [ ip_or_ips ]
         else:
             ips = ip_or_ips
-        # check whether all IPs are not in the pool but in the range of pool 
+        # check whether all IPs are not in the pool but in the range of pool
         for ip in ips:
             ip = ip.split('/')[0]
             if (ip in self.pool) or (not self.inrange(ip)):
@@ -276,8 +276,9 @@ class UserPool(EnumPool):
 #   system : enumeration pool to acquire and release system ip address
 #   users : set of users' enumeration pools to manage users' ip address
 class NetworkMgr(object):
-    def __init__(self, addr_cidr, etcdclient, mode):
+    def __init__(self, addr_cidr, etcdclient, mode, masterip):
         self.etcd = etcdclient
+        self.masterip = masterip
         if mode == 'new':
             logger.info("init network manager with %s" % addr_cidr)
             self.center = IntervalPool(addr_cidr=addr_cidr)
@@ -320,7 +321,7 @@ class NetworkMgr(object):
         self.vlanids['currentindex'] = i+1
         self.etcd.setkey("network/vlanids/"+str(i+1), json.dumps(self.vlanids['currentpool']))
         self.etcd.setkey("network/vlanids/current", str(i+1))
-    
+
     # Data Structure:
     # shared_vlanids = [{vlanid = ..., sharenum = ...}, {vlanid = ..., sharenum = ...}, ...]
     def init_shared_vlanids(self, vlannum = 128, sharenum = 128):
@@ -354,7 +355,7 @@ class NetworkMgr(object):
                 pass
         else:
             self.etcd.setkey("network/vlanids/"+str(self.vlanids['currentindex']), json.dumps(self.vlanids['currentpool']))
-    
+
     def load_shared_vlanids(self):
         [status, shared_vlanids] = self.etcd.getkey("network/shared_vlanids")
         if not status:
@@ -386,7 +387,7 @@ class NetworkMgr(object):
         usercopy = json.loads(userdata)
         user = UserPool(copy = usercopy)
         self.users[username] = user
-        
+
     def dump_user(self, username):
         self.etcd.setkey("network/users/"+username, json.dumps({'info':self.users[username].info, 'vlanid':self.users[username].vlanid, 'gateway':self.users[username].gateway, 'pool':self.users[username].pool}))
 
@@ -454,7 +455,7 @@ class NetworkMgr(object):
             worker.setup_gw('docklet-br', username, usrpools.get_gateway_cidr(), str(usrpools.vlanid))
         else:
             logger.info("setup gateway for %s with %s and vlan=%s on master" % (username, usrpools.get_gateway_cidr(), str(usrpools.vlanid)))
-            self.usrgws[username] = "m"
+            self.usrgws[username] = self.masterip
             netcontrol.setup_gw('docklet-br', username, usrpools.get_gateway_cidr(), str(usrpools.vlanid))
         self.dump_user(username)
         del self.users[username]
@@ -464,7 +465,7 @@ class NetworkMgr(object):
         logger.info ("add user %s with cidr=%s" % (username, str(cidr)))
         if self.has_user(username):
             return [False, "user already exists in users set"]
-        [status, result] = self.center.allocate(cidr) 
+        [status, result] = self.center.allocate(cidr)
         self.dump_center()
         if status == False:
             return [False, result]
@@ -486,7 +487,7 @@ class NetworkMgr(object):
         if username not in self.usrgws.keys():
             return [False, "user does't have gateway or user doesn't exist."]
         ip = self.usrgws[username]
-        if ip == 'm':
+        if ip == self.masterip:
             netcontrol.del_gw('docklet-br', username)
         else:
             worker = nodemgr.ip_to_rpc(ip)
@@ -514,7 +515,7 @@ class NetworkMgr(object):
             return [False, 'user does not exist.']
         ip = self.usrgws[username]
         self.load_user(username)
-        if ip == 'm':
+        if ip == self.masterip:
             netcontrol.check_gw('docklet-br', username, self.users[username].get_gateway_cidr(), str(self.users[username].vlanid))
         else:
             worker = nodemgr.ip_to_rpc(ip)
@@ -600,6 +601,4 @@ class NetworkMgr(object):
         logger.info ("acquire system ips: %s" % str(ip_or_ips))
         result = self.system.release(ip_or_ips)
         self.dump_system()
-        return result 
-
-
+        return result

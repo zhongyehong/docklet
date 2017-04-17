@@ -111,9 +111,7 @@ class VclusterMgr(object):
         clusterpath = self.fspath+"/global/users/"+username+"/clusters/"+clustername
         hostpath = self.fspath+"/global/users/"+username+"/hosts/"+str(clusterid)+".hosts"
         hosts = "127.0.0.1\tlocalhost\n"
-        proxy_url = ""
         proxy_server_ip = ""
-        proxy_server_port = ""
         containers = []
         for i in range(0, clustersize):
             onework = workers[random.randint(0, len(workers)-1)]
@@ -122,9 +120,7 @@ class VclusterMgr(object):
                 if not success:
                     return [False, message]
             if i == 0:
-                proxy_url = "http://" + self.nodemgr.rpc_to_ip(onework) + ":" + str(env.getenv("PROXY_PORT")) + "/_web/" + username + "/" + clustername
-                proxy_server_ip = self.nodemgr.rpc_to_ip(onework)
-                proxy_server_port = env.getenv("PROXY_PORT")
+                proxy_server_ip = self.networkmgr.usrgws[username]
             lxc_name = username + "-" + str(clusterid) + "-" + str(i)
             hostname = "host-"+str(i)
             logger.info ("create container with : name-%s, username-%s, clustername-%s, clusterid-%s, hostname-%s, ip-%s, gateway-%s, image-%s" % (lxc_name, username, clustername, str(clusterid), hostname, ips[i], gateway, image_json))
@@ -139,8 +135,9 @@ class VclusterMgr(object):
         hostfile.write(hosts)
         hostfile.close()
         clusterfile = open(clusterpath, 'w')
+        proxy_url = "http://" + proxy_server_ip + ":" + str(env.getenv("PROXY_PORT")) + "/_web/" + username + "/" + clustername
         info = {'clusterid':clusterid, 'status':'stopped', 'size':clustersize, 'containers':containers, 'nextcid': clustersize, 'create_time':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'start_time':"------" , 'proxy_url':proxy_url, 'proxy_server_ip':proxy_server_ip}
-        info['proxy_server_port'] = proxy_server_port
+        info['proxy_server_port'] = env.getenv("PROXY_PORT")
         clusterfile.write(json.dumps(info))
         clusterfile.close()
         return [True, info]
@@ -168,7 +165,8 @@ class VclusterMgr(object):
         onework = workers[random.randint(0, len(workers)-1)]
         lxc_name = username + "-" + str(clusterid) + "-" + str(cid)
         hostname = "host-" + str(cid)
-        [success, message] = onework.create_container(lxc_name, username, json.dumps(setting), clustername, clusterid, str(cid), hostname, ip, gateway, str(vlanid), image_json)
+        proxy_server_ip = clusterinfo['proxy_server_ip']
+        [success, message] = onework.create_container(lxc_name, proxy_server_ip, username, json.dumps(setting), clustername, clusterid, str(cid), hostname, ip, gateway, str(vlanid), image_json)
         if success is False:
             logger.info("create container failed, so scale out failed")
             return [False, message]
@@ -402,7 +400,6 @@ class VclusterMgr(object):
             worker.recover_container(container['containername'])
         return [True, "start cluster"]
 
-
     # maybe here should use cluster id
     def stop_cluster(self, clustername, username):
         [status, info] = self.get_clusterinfo(clustername, username)
@@ -410,6 +407,8 @@ class VclusterMgr(object):
             return [False, "cluster not found"]
         if info['status'] == 'stopped':
             return [False, 'cluster is already stopped']
+        worker = self.nodemgr.ip_to_rpc(info['proxy_server_ip'])
+        worker.delete_route('/'+info['proxy_server_ip']+'/go/'+username+'/'+clustername)
         for container in info['containers']:
             worker = self.nodemgr.ip_to_rpc(container['host'])
             worker.stop_container(container['containername'])
