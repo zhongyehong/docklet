@@ -35,6 +35,10 @@ from model import User,db
 from httplib2 import Http
 from urllib.parse import urlencode
 
+external_login = env.getenv('EXTERNAL_LOGIN')
+if(external_login == 'TRUE'):
+    from userDependence import external_auth
+
 app = Flask(__name__)
 
 
@@ -90,6 +94,17 @@ def login():
         return json.dumps({'success':'false', 'message':'auth failed'})
     logger.info("%s login success" % user)
     return json.dumps({'success':'true', 'action':'login', 'data': auth_result['data']})
+
+@app.route('/external_login/', methods=['POST'])
+def external_login():
+    global G_usermgr
+    logger.info("handle request : external user login")
+    try:
+        result = G_usermgr.auth_external(request.form)
+        return json.dumps(result)
+    except:
+        result = {'success':'false', 'reason':'Something wrong happened when auth an external account'}
+        return json.dumps(result)
 
 @app.route("/register/", methods=['POST'])
 def register():
