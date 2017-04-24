@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 
 import requests, json
+import env
 
-proxy_control="http://localhost:8001/api/routes"
+proxy_api_port = env.getenv("PROXY_API_PORT")
+proxy_control="http://localhost:"+ str(proxy_api_port) +"/api/routes"
 
 def get_routes():
     try:

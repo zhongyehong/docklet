@@ -27,6 +27,8 @@ def getenv(key):
         return int(os.environ.get("MASTER_PORT", 9000))
     elif key == "WORKER_PORT":
         return int(os.environ.get("WORKER_PORT", 9001))
+    elif key == "NGINX_PORT":
+        return int(os.environ.get("NGINX_PORT", 8080))
     elif key == "PROXY_PORT":
         return int(os.environ.get("PROXY_PORT", 8000))
     elif key == "PROXY_API_PORT":
@@ -35,7 +37,7 @@ def getenv(key):
         return int(os.environ.get("WEB_PORT", 8888))
     elif key == "PORTAL_URL":
         return os.environ.get("PORTAL_URL",
-            "http://"+getenv("MASTER_IP") + ":" + str(getenv("PROXY_PORT")))
+            "http://"+getenv("MASTER_IP") + ":" + str(getenv("NGINX_PORT")))
     elif key == "LOG_LEVEL":
         return os.environ.get("LOG_LEVEL", "DEBUG")
     elif key == "LOG_LIFE":
@@ -56,5 +58,7 @@ def getenv(key):
         return os.environ.get("DATA_QUOTA_CMD", "gluster volume quota docklet-volume limit-usage %s %s")
     elif key == 'DISTRIBUTED_GATEWAY':
         return os.environ.get("DISTRIBUTED_GATEWAY", "False")
+    elif key == "NGINX_CONF":
+        return os.environ.get("NGINX_CONF","/etc/nginx")
     else:
         return os.environ[key]

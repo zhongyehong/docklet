@@ -78,8 +78,8 @@
 
 # PORTAL_URL: the public docklet portal url. for a production system,
 # it should be a valid URL, like http://docklet.info
-# default is MASTER_IP:PROXY_PORT
-# PORTAL_URL=http://locahost:8000
+# default is MASTER_IP:NGINX_PORT
+# PORTAL_URL=http://locahost:8080
 
 # MASTER_IP: master listen ip, default listens on all interfaces
 # MASTER_IP=0.0.0.0
@@ -90,10 +90,16 @@
 # WORKER_PORT: worker listen port, default is 9001
 # WORKER_PORT=9001
 
-# PROXY_PORT: the access port of the public protal, default is 8000
-# it is also the listen port of configurable-http-proxy, which
-# proxy connections from exteral public network to internal private
-# container networks. Usually 80 is recommded for production environment.
+# NGINX_PORT: the access port of the public portal, default is 8080
+# This is the listening port of nginx server. The nginx server forwards
+# requests according to the requests' urls. If the urls are to workspaces,
+# it will forward requests to the configurable-http-proxy, otherwise,
+# to the docklet web. Usually 80 is recommded for production environment
+# NGINX_PORT=8080
+
+# PROXY_PORT: the listening port of configurable-http-proxy, default is 8000
+# it proxy connections from exteral public network to internal private
+# container networks.
 # PROXY_PORT=8000
 
 # PROXY_API_PORT: configurable-http-proxy api port, default is 8001
@@ -129,8 +135,8 @@
 # default: ""
 # EMAIL_FROM_ADDRESS=""
 
-# ADMIN_EMAIL_ADDRESS : when an activating request is sent, an e-mail will 
-# be sent to this address to remind the admin. 
+# ADMIN_EMAIL_ADDRESS : when an activating request is sent, an e-mail will
+# be sent to this address to remind the admin.
 # If this address i "", no email will be sent to admin.
 # default: ""
 # ADMIN_EMAIL_ADDRESS=""
@@ -148,3 +154,6 @@
 # DISTRIBUTED_GATEWAY : whether the users' gateways are distributed or not
 # True or False, default: False
 # DISTRIBUTED_GATEWAY=False
+
+# NGINX_CONF: the config path of nginx, default: /etc/nginx
+# NGINX_CONF="/etc/nginx"
