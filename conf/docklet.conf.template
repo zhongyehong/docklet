@@ -157,3 +157,16 @@
 
 # NGINX_CONF: the config path of nginx, default: /etc/nginx
 # NGINX_CONF="/etc/nginx"
+
+# MASTER_IPS: all master ips in a cente, depart by ','.
+# e.g:192.168.192.191@master1,192.168.192.192@master2
+# defalut:0.0.0.0@docklet
+# MASTER_IPS=""
+
+# USER_IP: user listen ip
+# default:0.0.0.0
+# USER_IP=""
+
+# USER_PORT: user listen port
+# default:9100
+# USER_PORT=""

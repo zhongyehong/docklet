@@ -30,12 +30,13 @@
 
 
 {% block content %}
-{% for clustername, clusterinfo in clusters.items() %}
+{% for master in allclusters %}
+{% for clustername, clusterinfo in allclusters[master].items() %}
 <div class="row">
 	     <div class="col-md-12">
          <div class="box box-info">
               <div class="box-header with-border">
-                <h3 class="box-title">WorkSpace Name: {{ clustername }}</h3>
+                <h3 class="box-title">WorkSpace Name: {{ clustername }} <strong>@ {{master.split("@")[1]}}</strong></h3>
 
                 <div class="box-tools pull-right">
                   <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
@@ -58,8 +59,10 @@
                    </div>
                  </div>
 						<div class="box-body">
-			     <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#Scaleout_{{ clustername }}"><i class="fa fa-plus"></i>Add Node</button>
-			     <div class="modal inmodal" id="Scaleout_{{ clustername }}" tabindex="-1" role="dialog" aria-hidden="true">
+							<p>
+							<button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#Scaleout_{{ clustername }}_{{master.split("@")[1]}}"><i class="fa fa-plus"></i>Add Node</button>
+			     				</p>
+							<div class="modal inmodal" id="Scaleout_{{ clustername }}_{{master.split("@")[1]}}" tabindex="-1" role="dialog" aria-hidden="true">
                                    <div class="modal-dialog">
                                    <div class="modal-content animated fadeIn">
                                            <div class="modal-header">
@@ -70,7 +73,7 @@
                                            </div>
                                            <div class="modal-body">
                                                 <div class="form-group">
-							<form action="/workspace/scaleout/{{ clustername }}/" method="POST" >
+							<form action="/workspace/scaleout/{{ clustername }}/{{master.split("@")[0]}}/" method="POST" >
                                 <table class="table table-striped table-bordered table-hover table-image">
 								<thead>
 									<tr>
@@ -87,7 +90,7 @@
 										<td>docklet</td>
 										<td><input type="radio" name="image" value="base_base_base" checked="checked"></td>
 									</tr>
-									{% for image in images['private'] %}
+									{% for image in allimages[master]['private'] %}
 									<tr>
 										<td>{{image['name']}}</td>
 										<td>private</td>
@@ -95,7 +98,7 @@
 										<td><input type="radio" name="image" value="{{image['name']}}_{{mysession['username']}}_private"></td>
 									</tr>
 									{% endfor %}
-									{% for p_user, p_images in images['public'].items() %}
+									{% for p_user, p_images in allimages[master]['public'].items() %}
 										{% for image in p_images %}
 										<tr>
 											<td>{{image['name']}}</td>
@@ -108,16 +111,16 @@
 								</tbody>
 							</table>
  	                    	<div class="hr-line-dashed"></div>
-                                 <div class="panel-group" id="accordion">
+				<div class="panel-group" id="accordion_{{clustername}}_{{master.split("@")[1]}}">
                                      <div class="panel panel-default">
                                          <div class="panel-heading">
                                              <h4 class="panel-title">
-                                                 <a data-toggle="collapse" data-panel="#accordion" href="#collapseOne">
+						     <a data-toggle="collapse" data-panel="#accordion_{{clustername}}_{{master.split("@")[1]}}" href="#collapseOne_{{clustername}}_{{master.split("@")[1]}}">
                                                      show advanced options
                                                  </a>
                                              </h4>
                                          </div>
-                                         <div id="collapseOne" class="panel-collapse collapse">
+					 <div id="collapseOne_{{clustername}}_{{master.split("@")[1]}}" class="panel-collapse collapse">
                                              <div class="panel-body">
 				                                 <div class="form-group">
                                                      <label class="control-label">CPU</label>
@@ -174,13 +177,13 @@
                                  {% endif %}
 
 				 <td>{{ container['image'] }}</td>
-				 <td><button type="button" class="btn btn-success btn-xs" data-toggle="modal" data-target="#DelModal_{{ container['containername'] }}">Save</button></td>
+				 <td><button type="button" class="btn btn-success btn-xs" data-toggle="modal" data-target="#DelModal_{{ container['containername'] }}_{{master.split("@")[1]}}">Save</button></td>
                 {% if container['containername'][-2:] == '-0' %}
                 <td><button class="btn btn-xs btn-default">Delete</button></td>
                 {% else %}
-				 <td><a class="btn btn-xs btn-danger" href="/workspace/scalein/{{ clustername }}/{{ container['containername'] }}/">Delete</a></td>
+		<td><a class="btn btn-xs btn-danger" href="/workspace/scalein/{{ clustername }}/{{ container['containername'] }}/{{master.split("@")[0]}}/">Delete</a></td>
                 {% endif %}
-				<div class="modal inmodal" id="DelModal_{{ container['containername'] }}" tabindex="-1" role="dialog" aria-hidden="true">
+		<div class="modal inmodal" id="DelModal_{{ container['containername'] }}_{{master.split("@")[1]}}" tabindex="-1" role="dialog" aria-hidden="true">
                                    <div class="modal-dialog">
                                    <div class="modal-content animated fadeIn">
                                            <div class="modal-header">
@@ -191,7 +194,7 @@
                                            </div>
                                            <div class="modal-body">
                                                 <div class="form-group">
-                                                  <form action="/workspace/save/{{ clustername }}/{{ container['containername'] }}/" method="POST" id="saveImage">
+							<form action="/workspace/save/{{ clustername }}/{{ container['containername'] }}/{{master.split("@")[0]}}/" method="POST" id="saveImage">
                                                   <label>Image Name</label>
 						  <input type="text" placeholder="Enter Image Name" class="form-control" name="ImageName" id="ImageName"/>
 						  <br/>
@@ -232,11 +235,11 @@
                        </div>
                      </div>
 									<div class="box-body">
-                                        <form action="/addproxy/{{ clustername }}/" id="addproxy" method="POST">
+										<form action="/addproxy/{{ clustername }}/{{master.split("@")[0]}}" id="addproxy" method="POST">
                                         {% if 'proxy_ip' in clusterinfo %}
                                             <p>ip:<input type="text" id="proxy_ip" name="proxy_ip" value={{ clusterinfo['proxy_ip'][:clusterinfo['proxy_ip'].index(':')] }} readonly="true"/>port:<input type="text" id="proxy_port" name="proxy_port" value={{ clusterinfo['proxy_ip'][clusterinfo['proxy_ip'].index(':')+1:] }} readonly="true"/>
                                             <button type="button" class="btn-xs btn-default">enable</button>
-                                            <a href="/deleteproxy/{{ clustername }}/"><button type="button" class="btn-xs btn-danger">disable</button></a></p>
+					    <a href="/deleteproxy/{{ clustername }}/{{master.split("@")[0]}}"><button type="button" class="btn-xs btn-danger">disable</button></a></p>
                                         {% else %}
                                         <p>ip:<input type="text" id="proxy_ip" name="proxy_ip" value={{ clusterinfo["containers"][0]["ip"][:clusterinfo["containers"][0]["ip"].index("/")] }} />port:<input type="text" id="proxy_port" name="proxy_port" value="80"/>
                                             <button type="submit" class="btn-xs btn-success">enable</button>
@@ -251,6 +254,7 @@
                  </div>
              </div>
 	   </div>
+{% endfor %}
 {% endfor %}
 <div class="row">
          <div class="col-lg-12">
@@ -273,6 +277,7 @@
 			     <th>Owner</th>
 			     <th>CreateTime</th>
 			     <th>Description</th>
+			     <th>Location</th>
 			     <th>Status</th>
 			     <th>Operation</th>
                          </tr>
@@ -284,47 +289,52 @@
 				<td>docklet</td>
 				<td>2015-01-01 00:00:00</td>
 				<td>A Base Image For You</td>
+				<td>--</td>
 				<td></td>
 				<td></td>
 			    </tr>
-			{% for image in images['private'] %}
+			{% for master in allimages %}
+			{% for image in allimages[master]['private'] %}
 			 <tr>
 				<td>{{image['name']}}</td>
 				<td>private</td>
 				<td>{{mysession['username']}}</td>
 				<td>{{image['time']}}</td>
-				<td><a href="/image/description/{{image['name']}}_{{mysession['username']}}_private/" target="_blank">{{image['description']}}</a></td>
+				<td><a href="/image/description/{{image['name']}}_{{mysession['username']}}_private/{{master.split("@")[0]}}/" target="_blank">{{image['description']}}</a></td>
+				<td>{{master.split("@")[1]}}</td>
 				{% if image['isshared'] == 'false' %}
 					<td>unshared</td>
 					<td>
-						<a href="/image/share/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-success">share</button></a>
-						<a href="/image/delete/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
+						<a href="/image/share/{{ image['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-success">share</button></a>
+						<a href="/image/delete/{{ image['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
 					</td>
 				{% else %}
 					<td>shared</td>
 					<td>
-						<a href="/image/unshare/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-warning">unshare</button></a>
-						<a href="/image/delete/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
+						<a href="/image/unshare/{{ image['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-warning">unshare</button></a>
+						<a href="/image/delete/{{ image['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
 					</td>
 				{% endif %}
               		 </tr>
 		        {% endfor %}
-	       	        {% for p_user,p_images in images['public'].items() %}
+	       	        {% for p_user,p_images in allimages[master]['public'].items() %}
 			    	{% for image in p_images %}
 			    	<tr>
 				<td>{{image['name']}}</td>
 				<td>public</td>
 				<td>{{p_user}}</td>
 				<td>{{image['time']}}</td>
-				<td><a href="/image/description/{{image['name']}}_{{p_user}}_public/" target="_blank">{{image['description']}}</a></td>
+				<td><a href="/image/description/{{image['name']}}_{{p_user}}_public/{{master.split("@")[0]}}/" target="_blank">{{image['description']}}</a></td>
+				<td>{{master.split("@")[1]}}</td>
 				<td></td>
 				{% if p_user == mysession['username'] %}
-				<td><a href="/image/unshare/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-warning">unshare</button></a></td>
+				<td><a href="/image/unshare/{{ image['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-warning">unshare</button></a></td>
 				{% else %}
 				<td></td>
 				{% endif %}
 			    	</tr>
 				{% endfor %}
+			{% endfor %}
 			{% endfor %}
 			</tbody>
 		  </table>
@@ -344,6 +354,7 @@
 <script>
          $(document).ready(function() {
             $(".table-image").DataTable();
+            $(".table-image").attr("style","");
          });
 
  </script>

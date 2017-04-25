@@ -211,10 +211,11 @@ var host = window.location.host;
 
 var com_ip = $("#com_ip").html();
 var url = "http://" + host + "/monitor/hosts/"+com_ip;
+var masterip = $("#masterip").html();
 
 function processStatus()
 {
-    $.post(url+"/status/",{},function(data){
+    $.post(url+"/status/"+masterip+"/",{},function(data){
         var state = data.monitor.status;
         if(state == 'RUNNING')
             is_running = true;
@@ -224,8 +225,8 @@ function processStatus()
 }
 setInterval(processStatus,1000);
 
-plot_graph($("#mem-chart"), url + "/meminfo/",processMemData,getMemY);
-plot_graph($("#cpu-chart"), url +  "/cpuinfo/",processCpuData,getCpuY);
+plot_graph($("#mem-chart"), url + "/meminfo/" + masterip + "/",processMemData,getMemY);
+plot_graph($("#cpu-chart"), url +  "/cpuinfo/" + masterip + "/",processCpuData,getCpuY);
 //plot_graph($("#disk-chart"), url + "/diskinfo",processDiskData,getDiskY);
-$.post(url+"/diskinfo/",{},processDiskData,"json");
+$.post(url+"/diskinfo/"+masterip+"/",{},processDiskData,"json");
 

@@ -39,18 +39,22 @@
                         <th>NO</th>
                         <th>VNode name</th>
                         <th>Total billing</th>
+			<th>Location</th>
                         <th>History</th>
                     	</tr>
                     	</thead>
                     <tbody>
-                      {% for vnode in vnodes %}
+		      {% for master in allvnodes %}
+                      {% for vnode in allvnodes[master] %}
                       <tr>
                       <th>{{ loop.index }}</th>
                       <th>{{ vnode.name }}</th>
                       <th>{{ vnode.billing }} beans</th>
-                      <td><a class="btn btn-info btn-xs" href='/history/{{ vnode.name }}'>History</a></td>
+		      <th>{{ master.split("@")[1] }}</th>
+		      <td><a class="btn btn-info btn-xs" href='/history/{{ vnode.name }}/{{master.split("@")[0]}}/'>History</a></td>
                       </tr>
                       {% endfor %}
+		      {% endfor %}
                     </tbody>
 		  </table>
                  </div>

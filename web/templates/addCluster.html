@@ -9,6 +9,7 @@
 <link href="//cdn.bootcss.com/datatables/1.10.11/css/dataTables.bootstrap.min.css" rel="stylesheet">
 <link href="//cdn.bootcss.com/datatables/1.10.11/css/jquery.dataTables_themeroller.css" rel="stylesheet">
 <link href="/static/dist/css/modalconfig.css" rel="stylesheet">
+
 {% endblock %}
 
 {% block panel_title %}Workspace Info{% endblock %}
@@ -21,7 +22,24 @@
 </ol>
 {% endblock %}
 
+<div>
 {% block content %}
+<ul class="nav nav-tabs" role="tablist" id="myTabs">
+{% for master in allimages %}
+{% if loop.index == 1 %}
+<li role="presentation" class="active"><a href="#{{master.split("@")[1]}}" data-toggle="tab" aria-controls="{{master.split("@")[1]}}">{{master.split("@")[1]}}</a></li>
+{% else %}
+<li role="presentation"><a href="#{{master.split("@")[1]}}" data-toggle="tab" aria-controls="{{master.split("@")[1]}}">{{master.split("@")[1]}}</a></li>
+{% endif %}
+{% endfor %}
+</ul>
+<div id="myTabContent" class="tab-content">
+{% for master in allimages %}
+{% if loop.index == 1 %}
+<div role="tabpanel" class="tab-pane active" aria-labelledby="{{master.split("@")[1]}}" id="{{master.split("@")[1]}}">
+{% else %}
+<div role="tabpanel" class="tab-pane" aria-labelledby="{{master.split("@")[1]}}" id="{{master.split("@")[1]}}">
+{% endif %}
 <div class="row">
                 <div class="col-lg-12">
                   <div class="box box-info">
@@ -35,7 +53,7 @@
                          </div>
                        </div>
                         <div class="box-body">
-                            <form id="form" class="form-horizontal" action="/workspace/add/" method="POST">
+				<form id="form" class="form-horizontal" action="/workspace/add/{{master.split("@")[0]}}/" method="POST">
 
 				    <div class="form-group"><label class="col-sm-2 control-label">Workspace Name</label>
 					    <div class="col-sm-10"><input type="text" class="form-control" name="clusterName" id="clusterName"></div>
@@ -62,22 +80,22 @@
 							<td>A base image for you</td>
 							<td><div class="i-checks"><label><input type="radio" name="image" value="base_base_base" checked="checked"></label></div></td>
 						    </tr>
-						    {% for image in images['private'] %}
+						    {% for image in allimages[master]['private'] %}
 						    <tr>
 							<td>{{image['name']}}</td>
 							<td>private</td>
 							<td>{{user}}</td>
-							<td><a href="/image/description/{{image['name']}}_{{user}}_private/" target="_blank">{{image['description']}}</a></td>
+							<td><a href="/image/description/{{image['name']}}_{{user}}_private/{{master.split("@")[1]}}/" target="_blank">{{image['description']}}</a></td>
 							<td><div class="i-checks"><label><input type="radio" name="image" value="{{image['name']}}_{{user}}_private"></label></div></td>
 						    </tr>
 						    {% endfor %}
-						    {% for p_user,p_images in images['public'].items() %}
+						    {% for p_user,p_images in allimages[master]['public'].items() %}
 						    	{% for image in p_images %}
 						    	<tr>
 								<td>{{image['name']}}</td>
 								<td>public</td>
 								<td>{{p_user}}</td>
-								<td><a href="/image/description/{{image['name']}}_{{p_user}}_public" target="_blank">{{image['description']}}</a></td>
+								<td><a href="/image/description/{{image['name']}}_{{p_user}}_public/{{master.split("@")[1]}}/" target="_blank">{{image['description']}}</a></td>
 								<td><div class="i-checks"><label><input type="radio" name="image" value="{{image['name']}}_{{p_user}}_public"></label></div></td>
 						    	</tr>
 							{% endfor %}
@@ -88,16 +106,16 @@
                     </div>
 
 				    <div class="hr-line-dashed"></div>
-                    <div class="panel-group" id="accordion">
+				    <div class="panel-group" id="accordion_{{master.split("@")[1]}}">
                         <div class="panel panel-default">
                             <div class="panel-heading">
                                 <h4 class="panel-title">
-                                    <a data-toggle="collapse" data-panel="#accordion" href="#collapseOne">
+					<a data-toggle="collapse" data-panel="#accordion_{{master.split("@")[1]}}" href="#collapseOne_{{master.split("@")[1]}}">
                                         show advanced options
                                     </a>
                                 </h4>
                             </div>
-                            <div id="collapseOne" class="panel-collapse collapse">
+			    <div id="collapseOne_{{master.split("@")[1]}}" class="panel-collapse collapse">
                                 <div class="panel-body">
 				                    <div class="form-group">
                                         <label class="col-sm-2 control-label">CPU</label>
@@ -133,7 +151,9 @@
                     </div>
 
             </div>
-
+</div>
+{% endfor %}
+</div>
 {% endblock %}
 
 {% block script_src %}
@@ -157,6 +177,11 @@
     <script>
         $(document).ready(function(){
  	        $(".table-image").DataTable();
+		$(".table-image").attr("style","");
+		$('#myTabs a').click(function (e) {
+			  e.preventDefault();
+		          $(this).tab('show');
+		})
         });
     </script>
 {% endblock %}
