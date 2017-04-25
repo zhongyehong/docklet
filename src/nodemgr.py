@@ -48,7 +48,6 @@ class NodeMgr(object):
 
         # init rpc list
         self.rpcs = []
-        self.maprpcs = {}
 
         # get allnodes
         self.allnodes = self._nodelist_etcd("allnodes")
@@ -133,7 +132,6 @@ class NodeMgr(object):
                         logger.debug ("run nodes are: %s" % self.runnodes)
                         rpccl = xmlrpc.client.ServerProxy("http://%s:%s" % (nodeip, self.workerport))
                         self.rpcs.append(rpccl)
-                        self.maprpcs[nodeip] = rpccl
                         logger.info ("add %s:%s in rpc client list" %
                             (nodeip, self.workerport))
                 elif node['value'] == 'ok':
@@ -145,8 +143,8 @@ class NodeMgr(object):
                     #print(self.runnodes)
                     #print(etcd_runip)
                     #print(self.rpcs)
-                    self.rpcs.remove(self.maprpcs[nodeip])
-            self.runnodes = etcd_runip
+                    self.rpcs.remove(self.ip_to_rpc(nodeip))
+                    self.runnodes.remove(nodeip)
 
     # get all run nodes' IP addr
     def get_nodeips(self):
