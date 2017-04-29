@@ -214,6 +214,7 @@ case "$1" in
         do_stop_master
         do_stop_proxy
         do_start_master "recovery"
+        do_start_proxy
         ;;
 
     start_proxy)
