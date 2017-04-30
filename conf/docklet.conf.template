@@ -79,11 +79,7 @@
 # PORTAL_URL: the public docklet portal url. for a production system,
 # it should be a valid URL, like http://docklet.info
 # default is MASTER_IP:NGINX_PORT
-<<<<<<< 42282a61fccedb9e4dd3966f5bbae9b116ca15b0
 # PORTAL_URL=http://localhost:8080
-=======
-# PORTAL_URL=http://locahost:8080
->>>>>>> add nginx_config
 
 # MASTER_IP: master listen ip, default listens on all interfaces
 # MASTER_IP=0.0.0.0
