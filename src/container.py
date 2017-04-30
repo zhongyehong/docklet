@@ -23,7 +23,7 @@ class Container(object):
         self.imgmgr = imagemgr.ImageMgr()
         self.historymgr = History_Manager()
 
-    def create_container(self, lxc_name, username, setting, clustername, clusterid, containerid, hostname, ip, gateway, vlanid, image):
+    def create_container(self, lxc_name, proxy_server_ip, username, setting, clustername, clusterid, containerid, hostname, ip, gateway, vlanid, image):
         logger.info("create container %s of %s for %s" %(lxc_name, clustername, username))
         try:
             setting = json.loads(setting)
@@ -120,7 +120,7 @@ BASE_URL=%s
 HUB_PREFIX=%s
 HUB_API_URL=%s
 IP=%s
-""" % (username, 10000, cookiename, '/go/'+username+'/'+clustername, '/jupyter',
+""" % (username, 10000, cookiename, '/'+ proxy_server_ip +'/go/'+username+'/'+clustername, '/jupyter',
         authurl, ip.split('/')[0])
             config.write(jconfigs)
             config.close()
