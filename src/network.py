@@ -524,17 +524,16 @@ class NetworkMgr(object):
         return [True, 'delete user success']
 
     def check_usergw(self, username, nodemgr, distributedgw=False):
-        if not distributedgw:
-            self.usrgws[username] = self.masterip
-            self.dump_usrgw(username)
-            ip = self.masterip
-        else:
-            self.load_usrgw(username)
-            if username not in self.usrgws.keys():
-                return [False, 'user does not exist.']
-            ip = self.usrgws[username]
+        self.load_usrgw(username)
+        if username not in self.usrgws.keys():
+            return [False, 'user does not exist.']
+        ip = self.usrgws[username]
         self.load_user(username)
-        if ip == self.masterip:
+        if not distributedgw:
+            if not ip == self.masterip:
+                self.del_usrgw(username,nodemgr)
+                self.usrgws[username] = self.masterip
+                self.dump_usrgw(username)
             netcontrol.check_gw('docklet-br', username, self.users[username].get_gateway_cidr(), str(self.users[username].vlanid))
         else:
             worker = nodemgr.ip_to_rpc(ip)

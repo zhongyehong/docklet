@@ -235,7 +235,7 @@
                        </div>
                      </div>
 									<div class="box-body">
-										<form action="/addproxy/{{ clustername }}/{{master.split("@")[0]}}" id="addproxy" method="POST">
+										<form action="/addproxy/{{ clustername }}/{{master.split("@")[0]}}/" id="addproxy" method="POST">
                                         {% if 'proxy_ip' in clusterinfo %}
                                             <p>ip:<input type="text" id="proxy_ip" name="proxy_ip" value={{ clusterinfo['proxy_ip'][:clusterinfo['proxy_ip'].index(':')] }} readonly="true"/>port:<input type="text" id="proxy_port" name="proxy_port" value={{ clusterinfo['proxy_ip'][clusterinfo['proxy_ip'].index(':')+1:] }} readonly="true"/>
                                             <button type="button" class="btn-xs btn-default">enable</button>
