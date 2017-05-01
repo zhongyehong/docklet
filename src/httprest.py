@@ -722,13 +722,14 @@ if __name__ == '__main__':
 
     G_sysmgr = sysmgr.SystemManager()
 
-    G_networkmgr = network.NetworkMgr(clusternet, etcdclient, mode)
+    G_networkmgr = network.NetworkMgr(clusternet, etcdclient, mode, ipaddr)
     G_networkmgr.printpools()
 
     # start NodeMgr and NodeMgr will wait for all nodes to start ...
     G_nodemgr = nodemgr.NodeMgr(G_networkmgr, etcdclient, addr = ipaddr, mode=mode)
     logger.info("nodemgr started")
-    G_vclustermgr = vclustermgr.VclusterMgr(G_nodemgr, G_networkmgr, etcdclient, ipaddr, mode)
+    distributedgw = env.getenv("DISTRIBUTED_GATEWAY")
+    G_vclustermgr = vclustermgr.VclusterMgr(G_nodemgr, G_networkmgr, etcdclient, ipaddr, mode, distributedgw)
     logger.info("vclustermgr started")
     G_imagemgr = imagemgr.ImageMgr()
     logger.info("imagemgr started")

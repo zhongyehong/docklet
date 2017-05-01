@@ -22,6 +22,7 @@ apt-get install -y python3-requests python3-suds
 apt-get install -y nodejs nodejs-legacy npm
 apt-get install -y etcd
 apt-get install -y glusterfs-client
+apt-get install -y nginx
 
 # check cgroup control
 which cgm &> /dev/null || { echo "FAILED : cgmanager is required, please install cgmanager" && exit 1; }
