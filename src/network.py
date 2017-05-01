@@ -392,9 +392,9 @@ class NetworkMgr(object):
         self.etcd.setkey("network/users/"+username, json.dumps({'info':self.users[username].info, 'vlanid':self.users[username].vlanid, 'gateway':self.users[username].gateway, 'pool':self.users[username].pool}))
 
     def load_usrgw(self,username):
-        [status, data] = self.etcd.getkey("network/usergws/"+username)
+        [status, data] = self.etcd.getkey("network/usrgws/"+username)
         if status:
-            self.usergws[username] = data
+            self.usrgws[username] = data
 
     def dump_usrgw(self, username):
         self.etcd.setkey("network/usrgws/"+username, self.usrgws[username])
