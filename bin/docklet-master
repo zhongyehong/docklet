@@ -58,19 +58,16 @@ DAEMON_NAME_WEB=docklet-web
 PIDFILE_WEB=$RUN_DIR/docklet-web.pid
 DAEMON_OPTS_WEB=
 
-<<<<<<< HEAD
 # settings for docklet proxy, which is required for web access
 DAEMON_PROXY=`which configurable-http-proxy`
 DAEMON_NAME_PROXY=docklet-proxy
 PIDFILE_PROXY=$RUN_DIR/proxy.pid
 DAEMON_OPTS_PROXY=
-=======
 # settings for docklet user
 DAEMON_USER_MODULE=$DOCKLET_USER/user.py
 DAEMON_NAME_USER=docklet-user
 PIDFILE_USER=$RUN_DIR/docklet-user.pid
 DAEMON_OPTS_USER=
->>>>>>> aeeaa1593aaa14d02907e7fa10fa7b67ce617753
 
 RUNNING_CONFIG=$FS_PREFIX/local/docklet-running.conf
 export CONFIG=$RUNNING_CONFIG
