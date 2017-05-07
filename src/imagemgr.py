@@ -19,6 +19,7 @@ design:
 from configparser import ConfigParser
 from io import StringIO
 import os,sys,subprocess,time,re,datetime,threading,random
+import xmlrpc.client
 
 from log import logger
 import env
@@ -311,10 +312,11 @@ class ImageMgr():
             logger.info("only root can update base image")
         #vclustermgr.stop_allclusters()
         #vclustermgr.detach_allclusters()
-        workers = vclustermgr.nodemgr.get_rpcs()
+        workers = vclustermgr.nodemgr.get_nodeips()
         logger.info("update base image in all workers")
         for worker in workers:
-            worker.update_basefs(image)
+            workerrpc = xmlprc.client.ServerProxy("http://%s:%s" % (worker, env.getenv("WORKER_PORT")))
+            workerrpc.update_basefs(image)
         logger.info("update base image success")
         #vclustermgr.mount_allclusters()
         #logger.info("mount all cluster success")

@@ -225,6 +225,18 @@ def deleteproxy(clustername,masterip):
     deleteproxyView.masterip = masterip
     return deleteproxyView.as_view()
 
+@app.route("/image/list/<masterip>/", methods=['POST'])
+@login_required
+def image_list(masterip):
+    data = {
+        "user": session['username']
+    }
+    path = request.path[:request.path.rfind("/")]
+    path = path[:path.rfind("/")+1]
+    result = dockletRequest.post(path, data, masterip)
+    logger.debug("image" + str(type(result)))
+    return json.dumps(result)
+
 @app.route("/image/description/<image>/<masterip>/", methods=['GET'])
 @login_required
 def descriptionImage(image,masterip):
@@ -315,6 +327,7 @@ def monitor_request(comid,infotype,masterip):
     path = path[:path.rfind("/")+1]
     logger.debug(path + "_____" + masterip)
     result = dockletRequest.post(path, data, masterip)
+    logger.debug("monitor" + str(type(result)))
     return json.dumps(result)
 
 @app.route("/beans/application/", methods=['GET'])
@@ -630,4 +643,4 @@ if __name__ == '__main__':
         elif opt in ("-p", "--port"):
             webport = int(arg)
 
-    app.run(host = webip, port = webport, threaded=True,)
+    app.run(host = webip, port = webport, threaded=True, debug=True)

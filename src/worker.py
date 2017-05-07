@@ -177,12 +177,12 @@ class Worker(object):
     def sendheartbeat(self):
         while(True):
             # check send heartbeat package every 1s
-            time.sleep(1)
+            time.sleep(20)
             [status, value] = self.etcd.getkey("machines/runnodes/"+self.addr)
             if status:
                 # master has know the worker so we start send heartbeat package
                 if value=='ok':
-                    self.etcd.setkey("machines/runnodes/"+self.addr, "ok", ttl = 2)
+                    self.etcd.setkey("machines/runnodes/"+self.addr, "ok", ttl = 60)
             else:
                 logger.error("get key %s failed, master crashed or initialized. restart worker please." % self.addr)
                 sys.exit(1)

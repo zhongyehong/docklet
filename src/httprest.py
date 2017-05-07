@@ -21,6 +21,7 @@ from log import logger
 
 import os
 import http.server, cgi, json, sys, shutil
+import xmlrpc.client
 from socketserver import ThreadingMixIn
 import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr
 import userManager,beansapplicationmgr
@@ -69,13 +70,11 @@ def worker_ip_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
        global G_nodemgr
-       workers = G_nodemgr.get_rpcs()
+       workers = G_nodemgr.get_nodeips()
        ip = request.remote_addr
        flag = False
        for worker in workers:
-           workerip = G_nodemgr.rpc_to_ip(worker)
-           #logger.info(str(ip) + " " + str(workerip))
-           if ip == '127.0.0.1' or ip == '0.0.0.0' or ip == workerip:
+           if ip == '127.0.0.1' or ip == '0.0.0.0' or ip == worker:
                 flag = True
                 break
        if not flag:
