@@ -65,21 +65,15 @@ def login_required(func):
 
     return wrapper
 
-def worker_ip_required(func):
+def token_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-       global G_nodemgr
-       workers = G_nodemgr.get_rpcs()
-       ip = request.remote_addr
-       flag = False
-       for worker in workers:
-           workerip = G_nodemgr.rpc_to_ip(worker)
-           #logger.info(str(ip) + " " + str(workerip))
-           if ip == '127.0.0.1' or ip == '0.0.0.0' or ip == workerip:
-                flag = True
-                break
-       if not flag:
-           return json.dumps({'success':'false','message':'Worker\'s ip is required!'})
+       fspath = env.getenv('FS_PREFIX')
+       tokenfile = open(fspath+"/global/token", 'r')
+       token_1 = tokenfile.readline().strip()
+       token_2 = request.form.get("token",None)
+       if token_2 is None or token_1 != token_2:
+           return json.dumps({'success':'false','message':'Token is required!'})
        else:
            return func(*args, **kwargs)
 
@@ -263,7 +257,7 @@ def list_cluster(user, beans, form):
         return json.dumps({'success':'false', 'action':'list cluster', 'message':clusterlist})
 
 @app.route("/cluster/stopall/",methods=['POST'])
-@user_ip_required
+@token_required
 def stopall_cluster():
     global G_vclustermgr
     user = request.form.get('username',None)
@@ -467,7 +461,7 @@ def vnodes_monitor(user, beans, form, con_id, issue):
 @login_required
 def user_quotainfo_monitor(user, beans, form, issue):
     global G_historymgr
-    if issue == 'quotainfo':        
+    if issue == 'quotainfo':
         logger.info("handle request: monitor/user/quotainfo/")
         user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
         quotainfo = user_info['data']['groupinfo']
@@ -489,7 +483,7 @@ def listphynodes_monitor(user, beans, form):
     return json.dumps({'success':'true', 'monitor':res})
 
 @app.route("/billing/beans/", methods=['POST'])
-@worker_ip_required
+@token_required
 def billing_beans():
     form = request.form
     res = post_to_user("/billing/beans/",data=form)
