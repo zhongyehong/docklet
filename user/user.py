@@ -57,15 +57,17 @@ def login_required(func):
 
     return wrapper
 
-def master_ip_required(func):
+def token_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-       global G_masterip
-       ip = request.remote_addr
-       if ip == '127.0.0.1' or ip == '0.0.0.0' or ip in G_masterips:
-           return func(*args, **kwargs)
+       fspath = env.getenv('FS_PREFIX')
+       tokenfile = open(fspath+"/global/token", 'r')
+       token_1 = tokenfile.readline().strip()
+       token_2 = request.form.get("token",None)
+       if token_2 is None or token_1 != token_2:
+           return json.dumps({'success':'false','message':'Token is required!'})
        else:
-           return json.dumps({'success':'false','message':'Master\'s ip is required!'})
+           return func(*args, **kwargs)
 
     return wrapper
 
@@ -77,7 +79,7 @@ def request_master(url,data):
     http = Http()
     for masterip in G_masterips:
         [resp,content] = http.request("http://"+masterip+url,"POST",urlencode(data),headers = header)
-        logger.info("response from master:"+content.decode('utf-8'))  
+        logger.info("response from master:"+content.decode('utf-8'))
 
 
 @app.route("/login/", methods=['POST'])
@@ -162,7 +164,7 @@ def auth_token(cur_user, user, form):
      logger.info("auth success")
      return req
 
-@app.route("/cloud/account/query/", methods=['POST']) 
+@app.route("/cloud/account/query/", methods=['POST'])
 @login_required
 def query_account_cloud(cur_user, user, form):
     global G_usermgr
@@ -170,7 +172,7 @@ def query_account_cloud(cur_user, user, form):
     result = G_usermgr.cloud_account_query(cur_user = cur_user)
     return json.dumps(result)
 
-@app.route("/cloud/account/add/", methods=['POST']) 
+@app.route("/cloud/account/add/", methods=['POST'])
 @login_required
 def add_account_cloud(cur_user, user, form):
     global G_usermgr
@@ -178,7 +180,7 @@ def add_account_cloud(cur_user, user, form):
     result = G_usermgr.cloud_account_add(cur_user = cur_user, form = form)
     return json.dumps(result)
 
-@app.route("/cloud/account/delete/", methods=['POST']) 
+@app.route("/cloud/account/delete/", methods=['POST'])
 @login_required
 def del_account_cloud(cur_user, user, form):
     global G_usermgr
@@ -186,7 +188,7 @@ def del_account_cloud(cur_user, user, form):
     result = G_usermgr.cloud_account_del(cur_user = cur_user, form = form)
     return json.dumps(result)
 
-@app.route("/cloud/account/modify/", methods=['POST']) 
+@app.route("/cloud/account/modify/", methods=['POST'])
 @login_required
 def modify_account_cloud(cur_user, user, form):
     global G_usermgr
@@ -441,7 +443,7 @@ def query_self_notifications_infos(cur_user, user, form):
     return json.dumps(result)
 
 @app.route("/billing/beans/", methods=['POST'])
-@master_ip_required
+@token_required
 def billing_beans():
         logger.info("handle request: /billing/beans/")
         form = request.form
@@ -474,7 +476,10 @@ def billing_beans():
             if owner.beans <= 0:
                 # stop all vcluster of the user if his beans are equal to or lower than 0.
                 logger.info("The beans of User(" + str(owner) + ") are less than or equal to zero, all his or her vclusters will be stopped.")
-                form = {'username':owner.username}
+                fspath = env.getenv('FS_PREFIX')
+                tokenfile = open(fspath+"/global/token", 'r')
+                token = tokenfile.readline().strip()
+                form = {'username':owner.username, 'token':token}
                 request_master("/cluster/stopall/",form)
         return json.dumps({'success':'true'})
 
@@ -578,7 +583,7 @@ if __name__  ==  '__main__':
     G_applicationmgr = beansapplicationmgr.ApplicationMgr()
     approvalrbt = beansapplicationmgr.ApprovalRobot()
     approvalrbt.start()
-    
+
     # server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
     logger.info("starting user server")
 
