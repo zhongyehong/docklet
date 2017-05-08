@@ -130,17 +130,6 @@
 # default: authenticate local and PAM users
 # EXTERNAL_LOGIN=False
 
-# EMAIL_FROM_ADDRESS : the e-mail address to send activating e-mail to user
-# If this address is "", no email will be sent out.
-# default: ""
-# EMAIL_FROM_ADDRESS=""
-
-# ADMIN_EMAIL_ADDRESS : when an activating request is sent, an e-mail will
-# be sent to this address to remind the admin.
-# If this address i "", no email will be sent to admin.
-# default: ""
-# ADMIN_EMAIL_ADDRESS=""
-
 # DATA_QUOTA : whether enable the quota of data volume or not
 # True or False, default: False
 # DATA_QUOTA=False
