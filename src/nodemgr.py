@@ -145,3 +145,7 @@ class NodeMgr(object):
 
     def get_allnodes(self):
         return self.allnodes
+
+    def ip_to_rpc(self,ip):
+        return xmlrpc.client.ServerProxy("http://%s:%s" % (ip, env.getenv("WORKER_PORT")))
+
