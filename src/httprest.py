@@ -139,6 +139,7 @@ def create_cluster(user, beans, form):
     image['type'] = form.get("imagetype", None)
     image['owner'] = form.get("imageowner", None)
     user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
+    uid = user_info['id']
     user_info = json.dumps(user_info)
     logger.info ("handle request : create cluster %s with image %s " % (clustername, image['name']))
     setting = {
@@ -151,7 +152,7 @@ def create_cluster(user, beans, form):
     result = res.get('result')
     if not status:
         return json.dumps({'success':'false', 'action':'create cluster', 'message':result})
-    [status, result] = G_vclustermgr.create_cluster(clustername, user, image, user_info, setting)
+    [status, result] = G_vclustermgr.create_cluster(clustername, user, uid, image, user_info, setting)
     if status:
         return json.dumps({'success':'true', 'action':'create cluster', 'message':result})
     else:
@@ -173,6 +174,7 @@ def scaleout_cluster(user, beans, form):
     image['type'] = form.get("imagetype", None)
     image['owner'] = form.get("imageowner", None)
     user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
+    uid = user_info['id']
     user_info = json.dumps(user_info)
     setting = {
             'cpu': form.get('cpuSetting'),
@@ -184,7 +186,7 @@ def scaleout_cluster(user, beans, form):
     result = res.get('result')
     if not status:
         return json.dumps({'success':'false', 'action':'scale out', 'message': result})
-    [status, result] = G_vclustermgr.scale_out_cluster(clustername, user, image, user_info, setting)
+    [status, result] = G_vclustermgr.scale_out_cluster(clustername, user, uid, image, user_info, setting)
     if status:
         return json.dumps({'success':'true', 'action':'scale out', 'message':result})
     else:
@@ -215,8 +217,10 @@ def start_cluster(user, beans, form):
     clustername = form.get('clustername', None)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
+    user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
+    uid = user_info['id']
     logger.info ("handle request : start cluster %s" % clustername)
-    [status, result] = G_vclustermgr.start_cluster(clustername, user)
+    [status, result] = G_vclustermgr.start_cluster(clustername, user, uid)
     if status:
         return json.dumps({'success':'true', 'action':'start cluster', 'message':result})
     else:

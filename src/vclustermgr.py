@@ -4,6 +4,7 @@ import os, random, json, sys, imagemgr
 import datetime
 import xmlrpc.client
 
+from httprest import post_to_user
 from log import logger
 import env
 import proxytool
@@ -48,10 +49,12 @@ class VclusterMgr(object):
     def recover_allclusters(self):
         logger.info("recovering all vclusters for all users...")
         usersdir = self.fspath+"/global/users/"
+        auth_key = env.getenv('AUTH_KEY')
         for user in os.listdir(usersdir):
             for cluster in self.list_clusters(user)[1]:
                 logger.info ("recovering cluster:%s for user:%s ..." % (cluster, user))
-                self.recover_cluster(cluster, user)
+                res = post_to_user('/user/uid/',{'username':user,'auth_key':auth_key})
+                self.recover_cluster(cluster, user, res['uid'])
         logger.info("recovered all vclusters for all users")
 
     def mount_allclusters(self):
@@ -81,7 +84,7 @@ class VclusterMgr(object):
                 self.detach_cluster(cluster, user)
         logger.info("detached all vclusters for all users")
 
-    def create_cluster(self, clustername, username, image, user_info, setting):
+    def create_cluster(self, clustername, username, uid, image, user_info, setting):
         if self.is_cluster(clustername, username):
             return [False, "cluster:%s already exists" % clustername]
         clustersize = int(self.defaultsize)
@@ -127,7 +130,7 @@ class VclusterMgr(object):
             lxc_name = username + "-" + str(clusterid) + "-" + str(i)
             hostname = "host-"+str(i)
             logger.info ("create container with : name-%s, username-%s, clustername-%s, clusterid-%s, hostname-%s, ip-%s, gateway-%s, image-%s" % (lxc_name, username, clustername, str(clusterid), hostname, ips[i], gateway, image_json))
-            [success,message] = oneworker.create_container(lxc_name, proxy_server_ip, username, json.dumps(setting) , clustername, str(clusterid), str(i), hostname, ips[i], gateway, str(vlanid), image_json)
+            [success,message] = oneworker.create_container(lxc_name, proxy_server_ip, username, uid, json.dumps(setting) , clustername, str(clusterid), str(i), hostname, ips[i], gateway, image_json)
             if success is False:
                 logger.info("container create failed, so vcluster create failed")
                 return [False, message]
@@ -144,7 +147,7 @@ class VclusterMgr(object):
         clusterfile.close()
         return [True, info]
 
-    def scale_out_cluster(self,clustername,username,image,user_info, setting):
+    def scale_out_cluster(self,clustername,username,uid, image,user_info, setting):
         if not self.is_cluster(clustername,username):
             return [False, "cluster:%s not found" % clustername]
         workers = self.nodemgr.get_nodeips()
@@ -169,7 +172,7 @@ class VclusterMgr(object):
         lxc_name = username + "-" + str(clusterid) + "-" + str(cid)
         hostname = "host-" + str(cid)
         proxy_server_ip = clusterinfo['proxy_server_ip']
-        [success, message] = oneworker.create_container(lxc_name, username, json.dumps(setting), clustername, clusterid, str(cid), hostname, ip, gateway, str(vlanid), image_json)
+        [success, message] = oneworker.create_container(lxc_name, username, uid, json.dumps(setting), clustername, clusterid, str(cid), hostname, ip, gateway, image_json)
         if success is False:
             logger.info("create container failed, so scale out failed")
             return [False, message]
@@ -357,7 +360,7 @@ class VclusterMgr(object):
         return [True, info]
 
 
-    def start_cluster(self, clustername, username):
+    def start_cluster(self, clustername, username, uid):
         [status, info] = self.get_clusterinfo(clustername, username)
         if not status:
             return [False, "cluster not found"]
@@ -366,7 +369,7 @@ class VclusterMgr(object):
         # check gateway for user
         # after reboot, user gateway goes down and lose its configuration
         # so, check is necessary
-        self.networkmgr.check_usergw(username, self.nodemgr,self.distributedgw=='True')
+        self.networkmgr.check_usergw(username, uid, self.nodemgr,self.distributedgw=='True')
         # set proxy
         if not "proxy_server_ip" in info.keys():
             info['proxy_server_ip'] = self.addr
@@ -381,6 +384,7 @@ class VclusterMgr(object):
         except:
             return [False, "start cluster failed with setting proxy failed"]
         for container in info['containers']:
+            self.networkmgr.check_uservxlan(username, uid, container['host'], self.nodemgr, self.distributedgw=='True')
             worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
@@ -402,14 +406,14 @@ class VclusterMgr(object):
             worker.mount_container(container['containername'])
         return [True, "mount cluster"]
 
-    def recover_cluster(self, clustername, username):
+    def recover_cluster(self, clustername, username, uid):
         [status, info] = self.get_clusterinfo(clustername, username)
         if not status:
             return [False, "cluster not found"]
         if info['status'] == 'stopped':
             return [True, "cluster no need to start"]
         # need to check and recover gateway of this user
-        self.networkmgr.check_usergw(username, self.nodemgr,self.distributedgw=='True')
+        self.networkmgr.check_usergw(username, uid, self.nodemgr,self.distributedgw=='True')
         # recover proxy of cluster
         if not "proxy_server_ip" in info.keys():
             info['proxy_server_ip'] = self.addr
@@ -425,10 +429,12 @@ class VclusterMgr(object):
             return [False, "start cluster failed with setting proxy failed"]
         # recover containers of this cluster
         for container in info['containers']:
+            self.networkmgr.check_uservxlan(username, uid, container['host'], self.nodemgr, self.distributedgw=='True')
             worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.recover_container(container['containername'])
+            #worker.check_usernet(uid, info['proxy_server_ip'])
         return [True, "start cluster"]
 
     # maybe here should use cluster id

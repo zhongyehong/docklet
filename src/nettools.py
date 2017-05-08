@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import subprocess
+import subprocess,network
 
 class ipcontrol(object):
     @staticmethod
@@ -12,7 +12,7 @@ class ipcontrol(object):
             if len(line)==0:
                 continue
             # Level 1 : first line of one link
-            if line[0] != ' ': 
+            if line[0] != ' ':
                 blocks = line.split()
                 thislink = blocks[1].strip(':')
                 links[thislink] = {}
@@ -25,7 +25,7 @@ class ipcontrol(object):
                         links[thislink]['inet'] = []
                     links[thislink]['inet'].append(blocks[1])
                 # we just need inet (IPv4)
-                else:  
+                else:
                     pass
             # Level 3 or more : no need for us
             else:
@@ -40,7 +40,7 @@ class ipcontrol(object):
             return [True, list(links.keys())]
         except subprocess.CalledProcessError as suberror:
             return [False, "list links failed : %s" % suberror.stdout.decode('utf-8')]
-            
+
     @staticmethod
     def link_exist(linkname):
         try:
@@ -109,7 +109,7 @@ class ipcontrol(object):
             return [False, "delete address failed : %s" % suberror.stdout.decode('utf-8')]
 
 
-# ovs-vsctl list-br 
+# ovs-vsctl list-br
 # ovs-vsctl br-exists <Bridge>
 # ovs-vsctl add-br <Bridge>
 # ovs-vsctl del-br <Bridge>
@@ -153,7 +153,7 @@ class ovscontrol(object):
     @staticmethod
     def add_bridge(bridge):
         try:
-            subprocess.run(['ovs-vsctl', 'add-br', str(bridge)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            subprocess.run(['ovs-vsctl', '--may-exist', 'add-br', str(bridge)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
             return [True, str(bridge)]
         except subprocess.CalledProcessError as suberror:
             return [False, "add bridge failed : %s" % suberror.stdout.decode('utf-8')]
@@ -202,6 +202,14 @@ class ovscontrol(object):
     def add_port_gre(bridge, port, remote):
         try:
             subprocess.run(['ovs-vsctl', 'add-port', str(bridge), str(port), '--', 'set', 'interface', str(port), 'type=gre', 'options:remote_ip='+str(remote)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            return [True, str(port)]
+        except subprocess.CalledProcessError as suberror:
+            return [False, "add port failed : %s" % suberror.stdout.decode('utf-8')]
+
+    @staticmethod
+    def add_port_vxlan(bridge, port, remote, key):
+        try:
+            subprocess.run(['ovs-vsctl', '--may-exist', 'add-port', str(bridge), str(port), '--', 'set', 'interface', str(port), 'type=vxlan', 'options:remote_ip='+str(remote), 'options:key='+str(key)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
             return [True, str(port)]
         except subprocess.CalledProcessError as suberror:
             return [False, "add port failed : %s" % suberror.stdout.decode('utf-8')]
@@ -256,7 +264,8 @@ class netcontrol(object):
         return ovscontrol.del_port(bridge, gwport)
 
     @staticmethod
-    def check_gw(bridge, gwport, addr, tag):
+    def check_gw(bridge, gwport, uid, addr, tag):
+        ovscontrol.add_bridge(bridge)
         if not netcontrol.gw_exists(bridge, gwport):
             return netcontrol.setup_gw(bridge, gwport, addr, tag)
         [status, info] = ipcontrol.link_info(gwport)
@@ -272,5 +281,6 @@ class netcontrol(object):
         if info['state'] == 'DOWN':
             ipcontrol.up_link(gwport)
         return [True, "check gateway port %s" % gwport]
-        
-        
+
+    #@staticmethod
+    #def check_usernet(uid, GatewayHost):

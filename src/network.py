@@ -524,7 +524,7 @@ class NetworkMgr(object):
         del self.users[username]
         return [True, 'delete user success']
 
-    def check_usergw(self, username, nodemgr, distributedgw=False):
+    def check_usergw(self, username, uid, nodemgr, distributedgw=False):
         self.load_usrgw(username)
         if username not in self.usrgws.keys():
             return [False, 'user does not exist.']
@@ -535,12 +535,26 @@ class NetworkMgr(object):
                 self.del_usrgw(username,nodemgr)
                 self.usrgws[username] = self.masterip
                 self.dump_usrgw(username)
-            netcontrol.check_gw('docklet-br', username, self.users[username].get_gateway_cidr(), str(self.users[username].vlanid))
+            netcontrol.check_gw('docklet-br-'+str(uid), username, uid, self.users[username].get_gateway_cidr(), str(self.users[username].vlanid))
         else:
             worker = nodemgr.ip_to_rpc(ip)
-            worker.check_gw('docklet-br', username, self.users[username].get_gateway_cidr(), str(self.users[username].vlanid))
+            worker.check_gw('docklet-br-'+str(uid), username, uid, self.users[username].get_gateway_cidr(), str(self.users[username].vlanid))
         del self.users[username]
         return [True, 'check gw ok']
+
+    def check_uservxlan(self, username, uid, remote, nodemgr, distributedgw=False):
+        self.load_usrgw(username)
+        if username not in self.usrgws.keys():
+            return [False, 'user does not exist.']
+        ip = self.usrgws[username]
+        if not distributedgw:
+            if not remote == self.masterip:
+                ovscontrol.add_port_vxlan('docklet-br-'+str(uid), 'vxlan-'+str(uid)+'-'+remote, remote, uid)
+        else:
+            if not remote == ip:
+                worker = nodemgr.ip_to_rpc(ip)
+                worker.add_port_vxlan('docklet-br-'+str(uid), 'vxlan-'+str(uid)+'-'+remote, remote, uid)
+        return [True, 'check vxlan ok']
 
     def has_user(self, username):
         [status, _value] = self.etcd.getkey("network/users/"+username)
