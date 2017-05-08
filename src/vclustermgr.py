@@ -368,6 +368,9 @@ class VclusterMgr(object):
         # so, check is necessary
         self.networkmgr.check_usergw(username, self.nodemgr,self.distributedgw=='True')
         # set proxy
+        if not "proxy_server_ip" in info.keys():
+            info['proxy_server_ip'] = self.addr
+            write_clusterinfo(info,clustername,username)
         try:
             target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000"
             if self.distributedgw == 'True':
@@ -408,6 +411,9 @@ class VclusterMgr(object):
         # need to check and recover gateway of this user
         self.networkmgr.check_usergw(username, self.nodemgr,self.distributedgw=='True')
         # recover proxy of cluster
+        if not "proxy_server_ip" in info.keys():
+            info['proxy_server_ip'] = self.addr
+            write_clusterinfo(info,clustername,username)
         try:
             target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000"
             if self.distributedgw == 'True':

@@ -170,3 +170,8 @@
 # USER_PORT: user listen port
 # default:9100
 # USER_PORT=""
+
+# AUTH_KEY: the key to request users server from master,
+# or to request master from users server. Please set the
+# same value on each machine. Please don't use the default value.
+# AUTH_KEY="docklet"
