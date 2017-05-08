@@ -115,8 +115,10 @@ class VclusterMgr(object):
         proxy_server_ip = ""
         containers = []
         for i in range(0, clustersize):
+            workerip = workers[random.randint(0, len(workers)-1)]
+            oneworker = xmlrpc.client.ServerProxy("http://%s:%s" % (workerip, env.getenv("WORKER_PORT")))
             if self.distributedgw == "True" and i == 0 and not self.networkmgr.has_usrgw(username):
-                [success,message] = self.networkmgr.setup_usrgw(username, self.nodemgr, onework)
+                [success,message] = self.networkmgr.setup_usrgw(username, self.nodemgr, workerip)
                 if not success:
                     return [False, message]
             if i == 0:
@@ -125,8 +127,6 @@ class VclusterMgr(object):
             lxc_name = username + "-" + str(clusterid) + "-" + str(i)
             hostname = "host-"+str(i)
             logger.info ("create container with : name-%s, username-%s, clustername-%s, clusterid-%s, hostname-%s, ip-%s, gateway-%s, image-%s" % (lxc_name, username, clustername, str(clusterid), hostname, ips[i], gateway, image_json))
-            workerip = workers[random.randint(0, len(workers)-1)]
-            oneworker = xmlrpc.client.ServerProxy("http://%s:%s" % (workerip, env.getenv("WORKER_PORT")))
             [success,message] = oneworker.create_container(lxc_name, proxy_server_ip, username, json.dumps(setting) , clustername, str(clusterid), str(i), hostname, ips[i], gateway, str(vlanid), image_json)
             if success is False:
                 logger.info("container create failed, so vcluster create failed")
