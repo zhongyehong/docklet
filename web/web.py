@@ -40,6 +40,7 @@ from webViews.authenticate.register import registerView
 from webViews.authenticate.login import loginView, logoutView
 import webViews.dockletrequest
 from webViews import cookie_tool
+import traceback
 
 
 
@@ -583,6 +584,7 @@ def not_authorized(error):
 @app.errorhandler(500)
 def internal_server_error(error):
     logger.error(error)
+    logger.error(traceback.format_exc())
     if "username" in session:
         if "500" in session and "500_title" in session:
             reason = session['500']

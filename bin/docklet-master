@@ -1,4 +1,4 @@
-#!/bin/sh 
+#!/bin/sh
 
 [ $(id -u) != '0' ] && echo "root is needed" && exit 1
 
@@ -21,10 +21,6 @@ FS_PREFIX=/opt/docklet
 RUN_DIR=$FS_PREFIX/local/run
 LOG_DIR=$FS_PREFIX/local/log
 
-#configurable-http-proxy public port, default is 8000
-PROXY_PORT=8000
-#configurable-http-proxy api port, default is 8001
-PROXY_API_PORT=8001
 #network interface , default is eth0
 NETWORK_DEVICE=eth0
 #etcd server address, default is localhost:2379
@@ -36,6 +32,11 @@ WEB_PORT=8888
 USER_PORT=9100
 #cluster net, default is 172.16.0.1/16
 CLUSTER_NET="172.16.0.1/16"
+#configurable-http-proxy public port, default is 8000
+PROXY_PORT=8000
+#configurable-http-proxy api port, default is 8001
+PROXY_API_PORT=8001
+DISTRIBUTED_GATEWAY=False
 
 . $DOCKLET_CONF/docklet.conf
 
@@ -51,18 +52,17 @@ DAEMON_OPTS_MASTER=
 # The process ID of the script when it runs is stored here:
 PIDFILE_MASTER=$RUN_DIR/$DAEMON_NAME_MASTER.pid
 
-# settings for docklet proxy, which is required for web access
-DAEMON_PROXY=`which configurable-http-proxy`
-DAEMON_NAME_PROXY=docklet-proxy
-PIDFILE_PROXY=$RUN_DIR/proxy.pid
-DAEMON_OPTS_PROXY=
-
 # settings for docklet web
 DAEMON_WEB=$DOCKLET_WEB/web.py
 DAEMON_NAME_WEB=docklet-web
 PIDFILE_WEB=$RUN_DIR/docklet-web.pid
 DAEMON_OPTS_WEB=
 
+# settings for docklet proxy, which is required for web access
+DAEMON_PROXY=`which configurable-http-proxy`
+DAEMON_NAME_PROXY=docklet-proxy
+PIDFILE_PROXY=$RUN_DIR/proxy.pid
+DAEMON_OPTS_PROXY=
 # settings for docklet user
 DAEMON_USER_MODULE=$DOCKLET_USER/user.py
 DAEMON_NAME_USER=docklet-user
@@ -111,20 +111,12 @@ do_start_master () {
 
     DAEMON_OPTS_MASTER=$1
 
-	# MODE : start mode 
+	# MODE : start mode
 	#    new : clean old data in etcd, global directory and start a new cluster
 	#    recovery : start cluster and recover status from etcd and global directory
 	# Default is "recovery"
 
     start-stop-daemon --start --oknodo --background --pidfile $PIDFILE_MASTER --make-pidfile --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON_MASTER -- $DAEMON_OPTS_MASTER
-    log_end_msg $?
-}
-
-
-do_start_proxy () {
-    log_daemon_msg "Starting $DAEMON_NAME_PROXY daemon in $FS_PREFIX"
-    DAEMON_OPTS_PROXY="--port $PROXY_PORT --api-port $PROXY_API_PORT --default-target=http://localhost:8888"
-    start-stop-daemon --start --background --pidfile $PIDFILE_PROXY --make-pidfile --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON_PROXY -- $DAEMON_OPTS_PROXY
     log_end_msg $?
 }
 
@@ -152,6 +144,17 @@ do_start_web () {
     log_end_msg $?
 }
 
+do_start_proxy () {
+    if [ "$DISTRIBUTED_GATEWAY" = "True" ]
+    then
+        return 1
+    fi
+    log_daemon_msg "Starting $DAEMON_NAME_PROXY daemon in $FS_PREFIX"
+    DAEMON_OPTS_PROXY="--port $PROXY_PORT --api-port $PROXY_API_PORT --default-target=http://localhost:8888"
+    start-stop-daemon --start --background --pidfile $PIDFILE_PROXY --make-pidfile --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON_PROXY -- $DAEMON_OPTS_PROXY
+    log_end_msg $?
+  }
+
 do_start_user () {
     log_daemon_msg "Starting $DAEMON_NAME_USER in $FS_PREFIX"
 
@@ -167,19 +170,22 @@ do_stop_master () {
     log_end_msg $?
 }
 
-do_stop_proxy () {
-    log_daemon_msg "Stopping $DAEMON_NAME_PROXY daemon"
-    start-stop-daemon --stop --quiet --oknodo --remove-pidfile --pidfile $PIDFILE_PROXY --retry 10
-    log_end_msg $?
-}
-
-
 do_stop_web () {
     log_daemon_msg "Stopping $DAEMON_NAME_WEB daemon"
     start-stop-daemon --stop --quiet --oknodo --remove-pidfile --pidfile $PIDFILE_WEB --retry 10
     log_end_msg $?
 }
 
+
+do_stop_proxy () {
+    if [ "$DISTRIBUTED_GATEWAY" = "True" ]
+    then
+        return 1
+    fi
+    log_daemon_msg "Stopping $DAEMON_NAME_PROXY daemon"
+    start-stop-daemon --stop --quiet --oknodo --remove-pidfile --pidfile $PIDFILE_PROXY --retry 10
+    log_end_msg $?
+  }
 do_stop_user () {
     log_daemon_msg "Stopping $DAEMON_NAME_USER daemon"
     start-stop-daemon --stop --quiet --oknodo --remove-pidfile --pidfile $PIDFILE_USER --retry 10
@@ -189,26 +195,27 @@ do_stop_user () {
 case "$1" in
     init)
         do_start_master "new"
+        do_start_proxy
         ;;
     start)
         do_start_master "recovery"
+        do_start_proxy
         ;;
 
     stop)
         do_stop_master
+        do_stop_proxy
         ;;
 
     restart)
         do_stop_master
+        do_stop_proxy
         do_start_master "recovery"
+        do_start_proxy
         ;;
 
     start_proxy)
         do_start_proxy
-        ;;
-
-    stop_proxy)
-        do_stop_proxy
         ;;
 
     start_web)
@@ -221,12 +228,15 @@ case "$1" in
 
     reinit)
         do_stop_master
+        do_stop_proxy
         do_start_master "new"
+        do_start_proxy
         ;;
 
     status)
         status=0
         status_of_proc -p $PIDFILE_MASTER "$DAEMON_MASTER" "$DAEMON_NAME_MASTER" || status=$?
+        status_of_proc -p $PIDFILE_PROXY "$DAEMON_PROXY" "$DAEMON_NAME_PROXY" || status=$?
         exit $status
         ;;
 

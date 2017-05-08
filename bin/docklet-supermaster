@@ -1,4 +1,4 @@
-#!/bin/sh 
+#!/bin/sh
 
 [ $(id -u) != '0' ] && echo "root is needed" && exit 1
 
@@ -111,10 +111,12 @@ do_start_master () {
 
     DAEMON_OPTS_MASTER=$1
 
-	# MODE : start mode 
+	# MODE : start mode
 	#    new : clean old data in etcd, global directory and start a new cluster
 	#    recovery : start cluster and recover status from etcd and global directory
 	# Default is "recovery"
+
+    ../tools/nginx_config.sh
 
     start-stop-daemon --start --oknodo --background --pidfile $PIDFILE_MASTER --make-pidfile --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON_MASTER -- $DAEMON_OPTS_MASTER
     log_end_msg $?
@@ -122,6 +124,10 @@ do_start_master () {
 
 
 do_start_proxy () {
+    if [ "$DISTRIBUTED_GATEWAY" = "True" ]
+    then
+        return 1
+    fi
     log_daemon_msg "Starting $DAEMON_NAME_PROXY daemon in $FS_PREFIX"
     DAEMON_OPTS_PROXY="--port $PROXY_PORT --api-port $PROXY_API_PORT --default-target=http://localhost:8888"
     start-stop-daemon --start --background --pidfile $PIDFILE_PROXY --make-pidfile --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON_PROXY -- $DAEMON_OPTS_PROXY
@@ -168,6 +174,10 @@ do_stop_master () {
 }
 
 do_stop_proxy () {
+    if [ "$DISTRIBUTED_GATEWAY" = "True" ]
+    then
+        return 1
+    fi
     log_daemon_msg "Stopping $DAEMON_NAME_PROXY daemon"
     start-stop-daemon --stop --quiet --oknodo --remove-pidfile --pidfile $PIDFILE_PROXY --retry 10
     log_end_msg $?
@@ -238,9 +248,11 @@ case "$1" in
         do_stop_web
         do_stop_proxy
         do_stop_master
+        do_stop_user
         do_start_master "new"
         do_start_proxy
         do_start_web
+        do_start_user
         ;;
 
     status)

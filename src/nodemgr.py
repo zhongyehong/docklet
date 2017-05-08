@@ -128,6 +128,7 @@ class NodeMgr(object):
                         logger.debug ("run nodes are: %s" % self.runnodes)
                 elif node['value'] == 'ok':
                     etcd_runip.append(nodeip)
+            new_runnodes = []
             for nodeip in self.runnodes:
                 if nodeip not in etcd_runip:
                     logger.info ("Worker %s is stopped, remove %s:%s from rpc client list" %

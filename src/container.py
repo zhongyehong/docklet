@@ -23,31 +23,31 @@ class Container(object):
         self.imgmgr = imagemgr.ImageMgr()
         self.historymgr = History_Manager()
 
-    def create_container(self, lxc_name, username, setting, clustername, clusterid, containerid, hostname, ip, gateway, vlanid, image):
+    def create_container(self, lxc_name, proxy_server_ip, username, setting, clustername, clusterid, containerid, hostname, ip, gateway, vlanid, image):
         logger.info("create container %s of %s for %s" %(lxc_name, clustername, username))
         try:
             setting = json.loads(setting)
             cpu = int(setting['cpu']) * 100000
             memory = setting["memory"]
             disk = setting["disk"]
-            image = json.loads(image) 
+            image = json.loads(image)
             status = self.imgmgr.prepareFS(username,image,lxc_name,disk)
             if not status:
                 return [False, "Create container failed when preparing filesystem, possibly insufficient space"]
-            
+
             #Ret = subprocess.run([self.libpath+"/lxc_control.sh",
             #    "create", lxc_name, username, str(clusterid), hostname,
             #    ip, gateway, str(vlanid), str(cpu), str(memory)], stdout=subprocess.PIPE,
             #    stderr=subprocess.STDOUT,shell=False, check=True)
-            
+
             rootfs = "/var/lib/lxc/%s/rootfs" % lxc_name
-            
+
             if not os.path.isdir("%s/global/users/%s" % (self.fspath,username)):
                 logger.error("user %s directory not found" % username)
                 return [False, "user directory not found"]
             sys_run("mkdir -p /var/lib/lxc/%s" % lxc_name)
             logger.info("generate config file for %s" % lxc_name)
-            
+
             def config_prepare(content):
                 content = content.replace("%ROOTFS%",rootfs)
                 content = content.replace("%HOSTNAME%",hostname)
@@ -97,7 +97,7 @@ class Container(object):
                 else:
                     logger.error ("get AUTH COOKIE URL failed for jupyter")
                     authurl = "error"
-            
+
             cookiename='docklet-jupyter-cookie'
 
             rundir = self.lxcpath+'/'+lxc_name+'/rootfs' + self.rundir
@@ -120,7 +120,7 @@ BASE_URL=%s
 HUB_PREFIX=%s
 HUB_API_URL=%s
 IP=%s
-""" % (username, 10000, cookiename, '/go/'+username+'/'+clustername, '/jupyter',
+""" % (username, 10000, cookiename, '/'+ proxy_server_ip +'/go/'+username+'/'+clustername, '/jupyter',
         authurl, ip.split('/')[0])
             config.write(jconfigs)
             config.close()
@@ -177,7 +177,7 @@ IP=%s
             return [False, "start container failed"]
 
     # start container services
-    # for the master node, jupyter must be started, 
+    # for the master node, jupyter must be started,
     # for other node, ssh must be started.
     # container must be RUNNING before calling this service
     def start_services(self, lxc_name, services=[]):
@@ -189,7 +189,7 @@ IP=%s
                 #shell=True, check=False)
             #logger.debug ("prepare nfs for %s: %s" % (lxc_name,
                 #Ret.stdout.decode('utf-8')))
-            # not sure whether should execute this 
+            # not sure whether should execute this
             Ret = subprocess.run(["lxc-attach -n %s -- service ssh start" % lxc_name],
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             shell=True, check=False)
@@ -356,7 +356,7 @@ IP=%s
 
     def create_image(self,username,imagename,containername,description="not thing",imagenum=10):
         return self.imgmgr.createImage(username,imagename,containername,description,imagenum)
-    
+
     def update_basefs(self,imagename):
         return self.imgmgr.update_basefs(imagename)
 
