@@ -139,7 +139,7 @@ def create_cluster(user, beans, form):
     image['type'] = form.get("imagetype", None)
     image['owner'] = form.get("imageowner", None)
     user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
-    uid = user_info['id']
+    uid = user_info['data']['id']
     user_info = json.dumps(user_info)
     logger.info ("handle request : create cluster %s with image %s " % (clustername, image['name']))
     setting = {
@@ -174,7 +174,7 @@ def scaleout_cluster(user, beans, form):
     image['type'] = form.get("imagetype", None)
     image['owner'] = form.get("imageowner", None)
     user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
-    uid = user_info['id']
+    uid = user_info['data']['id']
     user_info = json.dumps(user_info)
     setting = {
             'cpu': form.get('cpuSetting'),
@@ -218,7 +218,7 @@ def start_cluster(user, beans, form):
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
     user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
-    uid = user_info['id']
+    uid = user_info['data']['id']
     logger.info ("handle request : start cluster %s" % clustername)
     [status, result] = G_vclustermgr.start_cluster(clustername, user, uid)
     if status:

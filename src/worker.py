@@ -14,7 +14,7 @@ import xmlrpc.server, sys, time
 from socketserver import ThreadingMixIn
 import threading
 import etcdlib, network, container
-from nettools import netcontrol
+from nettools import netcontrol,ovscontrol
 import monitor, proxytool
 from lvmtool import new_group, recover_group
 

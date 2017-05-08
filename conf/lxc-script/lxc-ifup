@@ -8,7 +8,7 @@
 # $5 : value of lxc.network.veth.pair
 
 ovs-vsctl --may-exist add-br $Bridge
-if [ "$GatewayIP" != "NULL" ]; then
+if [ "$GatewayHost" != "NULL" ]; then
   ovs-vsctl --may-exist add-port $Bridge vxlan-$UserID-$GatewayHost -- set interface vxlan-$UserID-$GatewayHost type=vxlan options:remote_ip=$GatewayHost options:key=$UserID
 fi
 ovs-vsctl --may-exist add-port $Bridge $5

@@ -4,10 +4,14 @@ import os, random, json, sys, imagemgr
 import datetime
 import xmlrpc.client
 
-from httprest import post_to_user
 from log import logger
 import env
 import proxytool
+import requests
+
+userpoint = "http://" + env.getenv('USER_IP') + ":" + str(env.getenv('USER_PORT'))
+def post_to_user(url = '/', data={}):
+    return requests.post(userpoint+url,data=data).json()
 
 ##################################################
 #                  VclusterMgr

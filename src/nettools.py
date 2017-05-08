@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import subprocess,network
+import subprocess
 
 class ipcontrol(object):
     @staticmethod
