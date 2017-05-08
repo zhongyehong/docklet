@@ -450,7 +450,7 @@ class NetworkMgr(object):
         self.load_usrgw(username)
         return username in self.usrgws.keys()
 
-    def setup_usrgw(self, username, nodemgr, worker=None):
+    def setup_usrgw(self, username, nodemgr, workerip=None):
         if not self.has_user(username):
             return [False,"user doesn't exist."]
         self.load_usrgw(username)
@@ -458,8 +458,9 @@ class NetworkMgr(object):
             return [False,"user's gateway has been set up."]
         self.load_user(username)
         usrpools = self.users[username]
-        if(worker is not None):
-            ip = nodemgr.rpc_to_ip(worker)
+        if(workerip is not None):
+            ip = workerip
+            worker = nodemgr.ip_to_rpc(workerip)         
             logger.info("setup gateway for %s with %s and vlan=%s on %s" % (username, usrpools.get_gateway_cidr(), str(usrpools.vlanid), ip))
             self.usrgws[username] = ip
             self.dump_usrgw(username)
