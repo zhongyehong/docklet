@@ -116,7 +116,7 @@ do_start_master () {
 	#    recovery : start cluster and recover status from etcd and global directory
 	# Default is "recovery"
 
-    ../tools/nginx_config.sh
+    $DOCKLET_HOME/tools/nginx_config.sh
 
     start-stop-daemon --start --oknodo --background --pidfile $PIDFILE_MASTER --make-pidfile --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON_MASTER -- $DAEMON_OPTS_MASTER
     log_end_msg $?
