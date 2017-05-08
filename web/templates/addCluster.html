@@ -24,22 +24,6 @@
 
 <div>
 {% block content %}
-<ul class="nav nav-tabs" role="tablist" id="myTabs">
-{% for master in allimages %}
-{% if loop.index == 1 %}
-<li role="presentation" class="active"><a href="#{{master.split("@")[1]}}" data-toggle="tab" aria-controls="{{master.split("@")[1]}}">{{master.split("@")[1]}}</a></li>
-{% else %}
-<li role="presentation"><a href="#{{master.split("@")[1]}}" data-toggle="tab" aria-controls="{{master.split("@")[1]}}">{{master.split("@")[1]}}</a></li>
-{% endif %}
-{% endfor %}
-</ul>
-<div id="myTabContent" class="tab-content">
-{% for master in allimages %}
-{% if loop.index == 1 %}
-<div role="tabpanel" class="tab-pane active" aria-labelledby="{{master.split("@")[1]}}" id="{{master.split("@")[1]}}">
-{% else %}
-<div role="tabpanel" class="tab-pane" aria-labelledby="{{master.split("@")[1]}}" id="{{master.split("@")[1]}}">
-{% endif %}
 <div class="row">
                 <div class="col-lg-12">
                   <div class="box box-info">
@@ -53,11 +37,7 @@
                          </div>
                        </div>
                         <div class="box-body">
-<<<<<<< 0512f442bf3570ae3353f6ea0571ea8742dc0e5a
 				<form id="form" class="form-horizontal" action="/workspace/add/{{masterips[0].split("@")[0]}}/" method="POST">
-=======
-				<form id="form" class="form-horizontal" action="/workspace/add/{{master.split("@")[0]}}/" method="POST">
->>>>>>> multiple master
 
 				    <div class="form-group"><label class="col-sm-2 control-label">Workspace Name</label>
 					    <div class="col-sm-10"><input type="text" class="form-control" name="clusterName" id="clusterName"></div>
@@ -92,30 +72,22 @@
 							<td>A base image for you</td>
 							<td><div class="i-checks"><label><input type="radio" name="image" value="base_base_base" checked="checked"></label></div></td>
 						    </tr>
-						    {% for image in allimages[master]['private'] %}
+						    {% for image in images['private'] %}
 						    <tr>
 							<td>{{image['name']}}</td>
 							<td>private</td>
 							<td>{{user}}</td>
-<<<<<<< 0512f442bf3570ae3353f6ea0571ea8742dc0e5a
 							<td><a href="/image/description/{{image['name']}}_{{user}}_private/{{masterips[0].split("@")[1]}}/" target="_blank">{{image['description']}}</a></td>
-=======
-							<td><a href="/image/description/{{image['name']}}_{{user}}_private/{{master.split("@")[1]}}/" target="_blank">{{image['description']}}</a></td>
->>>>>>> multiple master
 							<td><div class="i-checks"><label><input type="radio" name="image" value="{{image['name']}}_{{user}}_private"></label></div></td>
 						    </tr>
 						    {% endfor %}
-						    {% for p_user,p_images in allimages[master]['public'].items() %}
+						    {% for p_user,p_images in images['public'].items() %}
 						    	{% for image in p_images %}
 						    	<tr>
 								<td>{{image['name']}}</td>
 								<td>public</td>
 								<td>{{p_user}}</td>
-<<<<<<< 0512f442bf3570ae3353f6ea0571ea8742dc0e5a
 								<td><a href="/image/description/{{image['name']}}_{{p_user}}_public/{{masterips[0].split("@")[1]}}/" target="_blank">{{image['description']}}</a></td>
-=======
-								<td><a href="/image/description/{{image['name']}}_{{p_user}}_public/{{master.split("@")[1]}}/" target="_blank">{{image['description']}}</a></td>
->>>>>>> multiple master
 								<td><div class="i-checks"><label><input type="radio" name="image" value="{{image['name']}}_{{p_user}}_public"></label></div></td>
 						    	</tr>
 							{% endfor %}
@@ -170,13 +142,7 @@
                     </div>
                     </div>
 
-<<<<<<< 0512f442bf3570ae3353f6ea0571ea8742dc0e5a
 </div>
-=======
-            </div>
-</div>
-{% endfor %}
->>>>>>> multiple master
 </div>
 {% endblock %}
 
@@ -198,7 +164,6 @@
 	<script src="http://cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
 
 
-<<<<<<< 0512f442bf3570ae3353f6ea0571ea8742dc0e5a
     <script type="text/javascript">
 		$("select#masterselector").change(function() {
 			var masterip=$(this).children('option:selected').val();
@@ -207,7 +172,7 @@
 			var host = window.location.host;
 			$.post("http://"+host+"/image/list/"+masterip+"/",{},function(data){
 				var images = data.images;
-				var imagehtml = 
+				var imagehtml =
 					"<thread>"
 					+"<tr>"
 					+"<th>ImageName</th>"
@@ -251,15 +216,5 @@
 				$("#imagetable").html(imagehtml);
 		},"json");
 	});
-=======
-    <script>
-        $(document).ready(function(){
- 	        $(".table-image").DataTable();
-		$('#myTabs a').click(function (e) {
-			  e.preventDefault();
-		          $(this).tab('show');
-		})
-        });
->>>>>>> multiple master
     </script>
 {% endblock %}
