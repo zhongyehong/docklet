@@ -59,7 +59,15 @@ class dockletRequest():
     @classmethod
     def post_to_all(self, url = '/', data={}):
         if (url == '/'):
-            return masterips
+            res = []
+            for masterip in masterips:
+                try:
+                    requests.post("http://"+getip(masterip)+":"+master_port+"/isalive/",data=data)
+                except Exception as e:
+                    logger.debug(e)
+                    continue
+                res.append(masterip)
+            return res
         data = dict(data)
         data['token'] = session['token']
         logger.info("Docklet Request: user = %s data = %s, url = %s"%(session['username'], data, url))

@@ -64,7 +64,8 @@ class NodeMgr(object):
         self.thread_watchnewnode = threading.Thread(target=self._watchnewnode)
         self.thread_watchnewnode.start()
         # wait for all nodes joins
-        while(True):
+        # while(True):
+        for i in range(10):
             allin = True
             for node in self.allnodes:
                 if node not in self.runnodes:
@@ -73,7 +74,7 @@ class NodeMgr(object):
             if allin:
                 logger.info("all nodes necessary joins ...")
                 break
-            time.sleep(0.05)
+            time.sleep(1)
         logger.info ("run nodes are: %s" % self.runnodes)
 
 

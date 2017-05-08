@@ -108,6 +108,11 @@ def beans_check(func):
 
     return wrapper
 
+@app.route("/isalive/", methods = ['POST'])
+@login_required
+def isalive(user, beans, form):
+    return json.dumps({'success':'true'})
+
 @app.route("/cluster/create/", methods=['POST'])
 @login_required
 @beans_check
@@ -484,7 +489,7 @@ def listphynodes_monitor(user, beans, form):
     global G_nodemgr
     logger.info("handle request: monitor/listphynodes/")
     res = {}
-    res['allnodes'] = G_nodemgr.get_allnodes()
+    res['allnodes'] = G_nodemgr.get_nodeips()
     return json.dumps({'success':'true', 'monitor':res})
 
 @app.route("/billing/beans/", methods=['POST'])
