@@ -9,6 +9,7 @@ from email.mime.multipart import MIMEMultipart
 from email.header import Header
 from datetime import datetime
 import env
+from settings import settings
 
 class NotificationMgr:
     def __init__(self):
@@ -36,7 +37,7 @@ class NotificationMgr:
         return [Notification.query.filter_by(id=notify_id).first() for notify_id in notify_ids]
 
     def mail_notification(self, notify_id):
-        email_from_address = env.getenv('EMAIL_FROM_ADDRESS')
+        email_from_address = settings.get('EMAIL_FROM_ADDRESS')
         if (email_from_address in ['\'\'', '\"\"', '']):
             return {'success' : 'true'}
         notify = Notification.query.filter_by(id=notify_id).first()
