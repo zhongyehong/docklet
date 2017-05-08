@@ -18,12 +18,12 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
+from settings import settings
 
-email_from_address = env.getenv('EMAIL_FROM_ADDRESS')
 
 # send email to remind users of their beans
 def send_beans_email(to_address, username, beans):
-    global email_from_address
+    email_from_address = settings.get('EMAIL_FROM_ADDRESS')
     if (email_from_address in ['\'\'', '\"\"', '']):
         return
     #text = 'Dear '+ username + ':\n' + '  Your beans in docklet are less than' + beans + '.'
@@ -53,7 +53,7 @@ def send_beans_email(to_address, username, beans):
 
 # a class that will deal with users' requests about beans application.
 class ApplicationMgr:
-    
+
     def __init__(self):
         # create database
         try:
@@ -71,13 +71,13 @@ class ApplicationMgr:
         applymsgs = ApplyMsg.query.filter_by(username=username).all()
         lasti = len(applymsgs) - 1      # the last index, the last application is also the latest application.
         if lasti >= 0 and applymsgs[lasti].status == "Processing":
-            return [False, "You already have a processing application, please be patient."] 
+            return [False, "You already have a processing application, please be patient."]
         # store the application into the database
         applymsg = ApplyMsg(username,number,reason)
         db.session.add(applymsg)
         db.session.commit()
         return [True,""]
-    
+
     # get all applications of a user
     def query(self,username):
         applymsgs = ApplyMsg.query.filter_by(username=username).all()
@@ -85,7 +85,7 @@ class ApplicationMgr:
         for msg in applymsgs:
             ans.append(msg.ch2dict())
         return ans
-    
+
     # get all unread applications
     @administration_required
     def queryUnRead(self,*,cur_user):
@@ -94,7 +94,7 @@ class ApplicationMgr:
         for msg in applymsgs:
             ans.append(msg.ch2dict())
         return {"success":"true","applymsgs":ans}
-    
+
     # agree an application
     @administration_required
     def agree(self,msgid,*,cur_user):
@@ -108,7 +108,7 @@ class ApplicationMgr:
             user.beans += applymsg.number
         db.session.commit()
         return {"success":"true"}
-    
+
     # reject an application
     @administration_required
     def reject(self,msgid,*,cur_user):
@@ -127,9 +127,9 @@ class ApprovalRobot(threading.Thread):
         self.stop = False
         self.interval = 20
         self.maxtime = maxtime      # The max time that users may wait for from 'processing' to 'agreed'
-    
+
     def stop(self):
-        self.stop = True 
+        self.stop = True
 
     def run(self):
         while not self.stop:
