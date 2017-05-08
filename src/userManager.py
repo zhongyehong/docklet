@@ -14,6 +14,7 @@ import hashlib
 import pam
 from base64 import b64encode
 import env
+from settings import settings
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -23,8 +24,6 @@ import json
 from log import logger
 from lvmtool import *
 
-email_from_address = env.getenv('EMAIL_FROM_ADDRESS')
-admin_email_address = env.getenv('ADMIN_EMAIL_ADDRESS')
 PAM = pam.pam()
 fspath = env.getenv('FS_PREFIX')
 data_quota = env.getenv('DATA_QUOTA')
@@ -71,6 +70,7 @@ def token_required(func):
     return wrapper
 
 def send_activated_email(to_address, username):
+    email_from_address = settings.get('EMAIL_FROM_ADDRESS')
     if (email_from_address in ['\'\'', '\"\"', '']):
         return
     #text = 'Dear '+ username + ':\n' + '  Your account in docklet has been activated'
@@ -97,8 +97,10 @@ def send_activated_email(to_address, username):
     s.close()
 
 def send_remind_activating_email(username):
-    admin_email_address = env.getenv('ADMIN_EMAIL_ADDRESS')
+    #admin_email_address = env.getenv('ADMIN_EMAIL_ADDRESS')
     nulladdr = ['\'\'', '\"\"', '']
+    email_from_address = settings.get('EMAIL_FROM_ADDRESS')
+    admin_email_address = settings.get('ADMIN_EMAIL_ADDRESS')
     if (email_from_address in nulladdr or admin_email_address in nulladdr):
         return
     #text = 'Dear '+ username + ':\n' + '  Your account in docklet has been activated'
@@ -123,7 +125,7 @@ def send_remind_activating_email(username):
     textmsg = MIMEText(text,'html','utf-8')
     msg['Subject'] = Header(subject, 'utf-8')
     msg['From'] = email_from_address
-    msg['To'] = alladdr 
+    msg['To'] = alladdr
     msg.attach(textmsg)
     s = smtplib.SMTP()
     s.connect()

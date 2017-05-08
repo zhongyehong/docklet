@@ -27,6 +27,7 @@ from webViews.notification.notification import CreateNotificationView, Notificat
     QueryNotificationView, ModifyNotificationView, DeleteNotificationView
 from webViews.user.userinfo import userinfoView
 from webViews.user.userActivate import userActivateView
+from webViews.settings import settingsView
 from webViews.user.grouplist import grouplistView, groupqueryView, groupdetailView, groupmodifyView
 from functools import wraps
 from webViews.dockletrequest import dockletRequest
@@ -42,7 +43,7 @@ import webViews.dockletrequest
 from webViews import cookie_tool
 import traceback
 
-
+from werkzeug.utils import secure_filename
 
 
 
@@ -358,6 +359,22 @@ def monitorUserAll():
     return monitorUserAllView.as_view()
 '''
 
+@app.route("/settings/", methods=['GET', 'POST'])
+@administration_required
+def settings():
+    return settingsView.as_view()
+
+@app.route("/logs/<filename>/", methods=['GET'])
+@administration_required
+def logs_get(filename):
+    data = {
+            "filename": filename
+    }
+    result = dockletRequest.post('/logs/get/', data).get('result', '')
+    response = make_response(result)
+    response.headers["content-type"] = "text/plain"
+    return response
+
 @app.route("/user/list/", methods=['GET', 'POST'])
 @administration_required
 def userlist():
@@ -645,4 +662,4 @@ if __name__ == '__main__':
         elif opt in ("-p", "--port"):
             webport = int(arg)
 
-    app.run(host = webip, port = webport, threaded=True)
+app.run(host = webip, port = webport, debug = False, threaded=True)

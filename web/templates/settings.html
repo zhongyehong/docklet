@@ -1,0 +1,83 @@
+{% extends "base_AdminLTE.html"%}
+{% block title %}Docklet | Settings{% endblock %}
+
+{% block panel_title %}Settings{% endblock %}
+
+{% block panel_list %}
+<ol class="breadcrumb">
+  <li>
+      <a href="/dashboard/"><i class="fa fa-dashboard"></i>Home</a>
+  </li>
+  <li class="active">
+      <strong>Settings</strong>
+  </li>
+</ol>
+{% endblock %}
+
+{% block css_src %}
+
+<link href="/static/dist/css/filebox.css" rel="stylesheet">
+
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-6">
+      <div class="box box-primary">
+          <div class="box-header with-border">
+            <h3 class="box-title">Modify Settings</h3>
+          </div>
+          <div class="box-body">
+          <form role="form" action="/settings/" method="POST" >
+            <div class="box-body">
+              <div class="form-group">
+                <label for="ADMIN_EMAIL_ADDRESS">Admin Email Address</label>
+                <p class="help-block">when an activating request is sent, an e-mail will be sent to this address to remind the admin. </p>
+                <p class="help-block">if this address is "", no email will be sent to admin.</p>
+                <input type="email" class="form-control" id="ADMIN_EMAIL_ADDRESS" value="{{ settings['ADMIN_EMAIL_ADDRESS'] }}" name="ADMIN_EMAIL_ADDRESS">
+              </div>
+              <div class="form-group">
+                <label for="EMAIL_FROM_ADDRESS">Email From Address</label>
+                <p class="help-block">the e-mail address to send activating e-mail to user</p>
+                <p class="help-block">if this address is "", no email will be sent out.</p>
+                <input type="input" class="form-control" id="EMAIL_FROM_ADDRESS" name="EMAIL_FROM_ADDRESS" value="{{ settings['EMAIL_FROM_ADDRESS'] }}">
+              </div>
+            </div>
+            <div class="box-footer">
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+</div>
+
+
+<div class="row">
+<div class="col-md-12">
+  <div class="box box-primary">
+      <div class="box-header with-border">
+         <h3 class="box-title">Logs</h3>
+      </div>
+      <div class="box-body">
+          {% for filename in logs %}
+            <div class="file-box">
+                <div class="file">
+                    <a href="/logs/{{ filename }}/">
+                        <span class="corner"></span>
+
+                        <div class="icon">
+                            <i class="fa fa-file"></i>
+                        </div>
+                        <div class="file-name">
+                            {{ filename }}
+                        </div>
+                    </a>
+                </div>
+            </div>
+          {% endfor %}
+      </div>
+  </div>
+</div>
+</div>
+{% endblock %}

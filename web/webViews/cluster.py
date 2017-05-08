@@ -147,7 +147,7 @@ class startClusterView(normalView):
     error_path = "error.html"
 
     @classmethod
-    def get(self): 
+    def get(self):
         masterip = self.masterip
         data = {
                 "clustername": self.clustername
@@ -215,7 +215,7 @@ class detailClusterView(normalView):
     template_path = "listcontainer.html"
 
     @classmethod
-    def get(self): 
+    def get(self):
         masterip = self.masterip
         data = {
                 "clustername": self.clustername

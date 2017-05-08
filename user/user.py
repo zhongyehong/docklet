@@ -26,7 +26,6 @@ G_masterips = []
 for masterip in masterips:
     G_masterips.append(masterip.split("@")[0] + ":" + str(env.getenv("MASTER_PORT")))
 
-
 from flask import Flask, request, session, render_template, redirect, send_from_directory, make_response, url_for, abort
 from functools import wraps
 import userManager,beansapplicationmgr, notificationmgr
