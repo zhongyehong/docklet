@@ -57,17 +57,16 @@ def login_required(func):
 
     return wrapper
 
-def token_required(func):
+def auth_key_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-       fspath = env.getenv('FS_PREFIX')
-       tokenfile = open(fspath+"/global/token", 'r')
-       token_1 = tokenfile.readline().strip()
-       token_2 = request.form.get("token",None)
-       if token_2 is None or token_1 != token_2:
-           return json.dumps({'success':'false','message':'Token is required!'})
-       else:
+        key_1 = env.getenv('AUTH_KEY')
+        key_2 = request.form.get("auth_key",None)
+        #logger.info(str(ip) + " " + str(G_userip))
+        if key_2 is not None and key_1 == key_2:
            return func(*args, **kwargs)
+        else:
+           return json.dumps({'success':'false','message': 'auth_key is required!'})
 
     return wrapper
 
@@ -443,7 +442,7 @@ def query_self_notifications_infos(cur_user, user, form):
     return json.dumps(result)
 
 @app.route("/billing/beans/", methods=['POST'])
-@token_required
+@auth_key_required
 def billing_beans():
         logger.info("handle request: /billing/beans/")
         form = request.form
@@ -476,10 +475,8 @@ def billing_beans():
             if owner.beans <= 0:
                 # stop all vcluster of the user if his beans are equal to or lower than 0.
                 logger.info("The beans of User(" + str(owner) + ") are less than or equal to zero, all his or her vclusters will be stopped.")
-                fspath = env.getenv('FS_PREFIX')
-                tokenfile = open(fspath+"/global/token", 'r')
-                token = tokenfile.readline().strip()
-                form = {'username':owner.username, 'token':token}
+                auth_key = env.getenv('AUTH_KEY')
+                form = {'username':owner.username, 'auth_key':auth_key}
                 request_master("/cluster/stopall/",form)
         return json.dumps({'success':'true'})
 

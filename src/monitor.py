@@ -215,10 +215,8 @@ class Container_Collector(threading.Thread):
             raise
         # update users' tables in database
         owner_name = get_owner(vnode_name)
-        fspath = env.getenv('FS_PREFIX')
-        tokenfile = open(fspath+"/global/token", 'r')
-        token = tokenfile.readline().strip()
-        data = {"owner_name":owner_name,"billing":billingval, "token":token}
+        auth_key = env.getenv('AUTH_KEY')
+        data = {"owner_name":owner_name,"billing":billingval, "auth_key":auth_key}
         request_master("/billing/beans/",data)
         return billingval
 

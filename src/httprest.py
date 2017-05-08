@@ -66,30 +66,16 @@ def login_required(func):
 
     return wrapper
 
-def token_required(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-       fspath = env.getenv('FS_PREFIX')
-       tokenfile = open(fspath+"/global/token", 'r')
-       token_1 = tokenfile.readline().strip()
-       token_2 = request.form.get("token",None)
-       if token_2 is None or token_1 != token_2:
-           return json.dumps({'success':'false','message':'Token is required!'})
-       else:
-           return func(*args, **kwargs)
-
-    return wrapper
-
-def user_ip_required(func):
+def auth_key_required(func):
     @wraps(func)
     def wrapper(*args,**kwargs):
-        global G_userip
-        ip = request.remote_addr
+        key_1 = env.getenv('AUTH_KEY')
+        key_2 = request.form.get("auth_key",None)
         #logger.info(str(ip) + " " + str(G_userip))
-        if ip == '127.0.0.1' or ip == '0.0.0.0' or ip == G_userip:
+        if key_2 is not None and key_1 == key_2:
            return func(*args, **kwargs)
         else:
-           return json.dumps({'success':'false','message':'User node\'s ip is required!'})
+           return json.dumps({'success':'false','message': 'auth_key is required!'})
 
     return wrapper
 
@@ -263,7 +249,7 @@ def list_cluster(user, beans, form):
         return json.dumps({'success':'false', 'action':'list cluster', 'message':clusterlist})
 
 @app.route("/cluster/stopall/",methods=['POST'])
-@token_required
+@auth_key_required
 def stopall_cluster():
     global G_vclustermgr
     user = request.form.get('username',None)
@@ -489,7 +475,7 @@ def listphynodes_monitor(user, beans, form):
     return json.dumps({'success':'true', 'monitor':res})
 
 @app.route("/billing/beans/", methods=['POST'])
-@token_required
+@auth_key_required
 def billing_beans():
     form = request.form
     res = post_to_user("/billing/beans/",data=form)

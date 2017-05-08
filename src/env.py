@@ -66,5 +66,7 @@ def getenv(key):
         return os.environ.get("USER_IP","0.0.0.0")
     elif key =="USER_PORT":
         return int(os.environ.get("USER_PORT",9100))
+    elif key =="AUTH_KEY":
+        return os.environ.get("AUTH_KEY","docklet")
     else:
         return os.environ[key]
