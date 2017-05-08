@@ -46,9 +46,6 @@ class NodeMgr(object):
                 logger.error("docklet-br not found")
                 sys.exit(1)
 
-        # init rpc list
-        self.rpcs = []
-
         # get allnodes
         self.allnodes = self._nodelist_etcd("allnodes")
         self.runnodes = []
@@ -58,8 +55,6 @@ class NodeMgr(object):
             if node['value'] == 'ok':
                 logger.info ("running node %s" % nodeip)
                 self.runnodes.append(nodeip)
-                self.rpcs.append(xmlrpc.client.ServerProxy("http://%s:%s" % (nodeip, self.workerport)))
-                logger.info ("add %s:%s in rpc client list" % (nodeip, self.workerport))
 
         logger.info ("all nodes are: %s" % self.allnodes)
         logger.info ("run nodes are: %s" % self.runnodes)
@@ -69,7 +64,8 @@ class NodeMgr(object):
         self.thread_watchnewnode = threading.Thread(target=self._watchnewnode)
         self.thread_watchnewnode.start()
         # wait for all nodes joins
-        while(True):
+        # while(True):
+        for i in range(10):
             allin = True
             for node in self.allnodes:
                 if node not in self.runnodes:
@@ -78,7 +74,7 @@ class NodeMgr(object):
             if allin:
                 logger.info("all nodes necessary joins ...")
                 break
-            time.sleep(0.05)
+            time.sleep(1)
         logger.info ("run nodes are: %s" % self.runnodes)
 
 
@@ -130,10 +126,6 @@ class NodeMgr(object):
                             self.etcd.setkey("machines/allnodes/"+nodeip, "ok")
                         logger.debug ("all nodes are: %s" % self.allnodes)
                         logger.debug ("run nodes are: %s" % self.runnodes)
-                        rpccl = xmlrpc.client.ServerProxy("http://%s:%s" % (nodeip, self.workerport))
-                        self.rpcs.append(rpccl)
-                        logger.info ("add %s:%s in rpc client list" %
-                            (nodeip, self.workerport))
                 elif node['value'] == 'ok':
                     etcd_runip.append(nodeip)
             new_runnodes = []
@@ -144,32 +136,12 @@ class NodeMgr(object):
                     #print(self.runnodes)
                     #print(etcd_runip)
                     #print(self.rpcs)
-                    self.rpcs.remove(self.ip_to_rpc(nodeip))
-                else:
-                    new_runnodes.append(nodeip)
-            self.runnodes = new_runnodes
+            self.runnodes = etcd_runip
 
     # get all run nodes' IP addr
     def get_nodeips(self):
-        return self.allnodes
+        return self.runnodes
 
-    def get_rpcs(self):
-        return self.rpcs
-
-    def get_onerpc(self):
-        return self.rpcs[random.randint(0, len(self.rpcs)-1)]
-
-    def rpc_to_ip(self, rpcclient):
-        try:
-            return self.runnodes[self.rpcs.index(rpcclient)]
-        except:
-            return None
-
-    def ip_to_rpc(self, nodeip):
-        try:
-            return self.rpcs[self.runnodes.index(nodeip)]
-        except:
-            return None
 
     def get_allnodes(self):
         return self.allnodes

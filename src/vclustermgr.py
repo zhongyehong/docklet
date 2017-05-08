@@ -2,6 +2,7 @@
 
 import os, random, json, sys, imagemgr
 import datetime
+import xmlrpc.client
 
 from log import logger
 import env
@@ -85,7 +86,7 @@ class VclusterMgr(object):
             return [False, "cluster:%s already exists" % clustername]
         clustersize = int(self.defaultsize)
         logger.info ("starting cluster %s with %d containers for %s" % (clustername, int(clustersize), username))
-        workers = self.nodemgr.get_rpcs()
+        workers = self.nodemgr.get_nodeips()
         image_json = json.dumps(image)
         groupname = json.loads(user_info)["data"]["group"]
         if (len(workers) == 0):
@@ -114,7 +115,6 @@ class VclusterMgr(object):
         proxy_server_ip = ""
         containers = []
         for i in range(0, clustersize):
-            onework = workers[random.randint(0, len(workers)-1)]
             if self.distributedgw == "True" and i == 0 and not self.networkmgr.has_usrgw(username):
                 [success,message] = self.networkmgr.setup_usrgw(username, self.nodemgr, onework)
                 if not success:
@@ -125,13 +125,15 @@ class VclusterMgr(object):
             lxc_name = username + "-" + str(clusterid) + "-" + str(i)
             hostname = "host-"+str(i)
             logger.info ("create container with : name-%s, username-%s, clustername-%s, clusterid-%s, hostname-%s, ip-%s, gateway-%s, image-%s" % (lxc_name, username, clustername, str(clusterid), hostname, ips[i], gateway, image_json))
-            [success,message] = onework.create_container(lxc_name, proxy_server_ip, username, json.dumps(setting) , clustername, str(clusterid), str(i), hostname, ips[i], gateway, str(vlanid), image_json)
+            workerip = workers[random.randint(0, len(workers)-1)]
+            oneworker = xmlrpc.client.ServerProxy("http://%s:%s" % (workerip, env.getenv("WORKER_PORT")))
+            [success,message] = oneworker.create_container(lxc_name, proxy_server_ip, username, json.dumps(setting) , clustername, str(clusterid), str(i), hostname, ips[i], gateway, str(vlanid), image_json)
             if success is False:
                 logger.info("container create failed, so vcluster create failed")
                 return [False, message]
             logger.info("container create success")
             hosts = hosts + ips[i].split("/")[0] + "\t" + hostname + "\t" + hostname + "."+clustername + "\n"
-            containers.append({ 'containername':lxc_name, 'hostname':hostname, 'ip':ips[i], 'host':self.nodemgr.rpc_to_ip(onework), 'image':image['name'], 'lastsave':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'setting': setting })
+            containers.append({ 'containername':lxc_name, 'hostname':hostname, 'ip':ips[i], 'host':workerip, 'image':image['name'], 'lastsave':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'setting': setting })
         hostfile = open(hostpath, 'w')
         hostfile.write(hosts)
         hostfile.close()
@@ -145,7 +147,7 @@ class VclusterMgr(object):
     def scale_out_cluster(self,clustername,username,image,user_info, setting):
         if not self.is_cluster(clustername,username):
             return [False, "cluster:%s not found" % clustername]
-        workers = self.nodemgr.get_rpcs()
+        workers = self.nodemgr.get_nodeips()
         if (len(workers) == 0):
             logger.warning("no workers to start containers, scale out failed")
             return [False, "no workers are running"]
@@ -162,24 +164,25 @@ class VclusterMgr(object):
         clusterpath = self.fspath + "/global/users/" + username + "/clusters/" + clustername
         hostpath = self.fspath + "/global/users/" + username + "/hosts/" + str(clusterid) + ".hosts"
         cid = clusterinfo['nextcid']
-        onework = workers[random.randint(0, len(workers)-1)]
+        workerip = workers[random.randint(0, len(workers)-1)]
+        oneworker = xmlrpc.client.ServerProxy("http://%s:%s" % (workerip, env.getenv("WORKER_PORT")))
         lxc_name = username + "-" + str(clusterid) + "-" + str(cid)
         hostname = "host-" + str(cid)
         proxy_server_ip = clusterinfo['proxy_server_ip']
-        [success, message] = onework.create_container(lxc_name, proxy_server_ip, username, json.dumps(setting), clustername, clusterid, str(cid), hostname, ip, gateway, str(vlanid), image_json)
+        [success, message] = oneworker.create_container(lxc_name, username, json.dumps(setting), clustername, clusterid, str(cid), hostname, ip, gateway, str(vlanid), image_json)
         if success is False:
             logger.info("create container failed, so scale out failed")
             return [False, message]
         if clusterinfo['status'] == "running":
-            onework.start_container(lxc_name)
-        onework.start_services(lxc_name, ["ssh"]) # TODO: need fix
+            oneworker.start_container(lxc_name)
+        oneworker.start_services(lxc_name, ["ssh"]) # TODO: need fix
         logger.info("scale out success")
         hostfile = open(hostpath, 'a')
         hostfile.write(ip.split("/")[0] + "\t" + hostname + "\t" + hostname + "." + clustername + "\n")
         hostfile.close()
         clusterinfo['nextcid'] = int(clusterinfo['nextcid']) + 1
         clusterinfo['size'] = int(clusterinfo['size']) + 1
-        clusterinfo['containers'].append({'containername':lxc_name, 'hostname':hostname, 'ip':ip, 'host':self.nodemgr.rpc_to_ip(onework), 'image':image['name'], 'lastsave':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'setting': setting})
+        clusterinfo['containers'].append({'containername':lxc_name, 'hostname':hostname, 'ip':ip, 'host':workerip, 'image':image['name'], 'lastsave':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'setting': setting})
         clusterfile = open(clusterpath, 'w')
         clusterfile.write(json.dumps(clusterinfo))
         clusterfile.close()
@@ -226,8 +229,8 @@ class VclusterMgr(object):
         for container in containers:
             if container['containername'] == containername:
                 logger.info("container: %s found" % containername)
-                onework = self.nodemgr.ip_to_rpc(container['host'])
-                onework.create_image(username,imagetmp,containername)
+                worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
+                worker.create_image(username,imagetmp,containername)
                 fimage = container['image']
                 logger.info("image: %s created" % imagetmp)
                 break
@@ -236,10 +239,10 @@ class VclusterMgr(object):
         for container in containers:
             if container['containername'] != containername:
                 logger.info("container: %s now flush" % container['containername'])
-                onework = self.nodemgr.ip_to_rpc(container['host'])
+                worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
                 #t = threading.Thread(target=onework.flush_container,args=(username,imagetmp,container['containername']))
                 #threads.append(t)
-                onework.flush_container(username,imagetmp,container['containername'])
+                worker.flush_container(username,imagetmp,container['containername'])
                 container['lastsave'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 container['image'] = fimage
                 logger.info("thread for container: %s has been prepared" % container['containername'])
@@ -269,10 +272,10 @@ class VclusterMgr(object):
         for container in containers:
             if container['containername'] == containername:
                 logger.info("container: %s found" % containername)
-                onework = self.nodemgr.ip_to_rpc(container['host'])
-                if onework is None:
+                worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
+                if worker is None:
                     return [False, "The worker can't be found or has been stopped."]
-                res = onework.create_image(username,imagename,containername,description,imagenum)
+                res = worker.create_image(username,imagename,containername,description,imagenum)
                 container['lastsave'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 container['image'] = imagename
                 break
@@ -293,7 +296,7 @@ class VclusterMgr(object):
             return [False, "cluster is still running, you need to stop it and then delete"]
         ips = []
         for container in info['containers']:
-            worker = self.nodemgr.ip_to_rpc(container['host'])
+            worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.delete_container(container['containername'])
@@ -320,7 +323,7 @@ class VclusterMgr(object):
         new_containers = []
         for container in info['containers']:
             if container['containername'] == containername:
-                worker = self.nodemgr.ip_to_rpc(container['host'])
+                worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
                 if worker is None:
                     return [False, "The worker can't be found or has been stopped."]
                 worker.delete_container(containername)
@@ -375,7 +378,7 @@ class VclusterMgr(object):
         except:
             return [False, "start cluster failed with setting proxy failed"]
         for container in info['containers']:
-            worker = self.nodemgr.ip_to_rpc(container['host'])
+            worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.start_container(container['containername'])
@@ -390,7 +393,7 @@ class VclusterMgr(object):
         if not status:
             return [False, "cluster not found"]
         for container in info['containers']:
-            worker = self.nodemgr.ip_to_rpc(container['host'])
+            worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.mount_container(container['containername'])
@@ -416,7 +419,7 @@ class VclusterMgr(object):
             return [False, "start cluster failed with setting proxy failed"]
         # recover containers of this cluster
         for container in info['containers']:
-            worker = self.nodemgr.ip_to_rpc(container['host'])
+            worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.recover_container(container['containername'])
@@ -435,7 +438,7 @@ class VclusterMgr(object):
         else:
             proxytool.delete_route("/" + info['proxy_server_ip'] + '/go/'+username+'/'+clustername)
         for container in info['containers']:
-            worker = self.nodemgr.ip_to_rpc(container['host'])
+            worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.stop_container(container['containername'])
@@ -453,7 +456,7 @@ class VclusterMgr(object):
         if info['status'] == 'running':
             return [False, 'cluster is running, please stop it first']
         for container in info['containers']:
-            worker = self.nodemgr.ip_to_rpc(container['host'])
+            worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.detach_container(container['containername'])

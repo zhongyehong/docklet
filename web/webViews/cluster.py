@@ -10,10 +10,8 @@ class addClusterView(normalView):
 
     @classmethod
     def get(self):
-        result = dockletRequest.post_to_all("/image/list/")
-        allimages={}
-        for master in result:
-            allimages[master] = result[master].get("images")
+        masterips = dockletRequest.post_to_all()
+        images = dockletRequest.post("/image/list/",{},masterips[0].split("@")[0]).get("images")
         result = dockletRequest.post("/user/usageQuery/")
         quota = result.get("quota")
         usage = result.get("usage")
@@ -48,7 +46,7 @@ class addClusterView(normalView):
                 'disk': defaultdisk
                 }
         if (result):
-            return self.render(self.template_path, user = session['username'], allimages = allimages, quota = quota, usage = usage, defaultsetting = defaultsetting)
+            return self.render(self.template_path, user = session['username'],masterips = masterips, images = images, quota = quota, usage = usage, defaultsetting = defaultsetting)
         else:
             self.error()
 

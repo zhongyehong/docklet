@@ -20,6 +20,7 @@ Design:Monitor mainly consists of three parts: Collectors, Master_Collector and 
 import subprocess,re,os,etcdlib,psutil,math,sys
 import time,threading,json,traceback,platform
 import env
+import xmlrpc.client
 from datetime import datetime
 
 from model import db,VNode,History
@@ -547,12 +548,13 @@ class Master_Collector(threading.Thread):
         while not self.thread_stop:
             for worker in monitor_hosts.keys():
                 monitor_hosts[worker]['running'] = False
-            workers = self.nodemgr.get_rpcs()
+            workers = self.nodemgr.get_nodeips()
             for worker in workers:
                 try:
-                    ip = self.nodemgr.rpc_to_ip(worker)
+                    ip = worker
+                    workerrpc = xmlrpc.client.ServerProxy("http://%s:%s" % (worker, env.getenv("WORKER_PORT")))
                     # fetch data
-                    info = list(eval(worker.workerFetchInfo(self.master_ip)))
+                    info = list(eval(workerrpc.workerFetchInfo(self.master_ip)))
                     #logger.info(info[0])
                     # store data in monitor_hosts and monitor_vnodes
                     monitor_hosts[ip] = info[0]

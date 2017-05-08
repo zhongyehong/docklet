@@ -16,7 +16,22 @@
 {% endblock %}
 
 {% block content %}
+<ul class="nav nav-tabs" role="tablist" id="myTabs">
 {% for master in allmachines %}
+{% if loop.index == 1%}
+<li role="presentation" class="active"><a href="#{{master.split("@")[1]}}" data-toggle="tab" aria-controls="{{master.split("@")[1]}}">{{master.split("@")[1]}}</a></li>
+{% else %}
+<li role="presentation"><a href="#{{master.split("@")[1]}}" data-toggle="tab" aria-controls="{{master.split("@")[1]}}">{{master.split("@")[1]}}</a></li>
+{% endif %}
+{% endfor %}
+</ul>
+<div id="myTabContent" class="tab-content">
+{% for master in allmachines %}
+{% if loop.index == 1 %}
+<div role="tabpanel" class="tab-pane active" aria-labelledby="{{master.split("@")[1]}}" id="{{master.split("@")[1]}}">
+{% else %}
+<div role="tabpanel" class="tab-pane" aria-labelledby="{{master.split("@")[1]}}" id="{{master.split("@")[1]}}">
+{% endif %}
 	  <div class="row">
 	     <div class="col-md-12">
          <div class="box box-info">
@@ -75,6 +90,7 @@
                  </div>
              </div>
 	   </div>
+</div>
 {% endfor %}
 {% endblock %}
 
@@ -85,6 +101,7 @@
 
        var MB = 1024;
        $.post(url+"/status/"+masterip+"/",{},function(data){
+	       console.log(data);
 		var status = data.monitor.status;
 		if(status == 'RUNNING')
        		{
