@@ -148,13 +148,13 @@ class UserUsage(db.Model):
     cpu = db.Column(db.String(10))
     memory = db.Column(db.String(10))
     disk = db.Column(db.String(10))
-    
+
     def __init__(self, name):
         self.username = name
         self.cpu = '0'
         self.memory = '0'
         self.disk = '0'
-    
+
     def __repr__(self):
         return '<UserUsage %r>' % self.name
 
@@ -210,7 +210,7 @@ class VNode(db.Model):
     laststopruntime = db.Column(db.Integer)
     billing = db.Column(db.Integer)
     histories = db.relationship('History', backref='v_node', lazy='dynamic')
-    
+
     def __init__(self, vnode_name):
         self.name = vnode_name
         self.laststopcpuval = 0
@@ -236,7 +236,7 @@ class History(db.Model):
         self.cputime = cputime
         self.billing = billing
         self.actionTime = datetime.now()
-    
+
     def __repr__(self):
         return "{\"id\":\"%d\",\"vnode\":\"%s\",\"action\":\"%s\",\"runningtime\":\"%d\",\"cputime\":\"%f\",\"billing\":\"%d\",\"actionTime\":\"%s\"}" % (self.id, self.vnode, self.action, self.runningtime, self.cputime, self.billing, self.actionTime.strftime("%Y-%m-%d %H:%M:%S"))
 
@@ -248,7 +248,7 @@ class ApplyMsg(db.Model):
     reason = db.Column(db.String(600))
     status = db.Column(db.String(10))
     time = db.Column(db.DateTime(10))
-    
+
     def __init__(self,username, number, reason):
         self.username = username
         self.number = number

@@ -172,9 +172,13 @@
         <li id="admin">
 	    <a href='/admin/'><i class="fa fa-user"></i> <span class="nav-label">Admin</span></a>
         </li>
-	<li id="nav_Cloud">
-	    <a href='/cloud/'><i class="fa fa-cloud"></i> <span class="nav-label">Cloud</span></a>
-	<li>
+
+	      <li id="nav_Cloud">
+	         <a href='/cloud/'><i class="fa fa-cloud"></i> <span class="nav-label">Cloud</span></a>
+	      <li>
+        <li id="settings">
+            <a href='/settings/'><i class="fa fa-user"></i> <span class="nav-label">Settings</span></a>
+        </li>
   {% endif %}
 
       </ul>
@@ -263,6 +267,8 @@
         $("#nav_Notification").addClass('active');
     else if(pathname[1] == 'admin')
         $("#admin").addClass('active');
+    else if(pathname[1] == 'settings')
+        $("#settings").addClass('active');
 
 </script>
 

@@ -460,7 +460,7 @@ class NetworkMgr(object):
         usrpools = self.users[username]
         if(workerip is not None):
             ip = workerip
-            worker = nodemgr.ip_to_rpc(workerip)         
+            worker = nodemgr.ip_to_rpc(workerip)
             logger.info("setup gateway for %s with %s and vlan=%s on %s" % (username, usrpools.get_gateway_cidr(), str(usrpools.vlanid), ip))
             self.usrgws[username] = ip
             self.dump_usrgw(username)
