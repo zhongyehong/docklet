@@ -450,7 +450,7 @@ class NetworkMgr(object):
         self.load_usrgw(username)
         return username in self.usrgws.keys()
 
-    def setup_usrgw(self, username, nodemgr, workerip=None):
+    def setup_usrgw(self, username, uid, nodemgr, workerip=None):
         if not self.has_user(username):
             return [False,"user doesn't exist."]
         self.load_usrgw(username)
@@ -464,12 +464,12 @@ class NetworkMgr(object):
             logger.info("setup gateway for %s with %s and vlan=%s on %s" % (username, usrpools.get_gateway_cidr(), str(usrpools.vlanid), ip))
             self.usrgws[username] = ip
             self.dump_usrgw(username)
-            worker.setup_gw('docklet-br', username, usrpools.get_gateway_cidr(), str(usrpools.vlanid))
+            worker.setup_gw('docklet-br-'+str(uid), username, usrpools.get_gateway_cidr())
         else:
             logger.info("setup gateway for %s with %s and vlan=%s on master" % (username, usrpools.get_gateway_cidr(), str(usrpools.vlanid)))
             self.usrgws[username] = self.masterip
             self.dump_usrgw(username)
-            netcontrol.setup_gw('docklet-br', username, usrpools.get_gateway_cidr(), str(usrpools.vlanid))
+            netcontrol.setup_gw('docklet-br-'+str(uid), username, usrpools.get_gateway_cidr())
         self.dump_user(username)
         del self.users[username]
         return [True, "set up gateway success"]
@@ -535,10 +535,10 @@ class NetworkMgr(object):
                 self.del_usrgw(username,nodemgr)
                 self.usrgws[username] = self.masterip
                 self.dump_usrgw(username)
-            netcontrol.check_gw('docklet-br-'+str(uid), username, uid, self.users[username].get_gateway_cidr(), str(self.users[username].vlanid))
+            netcontrol.check_gw('docklet-br-'+str(uid), username, uid, self.users[username].get_gateway_cidr())
         else:
             worker = nodemgr.ip_to_rpc(ip)
-            worker.check_gw('docklet-br-'+str(uid), username, uid, self.users[username].get_gateway_cidr(), str(self.users[username].vlanid))
+            worker.check_gw('docklet-br-'+str(uid), username, uid, self.users[username].get_gateway_cidr())
         del self.users[username]
         return [True, 'check gw ok']
 

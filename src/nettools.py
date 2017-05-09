@@ -250,8 +250,8 @@ class netcontrol(object):
         return ovscontrol.port_exists(gwport)
 
     @staticmethod
-    def setup_gw(bridge, gwport, addr, tag):
-        [status, result] = ovscontrol.add_port_internal_withtag(bridge, gwport, tag)
+    def setup_gw(bridge, gwport, addr):
+        [status, result] = ovscontrol.add_port_internal(bridge, gwport)
         if not status:
             return [status, result]
         [status, result] = ipcontrol.add_addr(gwport, addr)
@@ -264,10 +264,10 @@ class netcontrol(object):
         return ovscontrol.del_port(bridge, gwport)
 
     @staticmethod
-    def check_gw(bridge, gwport, uid, addr, tag):
+    def check_gw(bridge, gwport, uid, addr):
         ovscontrol.add_bridge(bridge)
         if not netcontrol.gw_exists(bridge, gwport):
-            return netcontrol.setup_gw(bridge, gwport, addr, tag)
+            return netcontrol.setup_gw(bridge, gwport, addr)
         [status, info] = ipcontrol.link_info(gwport)
         if not status:
             return [False, "get gateway info failed"]

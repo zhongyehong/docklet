@@ -103,7 +103,7 @@ class VclusterMgr(object):
         if not self.networkmgr.has_user(username):
             self.networkmgr.add_user(username, cidr=29, isshared = True if str(groupname) == "fundation" else False)
             if self.distributedgw == "False":
-                [success,message] = self.networkmgr.setup_usrgw(username, self.nodemgr)
+                [success,message] = self.networkmgr.setup_usrgw(username, uid, self.nodemgr)
                 if not success:
                     return [False, message]
         [status, result] = self.networkmgr.acquire_userips_cidr(username, clustersize)
@@ -125,7 +125,7 @@ class VclusterMgr(object):
             workerip = workers[random.randint(0, len(workers)-1)]
             oneworker = xmlrpc.client.ServerProxy("http://%s:%s" % (workerip, env.getenv("WORKER_PORT")))
             if self.distributedgw == "True" and i == 0 and not self.networkmgr.has_usrgw(username):
-                [success,message] = self.networkmgr.setup_usrgw(username, self.nodemgr, workerip)
+                [success,message] = self.networkmgr.setup_usrgw(username, uid, self.nodemgr, workerip)
                 if not success:
                     return [False, message]
             if i == 0:
