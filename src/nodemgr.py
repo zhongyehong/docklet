@@ -109,14 +109,14 @@ class NodeMgr(object):
                     logger.info ("new node %s joins" % nodeip)
                     etcd_runip.append(nodeip)
                     # setup GRE tunnels for new nodes
-                    if self.addr == nodeip:
+                    '''if self.addr == nodeip:
                         logger.debug ("worker start on master node. not need to setup GRE")
                     else:
                         logger.debug ("setup GRE for %s" % nodeip)
                         if netcontrol.gre_exists('docklet-br', nodeip):
                             logger.debug("GRE for %s already exists, reuse it" % nodeip)
                         else:
-                            netcontrol.setup_gre('docklet-br', nodeip)
+                            netcontrol.setup_gre('docklet-br', nodeip)'''
                     self.etcd.setkey("machines/runnodes/"+nodeip, "ok")
                     if nodeip not in self.runnodes:
                         self.runnodes.append(nodeip)
