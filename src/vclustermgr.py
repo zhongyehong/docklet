@@ -169,7 +169,7 @@ class VclusterMgr(object):
         lxc_name = username + "-" + str(clusterid) + "-" + str(cid)
         hostname = "host-" + str(cid)
         proxy_server_ip = clusterinfo['proxy_server_ip']
-        [success, message] = oneworker.create_container(lxc_name, username, json.dumps(setting), clustername, clusterid, str(cid), hostname, ip, gateway, str(vlanid), image_json)
+        [success, message] = oneworker.create_container(lxc_name, proxy_server_ip, username, json.dumps(setting), clustername, clusterid, str(cid), hostname, ip, gateway, str(vlanid), image_json)
         if success is False:
             logger.info("create container failed, so scale out failed")
             return [False, message]
