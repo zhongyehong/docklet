@@ -127,6 +127,7 @@ class Worker(object):
         self.rpcserver.register_function(monitor.workerFetchInfo)
         self.rpcserver.register_function(netcontrol.setup_gw)
         self.rpcserver.register_function(netcontrol.del_gw)
+        self.rpcserver.register_function(netcontrol.del_bridge)
         self.rpcserver.register_function(ovscontrol.add_port_vxlan)
         self.rpcserver.register_function(netcontrol.check_gw)
         self.rpcserver.register_function(proxytool.set_route)
@@ -138,10 +139,15 @@ class Worker(object):
         self.con_collector = monitor.Container_Collector()
         self.hosts_collector = monitor.Collector()
 
-        # initialize the network
-        # if worker and master run on the same node, reuse bridges
-        #                     don't need to create new bridges
-        if (self.addr == self.master):
+        # delete the existing network
+        [success, bridges] = ovscontrol.list_bridges()
+        if success:
+            for bridge in bridges:
+                if bridge.startswith("docklet-br"):
+                    ovscontrol.del_bridge(bridge)
+        else:
+            logger.error(bridges)
+        '''if (self.addr == self.master):
             logger.info ("master also on this node. reuse master's network")
         else:
             logger.info ("initialize network")
@@ -163,7 +169,7 @@ class Worker(object):
             logger.info ("setup GRE tunnel to master %s" % self.master)
             #network.netsetup("gre", self.master)
             #if not netcontrol.gre_exists('docklet-br', self.master):
-                #netcontrol.setup_gre('docklet-br', self.master)
+                #netcontrol.setup_gre('docklet-br', self.master)'''
 
     # start service of worker
     def start(self):

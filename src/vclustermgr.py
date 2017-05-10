@@ -88,7 +88,7 @@ class VclusterMgr(object):
                 self.detach_cluster(cluster, user)
         logger.info("detached all vclusters for all users")
 
-    def create_cluster(self, clustername, username, uid, image, user_info, setting):
+    def create_cluster(self, clustername, username, image, user_info, setting):
         if self.is_cluster(clustername, username):
             return [False, "cluster:%s already exists" % clustername]
         clustersize = int(self.defaultsize)
@@ -96,6 +96,7 @@ class VclusterMgr(object):
         workers = self.nodemgr.get_nodeips()
         image_json = json.dumps(image)
         groupname = json.loads(user_info)["data"]["group"]
+        uid = json.loads(user_info)["data"]["id"]
         if (len(workers) == 0):
             logger.warning ("no workers to start containers, start cluster failed")
             return [False, "no workers are running"]
@@ -108,7 +109,7 @@ class VclusterMgr(object):
                     return [False, message]
         [status, result] = self.networkmgr.acquire_userips_cidr(username, clustersize)
         gateway = self.networkmgr.get_usergw(username)
-        vlanid = self.networkmgr.get_uservlanid(username)
+        #vlanid = self.networkmgr.get_uservlanid(username)
         logger.info ("create cluster with gateway : %s" % gateway)
         self.networkmgr.printpools()
         if not status:
@@ -151,7 +152,7 @@ class VclusterMgr(object):
         clusterfile.close()
         return [True, info]
 
-    def scale_out_cluster(self,clustername,username,uid, image,user_info, setting):
+    def scale_out_cluster(self,clustername,username, image,user_info, setting):
         if not self.is_cluster(clustername,username):
             return [False, "cluster:%s not found" % clustername]
         workers = self.nodemgr.get_nodeips()
@@ -161,7 +162,7 @@ class VclusterMgr(object):
         image_json = json.dumps(image)
         [status, result] = self.networkmgr.acquire_userips_cidr(username)
         gateway = self.networkmgr.get_usergw(username)
-        vlanid = self.networkmgr.get_uservlanid(username)
+        #vlanid = self.networkmgr.get_uservlanid(username)
         self.networkmgr.printpools()
         if not status:
             return [False, result]
@@ -176,7 +177,8 @@ class VclusterMgr(object):
         lxc_name = username + "-" + str(clusterid) + "-" + str(cid)
         hostname = "host-" + str(cid)
         proxy_server_ip = clusterinfo['proxy_server_ip']
-        [success, message] = oneworker.create_container(lxc_name, username, uid, json.dumps(setting), clustername, clusterid, str(cid), hostname, ip, gateway, image_json)
+        uid = json.loads(user_info)["data"]["id"]
+        [success, message] = oneworker.create_container(lxc_name, proxy_server_ip, username, uid, json.dumps(setting), clustername, clusterid, str(cid), hostname, ip, gateway, image_json)
         if success is False:
             logger.info("create container failed, so scale out failed")
             return [False, message]
@@ -315,11 +317,12 @@ class VclusterMgr(object):
         os.remove(self.fspath+"/global/users/"+username+"/hosts/"+str(info['clusterid'])+".hosts")
 
         groupname = json.loads(user_info)["data"]["group"]
+        uid = json.loads(user_info)["data"]["id"]
         [status, clusters] = self.list_clusters(username)
         if len(clusters) == 0:
-            self.networkmgr.del_user(username, isshared = True if str(groupname) == "fundation" else False)
-            self.networkmgr.del_usrgw(username, self.nodemgr)
-            logger.info("vlanid release triggered")
+            self.networkmgr.del_user(username)
+            self.networkmgr.del_usrgwbr(username, uid, self.nodemgr)
+            #logger.info("vlanid release triggered")
 
         return [True, "cluster delete"]
 
@@ -388,6 +391,7 @@ class VclusterMgr(object):
         except:
             return [False, "start cluster failed with setting proxy failed"]
         for container in info['containers']:
+            # set up vxlan from user's gateway host to container's host.
             self.networkmgr.check_uservxlan(username, uid, container['host'], self.nodemgr, self.distributedgw=='True')
             worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
             if worker is None:

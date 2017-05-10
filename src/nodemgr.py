@@ -2,7 +2,7 @@
 
 import threading, random, time, xmlrpc.client, sys
 #import network
-from nettools import netcontrol
+from nettools import netcontrol,ovscontrol
 from log import logger
 import env
 
@@ -24,27 +24,24 @@ class NodeMgr(object):
         self.mode = mode
         self.workerport = env.getenv('WORKER_PORT')
 
-        # initialize the network
-        logger.info ("initialize network")
+        # delete the existing network
+        logger.info ("delete the existing network")
+        [success, bridges] = ovscontrol.list_bridges()
+        if success:
+            for bridge in bridges:
+                if bridge.startswith("docklet-br"):
+                    ovscontrol.del_bridge(bridge)
+        else:
+            logger.error(bridges)
 
-        # 'docklet-br' not need ip address. Because every user has gateway
-        #[status, result] = self.networkmgr.acquire_sysips_cidr()
-        #self.networkmgr.printpools()
-        #if not status:
-        #    logger.info ("initialize network failed, no IP for system bridge")
-        #    sys.exit(1)
-        #self.bridgeip = result[0]
-        #logger.info ("initialize bridge wih ip %s" % self.bridgeip)
-        #network.netsetup("init", self.bridgeip)
-
-        if self.mode == 'new':
+        '''if self.mode == 'new':
             if netcontrol.bridge_exists('docklet-br'):
                 netcontrol.del_bridge('docklet-br')
             netcontrol.new_bridge('docklet-br')
         else:
             if not netcontrol.bridge_exists('docklet-br'):
                 logger.error("docklet-br not found")
-                sys.exit(1)
+                sys.exit(1)'''
 
         # get allnodes
         self.allnodes = self._nodelist_etcd("allnodes")
