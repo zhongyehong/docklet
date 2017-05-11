@@ -443,7 +443,9 @@ class VclusterMgr(object):
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.recover_container(container['containername'])
-            #worker.check_usernet(uid, info['proxy_server_ip'])
+            namesplit = container['containername'].split('-')
+            portname = namesplit[1] + '-' + namesplit[2]
+            worker.recover_usernet(portname, uid, info['proxy_server_ip'], container['host']==info['proxy_server_ip'])
         return [True, "start cluster"]
 
     # maybe here should use cluster id

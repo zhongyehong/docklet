@@ -183,6 +183,14 @@ class ovscontrol(object):
             return [False, "delete port failed : %s" % suberror.stdout.decode('utf-8')]
 
     @staticmethod
+    def add_port(bridge, port):
+        try:
+            subprocess.run(['ovs-vsctl', '--may-exist', 'add-port', str(bridge), str(port)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            return [True, str(port)]
+        except subprocess.CalledProcessError as suberror:
+            return [False, "add port failed : %s" % suberror.stdout.decode('utf-8')]
+
+    @staticmethod
     def add_port_internal(bridge, port):
         try:
             subprocess.run(['ovs-vsctl', 'add-port', str(bridge), str(port), '--', 'set', 'interface', str(port), 'type=internal'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
@@ -281,5 +289,9 @@ class netcontrol(object):
             ipcontrol.up_link(gwport)
         return [True, "check gateway port %s" % gwport]
 
-    #@staticmethod
-    #def check_usernet(uid, GatewayHost):
+    @staticmethod
+    def recover_usernet(portname, uid, GatewayHost, isGatewayHost):
+        ovscontrol.add_bridge("docklet-br-"+str(uid))
+        if not isGatewayHost:
+            ovscontrol.add_port_vxlan("docklet-br-"+str(uid), "vxlan-"+str(uid)+"-"+GatewayHost, GatewayHost, str(uid))
+        ovscontrol.add_port("docklet-br-"+str(uid), portname)

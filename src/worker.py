@@ -130,6 +130,7 @@ class Worker(object):
         self.rpcserver.register_function(netcontrol.del_bridge)
         self.rpcserver.register_function(ovscontrol.add_port_vxlan)
         self.rpcserver.register_function(netcontrol.check_gw)
+        self.rpcserver.register_function(netcontrol.recover_usernet)
         self.rpcserver.register_function(proxytool.set_route)
         self.rpcserver.register_function(proxytool.delete_route)
         # register functions or instances to server for rpc
