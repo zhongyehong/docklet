@@ -544,6 +544,10 @@ class NetworkMgr(object):
 
     def has_user(self, username):
         [status, _value] = self.etcd.getkey("network/users/"+username)
+        self.load_usrgw(username)
+        if username not in self.usrgws.keys():
+            self.usrgws[username] = self.masterip
+            self.dump_usrgw(username)        
         return status
 
     def acquire_userips(self, username, num=1):
