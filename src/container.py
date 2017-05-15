@@ -26,8 +26,6 @@ class Container(object):
     def create_container(self, lxc_name, proxy_server_ip, username, setting, clustername, clusterid, containerid, hostname, ip, gateway, vlanid, image):
         logger.info("create container %s of %s for %s" %(lxc_name, clustername, username))
         try:
-            path = env.getenv('DOCKLET_LIB')
-            subprocess.call([path+"/userinit.sh", username])
             setting = json.loads(setting)
             cpu = int(setting['cpu']) * 100000
             memory = setting["memory"]
@@ -45,8 +43,9 @@ class Container(object):
             rootfs = "/var/lib/lxc/%s/rootfs" % lxc_name
 
             if not os.path.isdir("%s/global/users/%s" % (self.fspath,username)):
-                logger.error("user %s directory not found" % username)
-                return [False, "user directory not found"]
+                path = env.getenv('DOCKLET_LIB')
+                subprocess.call([path+"/userinit.sh", username])
+                logger.info("user %s directory not found, create it" % username)
             sys_run("mkdir -p /var/lib/lxc/%s" % lxc_name)
             logger.info("generate config file for %s" % lxc_name)
 
