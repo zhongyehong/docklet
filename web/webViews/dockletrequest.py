@@ -21,12 +21,6 @@ def getip(masterip):
 def getname(masterip):
     return masterip.split("@")[1]
 
-def getip(masterip):
-    return masterip.split("@")[0]
-
-def getname(masterip):
-    return masterip.split("@")[1]
-
 class dockletRequest():
 
     @classmethod

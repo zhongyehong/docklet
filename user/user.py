@@ -444,7 +444,7 @@ def query_self_notifications_infos(cur_user, user, form):
     return json.dumps(result)
 
 @app.route("/billing/beans/", methods=['POST'])
-@auth_key_required
+#@auth_key_required
 def billing_beans():
         logger.info("handle request: /billing/beans/")
         form = request.form
