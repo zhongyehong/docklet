@@ -280,7 +280,7 @@ def list_cluster(user, beans, form):
         return json.dumps({'success':'false', 'action':'list cluster', 'message':clusterlist})
 
 @app.route("/cluster/stopall/",methods=['POST'])
-@auth_key_required
+#@auth_key_required
 def stopall_cluster():
     global G_vclustermgr
     user = request.form.get('username',None)
@@ -506,7 +506,7 @@ def listphynodes_monitor(user, beans, form):
     return json.dumps({'success':'true', 'monitor':res})
 
 @app.route("/billing/beans/", methods=['POST'])
-@auth_key_required
+#@auth_key_required
 def billing_beans():
     form = request.form
     res = post_to_user("/billing/beans/",data=form)

@@ -189,8 +189,9 @@ class Worker(object):
                 if value=='ok':
                     self.etcd.setkey("machines/runnodes/"+self.addr, "ok", ttl = 60)
             else:
-                logger.error("get key %s failed, master crashed or initialized. restart worker please." % self.addr)
-                sys.exit(1)
+                logger.error("get key %s failed, master may be crashed" % self.addr)
+                self.etcd.setkey("machines/runnodes/"+self.addr, "ok", ttl = 60)
+                
 
 if __name__ == '__main__':
 
