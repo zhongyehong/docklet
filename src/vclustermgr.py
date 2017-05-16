@@ -381,6 +381,15 @@ class VclusterMgr(object):
                 worker.set_route("/" + info['proxy_server_ip'] + '/go/'+username+'/'+clustername, target)
             else:
                 proxytool.set_route("/" + info['proxy_server_ip'] + '/go/'+username+'/'+clustername, target)
+                if not info['proxy_server_ip'] == self.addr:
+                    logger.info("%s %s proxy_server_ip has been changed, base_url need to be modified."%(username,clustername))
+                    for container in info['containers']:
+                        worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
+                        if worker is None:
+                            return [False, "The worker can't be found or has been stopped."]
+                        worker.update_baseurl(container['containername'],info['proxy_server_ip'],self.addr)
+                    info['proxy_server_ip'] = self.addr
+                    self.write_clusterinfo(info,clustername,username)
         except:
             return [False, "start cluster failed with setting proxy failed"]
         for container in info['containers']:
@@ -424,6 +433,16 @@ class VclusterMgr(object):
                 worker.set_route("/" + info['proxy_server_ip'] + '/go/'+username+'/'+clustername, target)
             else:
                 proxytool.set_route("/" + info['proxy_server_ip'] + '/go/'+username+'/'+clustername, target)
+                if not info['proxy_server_ip'] == self.addr:
+                    logger.info("%s %s proxy_server_ip has been changed, base_url need to be modified."%(username,clustername))
+                    for container in info['containers']:
+                        worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
+                        if worker is None:
+                            return [False, "The worker can't be found or has been stopped."]
+                        worker.update_baseurl(container['containername'],info['proxy_server_ip'],self.addr)
+                        worker.stop_container(container['containername'])
+                    info['proxy_server_ip'] = self.addr
+                    self.write_clusterinfo(info,clustername,username)
         except:
             return [False, "start cluster failed with setting proxy failed"]
         # recover containers of this cluster
