@@ -240,6 +240,20 @@ IP=%s
             logger.info("%s recover success" % lxc_name)
             return [True, "recover success"]
 
+    def update_baseurl(self, lxc_name, old_ip, new_ip):
+        rundir = self.lxcpath+'/'+lxc_name+'/rootfs' + self.rundir
+        if not os.path.exists(rundir):
+            return [False, "container %s doesn't exist"%(lxc_name)]
+        jconfigpath = rundir + '/jupyter.config'
+        config = open(jconfigpath, 'r')
+        context = config.read()
+        config.close()
+        context = context.replace(old_ip, new_ip)
+        config = open(jconfigpath, 'w')
+        config.write(context)
+        config.close()
+        return [True,"success"]
+
     def stop_container(self, lxc_name):
         logger.info ("stop container:%s" % lxc_name)
         #status = subprocess.call([self.libpath+"/lxc_control.sh", "stop", lxc_name])
