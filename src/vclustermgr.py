@@ -380,7 +380,7 @@ class VclusterMgr(object):
         # set proxy
         if not "proxy_server_ip" in info.keys():
             info['proxy_server_ip'] = self.addr
-            write_clusterinfo(info,clustername,username)
+            self.write_clusterinfo(info,clustername,username)
         try:
             target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000"
             if self.distributedgw == 'True':
@@ -425,7 +425,7 @@ class VclusterMgr(object):
         # recover proxy of cluster
         if not "proxy_server_ip" in info.keys():
             info['proxy_server_ip'] = self.addr
-            write_clusterinfo(info,clustername,username)
+            self.write_clusterinfo(info,clustername,username)
         try:
             target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000"
             if self.distributedgw == 'True':

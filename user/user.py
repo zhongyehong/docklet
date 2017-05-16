@@ -218,7 +218,10 @@ def query_user(cur_user, user, form):
     global G_usermgr
     logger.info("handle request: user/query/")
     #result = G_usermgr.query(ID = form.get("ID"), cur_user = cur_user)
-    result = G_usermgr.query(username = user, cur_user = cur_user)
+    if (form.get("ID", None) != None):
+        result = G_usermgr.query(ID = form.get("ID"), cur_user = cur_user)
+    else:
+        result = G_usermgr.query(username = user, cur_user = cur_user)
     if (result.get('success', None) == None or result.get('success', None) == "false"):
         return json.dumps(result)
     else:
@@ -450,7 +453,7 @@ def query_self_notifications_infos(cur_user, user, form):
     return json.dumps(result)
 
 @app.route("/billing/beans/", methods=['POST'])
-@auth_key_required
+#@auth_key_required
 def billing_beans():
         logger.info("handle request: /billing/beans/")
         form = request.form

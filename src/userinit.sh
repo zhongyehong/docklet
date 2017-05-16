@@ -13,7 +13,7 @@ USERNAME=$1
 echo "[Info] [userinit.sh] initialize for user $USERNAME"
 
 USER_DIR=$FS_PREFIX/global/users/$USERNAME
-[ -d $USER_DIR ] && echo "[userinit.sh] user directory already exists, delete it" && rm -r $USER_DIR 
+[ -d $USER_DIR ] && echo "[userinit.sh] user directory already exists" && exit 0
 
 mkdir -p $USER_DIR/{clusters,hosts,data,ssh}
 

@@ -5,11 +5,15 @@
 which etcd &>/dev/null || { echo "etcd not installed, please install etcd first" && exit 1; }
 
 if [ $# -eq 0 ] ; then
-    echo "Usage: `basename $0` ip1 ip2 ip3"
+    echo "Usage: `basename $0` index selfip ip1 ip2 ip3"
     echo "    ip1 ip2 ip3 are the ip address of node etcd_1 etcd_2 etcd_3"
     exit 1
 fi
 
+etcdindex=etcd_$1
+shift
+selfip=$1
+shift
 etcd_1=$1
 index=1
 while [ $# -gt 0 ] ; do
@@ -32,11 +36,20 @@ done
 # -initial-cluster-state        :  new means join a new cluster; existing means join an existing cluster
 #                               :  new not means clear 
 
-etcd --name etcd_1 \
-     --initial-advertise-peer-urls http://$etcd_1:2380 \
-     --listen-peer-urls http://$etcd_1:2380 \
-     --listen-client-urls http://$etcd_1:2379 \
-     --advertise-client-urls http://$etcd_1:2379 \
+depdir=${0%/*}
+tempdir=/opt/docklet/local
+[ ! -d $tempdir/log ] && mkdir -p $tempdir/log
+[ ! -d $tempdir/run ] && mkdir -p $tempdir/run
+
+etcd --name $etcdindex \
+     --initial-advertise-peer-urls http://$selfip:2380 \
+     --listen-peer-urls http://$selfip:2380 \
+     --listen-client-urls http://$selfip:2379 \
+     --advertise-client-urls http://$selfip:2379 \
      --initial-cluster-token etcd-cluster \
      --initial-cluster $CLUSTER \
      --initial-cluster-state new 
+
+etcdpid=$!
+echo "etcd start with pid: $etcdpid and log:$tempdir/log/etcd.log"
+echo $etcdpid > $tempdir/run/etcd.pid
