@@ -99,6 +99,9 @@ class VclusterMgr(object):
                 [success,message] = self.networkmgr.setup_usrgw(username, self.nodemgr)
                 if not success:
                     return [False, message]
+        elif not self.networkmgr.has_usrgw(username):
+            self.networkmgr.usrgws[username] = self.networkmgr.masterip
+            self.networkmgr.dump_usrgw(username)
         [status, result] = self.networkmgr.acquire_userips_cidr(username, clustersize)
         gateway = self.networkmgr.get_usergw(username)
         vlanid = self.networkmgr.get_uservlanid(username)
