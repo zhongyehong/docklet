@@ -359,6 +359,32 @@ class VclusterMgr(object):
         hostfile.close()
         return [True, info]
 
+    def get_clustersetting(self, clustername, username, containername, allcontainer):
+        clusterpath = self.fspath + "/global/users/" + username + "/clusters/" + clustername
+        if not os.path.isfile(clusterpath):
+            logger.error("cluster file: %s not found" % clustername)
+            return [False, "cluster file not found"]
+        infofile = open(clusterpath, 'r')
+        info = json.loads(infofile.read())
+        infofile.close()
+        cpu = 0
+        memory = 0
+        disk = 0
+        if allcontainer:
+            for container in info['containers']:
+                if 'setting' in container:
+                    cpu += int(container['setting']['cpu'])
+                    memory += int(container['setting']['memory'])
+                    disk += int(container['setting']['disk'])
+        else:
+            for container in info['containers']:
+                if container['containername'] == containername:
+                    if 'setting' in container:
+                        cpu += int(container['setting']['cpu'])
+                        memory += int(container['setting']['memory'])
+                        disk += int(container['setting']['disk'])
+        return [True, {'cpu':cpu, 'memory':memory, 'disk':disk}]
+
 
     def start_cluster(self, clustername, username):
         [status, info] = self.get_clusterinfo(clustername, username)

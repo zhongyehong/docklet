@@ -200,7 +200,9 @@ def scalein_cluster(user, beans, form):
         return json.dumps({'success':'false', 'message':'clustername is null'})
     logger.info("handle request : scale in %s" % clustername)
     containername = form.get("containername", None)
-    post_to_user("/user/usageRelease/", {'token':form.get('token'), 'clustername':clustername, 'containername':containername, 'allcontainer':False})
+    [status, usage_info] = G_vclustermgr.get_clustersetting(clustername, user, containername, False)
+    if status:
+        post_to_user("/user/usageRelease/", {'token':form.get('token'), 'cpu':usage_info['cpu'], 'memory':usage_info['memory'],'disk':usage_info['disk']})
     [status, result] = G_vclustermgr.scale_in_cluster(clustername, user, containername)
     if status:
         return json.dumps({'success':'true', 'action':'scale in', 'message':result})
@@ -246,7 +248,9 @@ def delete_cluster(user, beans, form):
     logger.info ("handle request : delete cluster %s" % clustername)
     user_info = post_to_user("/user/selfQuery/" , {'token':form.get("token")})
     user_info = json.dumps(user_info)
-    post_to_user("/user/usageRelease/", {'token':form.get('token'), 'clustername':clustername, 'containername':'all', 'allcontainer':True})
+    [status, usage_info] = G_vclustermgr.get_clustersetting(clustername, user, "all", True)
+    if status:
+        post_to_user("/user/usageRelease/", {'token':form.get('token'), 'cpu':usage_info['cpu'], 'memory':usage_info['memory'],'disk':usage_info['disk']})
     [status, result] = G_vclustermgr.delete_cluster(clustername, user, user_info)
     if status:
         return json.dumps({'success':'true', 'action':'delete cluster', 'message':result})
