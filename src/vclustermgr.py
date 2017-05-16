@@ -398,6 +398,9 @@ class VclusterMgr(object):
                 return [False, "The worker can't be found or has been stopped."]
             worker.start_container(container['containername'])
             worker.start_services(container['containername'])
+            namesplit = container['containername'].split('-')
+            portname = namesplit[1] + '-' + namesplit[2]
+            worker.recover_usernet(portname, uid, info['proxy_server_ip'], container['host']==info['proxy_server_ip'])
         info['status']='running'
         info['start_time']=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.write_clusterinfo(info,clustername,username)

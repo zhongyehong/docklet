@@ -63,12 +63,6 @@ class Container(object):
                 content = content.replace("%LXCSCRIPT%",env.getenv("LXC_SCRIPT"))
                 content = content.replace("%LXCNAME%",lxc_name)
                 content = content.replace("%UserID%",str(uid))
-                net_dev = env.getenv("NETWORK_DEVICE")
-                ipaddr = network.getip(net_dev)
-                if ipaddr == proxy_server_ip:
-                    content = content.replace("%GatewayHost%","NULL")
-                else:
-                    content = content.replace("%GatewayHost%",proxy_server_ip)
                 content = content.replace("%CLUSTERNAME%", clustername)
                 content = content.replace("%VETHPAIR%", str(clusterid)+'-'+str(containerid))
                 return content
