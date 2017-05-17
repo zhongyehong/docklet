@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import json, sys, netifaces
-from nettools import netcontrol
+from nettools import netcontrol,ovscontrol
 
 from log import logger
 
