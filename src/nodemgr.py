@@ -62,7 +62,7 @@ class NodeMgr(object):
         self.thread_watchnewnode.start()
         # wait for all nodes joins
         # while(True):
-        for i in range(10):
+        for i in range(60):
             allin = True
             for node in self.allnodes:
                 if node not in self.runnodes:

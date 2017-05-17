@@ -363,7 +363,7 @@ def usageInc_user(cur_user, user, form):
 def usageRelease_user(cur_user, user, form):
     global G_usermgr
     logger.info("handle request: user/usageInc/")
-    result = G_usermgr.usageRelease(cur_user = cur_user, clustername = form.get('clustername'), containername = form.get('containername'), allcontainer = form.get('allcontainer'))
+    result = G_usermgr.usageRelease(cur_user = cur_user, cpu = form.get('cpu'), memory = form.get('memory'), disk = form.get('disk'))
     return json.dumps(result)
 
 @app.route("/user/usageRecover/", methods=['POST'])

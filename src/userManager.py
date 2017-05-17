@@ -599,44 +599,16 @@ class userManager:
 
     @token_required
     def usageRelease(self, *args, **kwargs):
-        '''
-        Usage: usageModify(cur_user = token_from_auth, clustername = clustername, containername = containername, allcontainer = True or False)
-        Update usage info after user deleting container
-        '''
         cur_user = kwargs['cur_user']
-        clustername = kwargs['clustername']
-        containername = kwargs['containername']
-        allcontainer = kwargs['allcontainer']
-        logger.info("release usage for user:%s , cluster: %s" % (cur_user.username, clustername))
-        clusterpath = fspath + "/global/users/" + cur_user.username + "/clusters/" + clustername
-        if not os.path.isfile(clusterpath):
-            logger.error("cluster file: %s not found" % clustername)
-            return False
-        infofile = open(clusterpath, 'r')
-        info = json.loads(infofile.read())
-        infofile.close()
-        cpu = 0
-        memory = 0
-        disk = 0
-        if allcontainer:
-            for container in info['containers']:
-                if 'setting' in container:
-                    cpu += int(container['setting']['cpu'])
-                    memory += int(container['setting']['memory'])
-                    disk += int(container['setting']['disk'])
-        else:
-            for container in info['containers']:
-                if container['containername'] == containername:
-                    if 'setting' in container:
-                        cpu += int(container['setting']['cpu'])
-                        memory += int(container['setting']['memory'])
-                        disk += int(container['setting']['disk'])
+        cpu = kwargs['cpu']
+        memory = kwargs['memory']
+        disk = kwargs['disk']
         usage = UserUsage.query.filter_by(username = cur_user.username).first()
         if usage == None:
             new_usage = UserUsage(cur_user.username)
             db.session.add(new_usage)
             db.session.commit()
-            usage = UserUsage.query.filter_by(username = cur_user.username).first()
+            return {'success':True}
         nowcpu = int(usage.cpu) - int(cpu)
         nowmemory = int(usage.memory) - int(memory)
         nowdisk = int(usage.disk) - int(disk)
