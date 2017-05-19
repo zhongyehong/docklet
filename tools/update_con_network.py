@@ -2,8 +2,11 @@ import sys,os
 sys.path.append("../src/")
 import env,requests
 
-userpoint = "http://" + env.getenv('USER_IP') + ":" + str(env.getenv('USER_PORT'))
-G_userip = env.getenv("USER_IP")
+if len(sys.argv) < 2:
+    print("Please enter USER_IP")
+    exit()
+
+userpoint = "http://" + sys.argv[1] + ":" + str(env.getenv('USER_PORT'))
 auth_key = env.getenv('AUTH_KEY')
 
 def post_to_user(url = '/', data={}):
@@ -15,7 +18,10 @@ for con in cons:
     namesplit = con.split('-')
     user = namesplit[0]
     res = post_to_user('/user/uid/',{'username':user,'auth_key':auth_key})
-    configfile = open('/var/lib/lxc/'+con+'/config','r')
+    try:
+        configfile = open('/var/lib/lxc/'+con+'/config','r')
+    except:
+        continue
     context = configfile.read()
     configfile.close()
     #print(context)
