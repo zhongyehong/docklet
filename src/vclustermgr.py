@@ -431,8 +431,8 @@ class VclusterMgr(object):
         except:
             return [False, "start cluster failed with setting proxy failed"]
         for container in info['containers']:
-            # set up vxlan from user's gateway host to container's host.
-            self.networkmgr.check_uservxlan(username, uid, container['host'], self.nodemgr, self.distributedgw=='True')
+            # set up gre from user's gateway host to container's host.
+            self.networkmgr.check_usergre(username, uid, container['host'], self.nodemgr, self.distributedgw=='True')
             worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
@@ -492,8 +492,8 @@ class VclusterMgr(object):
             return [False, "start cluster failed with setting proxy failed"]
         # recover containers of this cluster
         for container in info['containers']:
-            # set up vxlan from user's gateway host to container's host.
-            self.networkmgr.check_uservxlan(username, uid, container['host'], self.nodemgr, self.distributedgw=='True')
+            # set up gre from user's gateway host to container's host.
+            self.networkmgr.check_usergre(username, uid, container['host'], self.nodemgr, self.distributedgw=='True')
             worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]

@@ -546,20 +546,20 @@ class NetworkMgr(object):
         del self.users[username]
         return [True, 'check gw ok']
 
-    def check_uservxlan(self, username, uid, remote, nodemgr, distributedgw=False):
-        logger.info("Check %s(%s) vxlan from gateway host to %s." % (username, str(uid), remote))
+    def check_usergre(self, username, uid, remote, nodemgr, distributedgw=False):
+        logger.info("Check %s(%s) gre from gateway host to %s." % (username, str(uid), remote))
         self.load_usrgw(username)
         if username not in self.usrgws.keys():
             return [False, 'user does not exist.']
         ip = self.usrgws[username]
         if not distributedgw:
             if not remote == self.masterip:
-                ovscontrol.add_port_vxlan('docklet-br-'+str(uid), 'vxlan-'+str(uid)+'-'+remote, remote, uid)
+                ovscontrol.add_port_gre_withkey('docklet-br-'+str(uid), 'gre-'+str(uid)+'-'+remote, remote, uid)
         else:
             if not remote == ip:
                 worker = nodemgr.ip_to_rpc(ip)
-                worker.add_port_vxlan('docklet-br-'+str(uid), 'vxlan-'+str(uid)+'-'+remote, remote, uid)
-        return [True, 'check vxlan ok']
+                worker.add_port_gre_withkey('docklet-br-'+str(uid), 'gre-'+str(uid)+'-'+remote, remote, uid)
+        return [True, 'check gre ok']
 
     def has_user(self, username):
         [status, _value] = self.etcd.getkey("network/users/"+username)

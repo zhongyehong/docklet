@@ -215,9 +215,9 @@ class ovscontrol(object):
             return [False, "add port failed : %s" % suberror.stdout.decode('utf-8')]
 
     @staticmethod
-    def add_port_vxlan(bridge, port, remote, key):
+    def add_port_gre_withkey(bridge, port, remote, key):
         try:
-            subprocess.run(['ovs-vsctl', '--may-exist', 'add-port', str(bridge), str(port), '--', 'set', 'interface', str(port), 'type=vxlan', 'options:remote_ip='+str(remote), 'options:key='+str(key)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            subprocess.run(['ovs-vsctl', '--may-exist', 'add-port', str(bridge), str(port), '--', 'set', 'interface', str(port), 'type=gre', 'options:remote_ip='+str(remote), 'options:key='+str(key)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
             return [True, str(port)]
         except subprocess.CalledProcessError as suberror:
             return [False, "add port failed : %s" % suberror.stdout.decode('utf-8')]
@@ -293,5 +293,5 @@ class netcontrol(object):
     def recover_usernet(portname, uid, GatewayHost, isGatewayHost):
         ovscontrol.add_bridge("docklet-br-"+str(uid))
         if not isGatewayHost:
-            ovscontrol.add_port_vxlan("docklet-br-"+str(uid), "vxlan-"+str(uid)+"-"+GatewayHost, GatewayHost, str(uid))
+            ovscontrol.add_port_gre_withkey("docklet-br-"+str(uid), "gre-"+str(uid)+"-"+GatewayHost, GatewayHost, str(uid))
         ovscontrol.add_port("docklet-br-"+str(uid), portname)

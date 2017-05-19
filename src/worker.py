@@ -128,7 +128,7 @@ class Worker(object):
         self.rpcserver.register_function(netcontrol.setup_gw)
         self.rpcserver.register_function(netcontrol.del_gw)
         self.rpcserver.register_function(netcontrol.del_bridge)
-        self.rpcserver.register_function(ovscontrol.add_port_vxlan)
+        self.rpcserver.register_function(ovscontrol.add_port_gre_withkey)
         self.rpcserver.register_function(netcontrol.check_gw)
         self.rpcserver.register_function(netcontrol.recover_usernet)
         self.rpcserver.register_function(proxytool.set_route)
@@ -199,7 +199,7 @@ class Worker(object):
             else:
                 logger.error("get key %s failed, master may be crashed" % self.addr)
                 self.etcd.setkey("machines/runnodes/"+self.addr, "ok", ttl = 60)
-                
+
 
 if __name__ == '__main__':
 
