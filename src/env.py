@@ -65,4 +65,4 @@ def getenv(key):
     elif key =="AUTH_KEY":
         return os.environ.get("AUTH_KEY","docklet")
     else:
-        return os.environ[key]
+        return os.environ.get(key,"")

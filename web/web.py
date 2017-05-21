@@ -227,6 +227,17 @@ def deleteproxy(clustername,masterip):
     deleteproxyView.masterip = masterip
     return deleteproxyView.as_view()
 
+@app.route("/getmasterdesc/<mastername>/", methods=['POST'])
+@login_required
+def getmasterdesc(mastername):
+    return env.getenv(mastername+"_desc")[1:-1]
+
+@app.route("/masterdesc/<mastername>/", methods=['GET'])
+@login_required
+def masterdesc(mastername):
+    descriptionMasterView.desc=env.getenv(mastername+"_desc")[1:-1]
+    return descriptionMasterView.as_view()
+
 @app.route("/image/list/<masterip>/", methods=['POST'])
 @login_required
 def image_list(masterip):
@@ -662,4 +673,4 @@ if __name__ == '__main__':
         elif opt in ("-p", "--port"):
             webport = int(arg)
 
-app.run(host = webip, port = webport, debug = False, threaded=True)
+app.run(host = webip, port = webport, debug = True, threaded=True)

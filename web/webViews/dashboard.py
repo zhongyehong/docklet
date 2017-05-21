@@ -9,6 +9,7 @@ class dashboardView(normalView):
     @classmethod
     def get(self):
         result = dockletRequest.post_to_all('/cluster/list/')
+        desc = dockletRequest.getalldesc()
         allclusters={}
         for master in result:
             clusters = result[master].get("clusters")
@@ -28,7 +29,7 @@ class dashboardView(normalView):
                 else:
                     self.error()
             allclusters[master] = full_clusters
-        return self.render(self.template_path,  allclusters = allclusters)
+        return self.render(self.template_path,  allclusters = allclusters, desc=desc)
         #else:
         #    self.error()
 
