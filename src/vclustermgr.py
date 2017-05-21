@@ -446,14 +446,14 @@ class VclusterMgr(object):
         [status, info] = self.get_clusterinfo(clustername, username)
         if not status:
             return [False, "cluster not found"]
-        if info['status'] == 'stopped':
-            return [True, "cluster no need to start"]
         # need to check and recover gateway of this user
         self.networkmgr.check_usergw(username, self.nodemgr,self.distributedgw=='True')
         # recover proxy of cluster
         if not "proxy_server_ip" in info.keys():
             info['proxy_server_ip'] = self.addr
             self.write_clusterinfo(info,clustername,username)
+        if info['status'] == 'stopped':
+            return [True, "cluster no need to start"]
         try:
             target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000"
             if self.distributedgw == 'True':
