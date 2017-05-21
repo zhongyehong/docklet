@@ -186,8 +186,12 @@ class VclusterMgr(object):
             logger.info("create container failed, so scale out failed")
             return [False, message]
         if clusterinfo['status'] == "running":
+            self.networkmgr.check_usergre(username, uid, workerip, self.nodemgr, self.distributedgw=='True')
             oneworker.start_container(lxc_name)
-        oneworker.start_services(lxc_name, ["ssh"]) # TODO: need fix
+            oneworker.start_services(lxc_name, ["ssh"]) # TODO: need fix
+            namesplit = lxc_name.split('-')
+            portname = namesplit[1] + '-' + namesplit[2]
+            oneworker.recover_usernet(portname, uid, proxy_server_ip, workerip==proxy_server_ip)
         logger.info("scale out success")
         hostfile = open(hostpath, 'a')
         hostfile.write(ip.split("/")[0] + "\t" + hostname + "\t" + hostname + "." + clustername + "\n")
