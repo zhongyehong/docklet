@@ -149,6 +149,8 @@
 
 # MASTER_IPS: all master ips in a cente, depart by ','.
 # e.g:192.168.192.191@master1,192.168.192.192@master2
+# you can also add description to each master.
+# e.g:master1_desc="this is master1"
 # defalut:0.0.0.0@docklet
 # MASTER_IPS=""
 

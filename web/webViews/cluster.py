@@ -12,6 +12,7 @@ class addClusterView(normalView):
     def get(self):
         masterips = dockletRequest.post_to_all()
         images = dockletRequest.post("/image/list/",{},masterips[0].split("@")[0]).get("images")
+        desc = dockletRequest.getdesc(masterips[0].split("@")[1])
         result = dockletRequest.post("/user/usageQuery/")
         quota = result.get("quota")
         usage = result.get("usage")
@@ -46,7 +47,7 @@ class addClusterView(normalView):
                 'disk': defaultdisk
                 }
         if (result):
-            return self.render(self.template_path, user = session['username'],masterips = masterips, images = images, quota = quota, usage = usage, defaultsetting = defaultsetting)
+            return self.render(self.template_path, user = session['username'],masterips = masterips, images = images, quota = quota, usage = usage, defaultsetting = defaultsetting, masterdesc=desc)
         else:
             self.error()
 
@@ -73,8 +74,15 @@ class createClusterView(normalView):
         else:
             return self.render(self.error_path, message = result.get('message'))
 
+class descriptionMasterView(normalView):
+    template_path = "description.html"
+    
+    @classmethod
+    def get(self):
+        return self.render(self.template_path, description=self.desc)
+
 class descriptionImageView(normalView):
-    template_path = "image_description.html"
+    template_path = "description.html"
 
     @classmethod
     def get(self):

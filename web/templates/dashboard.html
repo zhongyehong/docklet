@@ -67,7 +67,7 @@
 				     <button type="button" class="btn btn-xs btn-default">&nbsp;&nbsp;&nbsp;Go&nbsp;&nbsp;&nbsp;</button>
 				 </td>
 			 {% endif %}
-				<td>{{master.split("@")[1]}}</td>
+			 <td><a href="/masterdesc/{{master.split("@")[1]}}/" target="_blank" title="{{desc[master.split("@")[1]]}}">{{master.split("@")[1]}}</a></td>
                          </tr>
                          {% endfor %}
 			 {% endfor %}
