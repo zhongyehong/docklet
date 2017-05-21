@@ -44,12 +44,16 @@
 				    </div>
 				    <div class="hr-line-dashed"></div>
                     <br/>
-		    		    <div class="form-group"><label class="col-sm-2 control-label">Center Choose</label>
+		    		    <div class="form-group"><label class="col-sm-2 control-label">Location</label>
 					    <div class="col-sm-10"><select id="masterselector" class="form-control">
 						{% for master in masterips %}
 						<option value="{{master.split("@")[0]}}">{{master.split("@")[1]}}</option>
 						{% endfor %}
 					    </select></div>
+				    </div>
+					<br/>
+					<div class="form-group"><label class="col-sm-2 control-label"></label>
+					    <div class="col-sm-10"><p id="masterdesc">{{masterdesc}}</p></div>
 				    </div>
 					<br/>
 				    <div class="form-group"><label class="col-sm-2 control-label">Image Choose</label>
@@ -167,9 +171,13 @@
     <script type="text/javascript">
 		$("select#masterselector").change(function() {
 			var masterip=$(this).children('option:selected').val();
+			var mastername=$(this).children('option:selected').html();
 			console.log(masterip);
 			document.getElementById("form").action="/workspace/add/"+masterip+"/";
 			var host = window.location.host;
+			$.post("http://"+host+"/getmasterdesc/"+mastername+"/", {}, function(data) {
+				$("#masterdesc").html(data);
+			});
 			$.post("http://"+host+"/image/list/"+masterip+"/",{},function(data){
 				var images = data.images;
 				var imagehtml =

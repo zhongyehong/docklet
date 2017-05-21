@@ -21,6 +21,7 @@ def getip(masterip):
 def getname(masterip):
     return masterip.split("@")[1]
 
+
 class dockletRequest():
 
     @classmethod
@@ -59,6 +60,19 @@ class dockletRequest():
         return result
         #except:
             #abort(500)
+    
+    @classmethod
+    def getdesc(self,mastername):
+        return env.getenv(mastername+"_desc")[1:-1]
+
+    @classmethod
+    def getalldesc(self):
+        masterips = self.post_to_all()
+        res={}
+        for masterip in masterips:
+            mastername = getname(masterip)
+            res[mastername]=env.getenv(mastername+"_desc")
+        return res
 
     @classmethod
     def post_to_all(self, url = '/', data={}):
