@@ -525,9 +525,12 @@ class NetworkMgr(object):
         return [True, 'delete user success']
 
     def check_usergw(self, username, nodemgr, distributedgw=False):
+        if not self.has_user(username):
+            return [False,"user doesn't exist."]
         self.load_usrgw(username)
         if username not in self.usrgws.keys():
-            return [False, 'user does not exist.']
+            self.usrgws[username] = self.masterip
+            self.dump_usrgw(username)
         ip = self.usrgws[username]
         self.load_user(username)
         if not distributedgw:
