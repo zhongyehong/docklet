@@ -292,11 +292,11 @@ class netcontrol(object):
     @staticmethod
     def recover_usernet(portname, uid, GatewayHost, isGatewayHost):
         ovscontrol.add_bridge("docklet-br-"+str(uid))
-        [success, ports] = ovscontrol.list_ports("docklet-br-"+str(uid))
-        if success:
-            for port in ports:
-                if port.startswith("gre"):
-                    ovscontrol.del_port("docklet-br-"+str(uid),port)
         if not isGatewayHost:
+            [success, ports] = ovscontrol.list_ports("docklet-br-"+str(uid))
+            if success:
+                for port in ports:
+                    if port.startswith("gre") and (not port == ("gre-"+str(uid)+"-"+GatewayHost) ) :
+                        ovscontrol.del_port("docklet-br-"+str(uid),port)
             ovscontrol.add_port_gre_withkey("docklet-br-"+str(uid), "gre-"+str(uid)+"-"+GatewayHost, GatewayHost, str(uid))
         ovscontrol.add_port("docklet-br-"+str(uid), portname)
