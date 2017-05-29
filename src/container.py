@@ -249,7 +249,7 @@ IP=%s
         config = open(jconfigpath, 'r')
         context = config.read()
         config.close()
-        context = context.replace(old_ip, new_ip)
+        context = context.replace(old_ip+"/go", new_ip+"/go")
         config = open(jconfigpath, 'w')
         config.write(context)
         config.close()

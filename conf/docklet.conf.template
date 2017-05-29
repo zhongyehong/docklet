@@ -148,7 +148,7 @@
 # PUBLIC_IP : publick ip of this machine. If DISTRIBUTED_GATEWAY is True,
 # users' gateways can be setup on this machine. Users can visit this machine
 # by the public ip. default: IP of NETWORK_DEVICE.
-# PUBLIC_IP=""
+# PUBLIC_IP=0.0.0.0
 
 # NGINX_CONF: the config path of nginx, default: /etc/nginx
 # NGINX_CONF="/etc/nginx"

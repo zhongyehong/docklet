@@ -8,6 +8,7 @@ from log import logger
 import env
 import proxytool
 import requests
+import traceback
 
 userpoint = "http://" + env.getenv('USER_IP') + ":" + str(env.getenv('USER_PORT'))
 def post_to_user(url = '/', data={}):
@@ -420,16 +421,24 @@ class VclusterMgr(object):
             worker.update_baseurl(container['containername'],oldip,newip)
             worker.stop_container(container['containername'])
 
+    def check_public_ip(self, clustername, username):
+        [status, info] = self.get_clusterinfo(clustername, username)
+        [status, proxy_public_ip] = self.etcd.getkey("machines/publicIP/"+info['proxy_server_ip'])
+        if not info['proxy_public_ip'] == proxy_public_ip:
+            logger.info("%s %s proxy_public_ip has been changed, base_url need to be modified."%(username,clustername))
+            oldpublicIP= info['proxy_public_ip']
+            self.update_proxy_ipAndurl(clustername,username,info['proxy_server_ip'])
+            self.update_cluster_baseurl(clustername,username,oldpublicIP,proxy_public_ip)
+            return False
+        else:
+            return True
+
     def start_cluster(self, clustername, username, uid):
         [status, info] = self.get_clusterinfo(clustername, username)
         if not status:
             return [False, "cluster not found"]
         if info['status'] == 'running':
             return [False, "cluster is already running"]
-        # check gateway for user
-        # after reboot, user gateway goes down and lose its configuration
-        # so, check is necessary
-        self.networkmgr.check_usergw(username, uid, self.nodemgr,self.distributedgw=='True')
         # set proxy
         if not "proxy_server_ip" in info.keys():
             info['proxy_server_ip'] = self.addr
@@ -437,6 +446,9 @@ class VclusterMgr(object):
             target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000"
             if self.distributedgw == 'True':
                 worker = self.nodemgr.ip_to_rpc(info['proxy_server_ip'])
+                # check public ip
+                if not self.check_public_ip(clustername,username):
+                    [status, info] = self.get_clusterinfo(clustername, username)
                 worker.set_route("/" + info['proxy_public_ip'] + '/go/'+username+'/'+clustername, target)
             else:
                 if not info['proxy_server_ip'] == self.addr:
@@ -445,17 +457,17 @@ class VclusterMgr(object):
                     self.update_proxy_ipAndurl(clustername,username,self.addr)
                     [status, info] = self.get_clusterinfo(clustername, username)
                     self.update_cluster_baseurl(clustername,username,oldpublicIP,info['proxy_public_ip'])
+                # check public ip
+                if not self.check_public_ip(clustername,username):
+                    [status, info] = self.get_clusterinfo(clustername, username)
                 proxytool.set_route("/" + info['proxy_public_ip'] + '/go/'+username+'/'+clustername, target)
         except:
+            logger.info(traceback.format_exc())
             return [False, "start cluster failed with setting proxy failed"]
-        # check public ip
-        [status, proxy_public_ip] = self.etcd.getkey("machines/publicIP/"+info['proxy_server_ip'])
-        if not info['proxy_public_ip'] == proxy_public_ip:
-            logger.info("%s %s proxy_public_ip has been changed, base_url need to be modified."%(username,clustername))
-            oldpublicIP= info['proxy_public_ip']
-            self.update_proxy_ipAndurl(clustername,username,info['proxy_server_ip'])
-            [status, info] = self.get_clusterinfo(clustername, username)
-            self.update_cluster_baseurl(clustername,username,oldpublicIP,info['proxy_public_ip'])
+        # check gateway for user
+        # after reboot, user gateway goes down and lose its configuration
+        # so, check is necessary
+        self.networkmgr.check_usergw(username, uid, self.nodemgr,self.distributedgw=='True')
         # start containers
         for container in info['containers']:
             # set up gre from user's gateway host to container's host.
@@ -498,13 +510,14 @@ class VclusterMgr(object):
             self.update_cluster_baseurl(clustername,username,info['proxy_server_ip'],info['proxy_public_ip'])
         if info['status'] == 'stopped':
             return [True, "cluster no need to start"]
-        # need to check and recover gateway of this user
-        self.networkmgr.check_usergw(username, uid, self.nodemgr,self.distributedgw=='True')
         # recover proxy of cluster
         try:
             target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000"
             if self.distributedgw == 'True':
                 worker = self.nodemgr.ip_to_rpc(info['proxy_server_ip'])
+                # check public ip
+                if not self.check_public_ip(clustername,username):
+                    [status, info] = self.get_clusterinfo(clustername, username)
                 worker.set_route("/" + info['proxy_public_ip'] + '/go/'+username+'/'+clustername, target)
             else:
                 if not info['proxy_server_ip'] == self.addr:
@@ -513,17 +526,14 @@ class VclusterMgr(object):
                     self.update_proxy_ipANdurl(clustername,username,self.addr)
                     [status, info] = self.get_clusterinfo(clustername, username)
                     self.update_cluster_baseurl(clustername,username,oldpublicIP,info['proxy_public_ip'])
+                # check public ip
+                if not self.check_public_ip(clustername,username):
+                    [status, info] = self.get_clusterinfo(clustername, username)
                 proxytool.set_route("/" + info['proxy_public_ip'] + '/go/'+username+'/'+clustername, target)
         except:
             return [False, "start cluster failed with setting proxy failed"]
-        # check public ip
-        [status, proxy_public_ip] = self.etcd.getkey("machines/publicIP/"+info['proxy_server_ip'])
-        if not info['proxy_public_ip'] == proxy_public_ip:
-            logger.info("%s %s proxy_public_ip has been changed, base_url need to be modified."%(username,clustername))
-            oldpublicIP= info['proxy_public_ip']
-            self.update_proxy_ipAndurl(clustername,username,info['proxy_server_ip'])
-            [status, info] = self.get_clusterinfo(clustername, username)
-            self.update_cluster_baseurl(clustername,username,oldpublicIP,info['proxy_public_ip'])
+        # need to check and recover gateway of this user
+        self.networkmgr.check_usergw(username, uid, self.nodemgr,self.distributedgw=='True')
         # recover containers of this cluster
         for container in info['containers']:
             # set up gre from user's gateway host to container's host.
