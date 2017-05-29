@@ -523,7 +523,7 @@ class VclusterMgr(object):
                 if not info['proxy_server_ip'] == self.addr:
                     logger.info("%s %s proxy_server_ip has been changed, base_url need to be modified."%(username,clustername))
                     oldpublicIP= info['proxy_public_ip']
-                    self.update_proxy_ipANdurl(clustername,username,self.addr)
+                    self.update_proxy_ipAndurl(clustername,username,self.addr)
                     [status, info] = self.get_clusterinfo(clustername, username)
                     self.update_cluster_baseurl(clustername,username,oldpublicIP,info['proxy_public_ip'])
                 # check public ip
