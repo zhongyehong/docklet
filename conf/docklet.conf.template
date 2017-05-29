@@ -141,8 +141,14 @@
 # DATA_QUOTA_CMD="gluster volume quota docklet-volume limit-usage %s %s"
 
 # DISTRIBUTED_GATEWAY : whether the users' gateways are distributed or not
+# Must be set by same value on master and workers.
 # True or False, default: False
 # DISTRIBUTED_GATEWAY=False
+
+# PUBLIC_IP : publick ip of this machine. If DISTRIBUTED_GATEWAY is True,
+# users' gateways can be setup on this machine. Users can visit this machine
+# by the public ip. default: IP of NETWORK_DEVICE.
+# PUBLIC_IP=""
 
 # NGINX_CONF: the config path of nginx, default: /etc/nginx
 # NGINX_CONF="/etc/nginx"

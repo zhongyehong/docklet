@@ -696,6 +696,10 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == "new":
         mode = 'new'
 
+    # get public IP and set public Ip in etcd
+    public_IP = env.getenv("PUBLIC_IP")
+    etcdclient.setkey("machines/publicIP/"+ipaddr, public_IP)
+
     # do some initialization for mode: new/recovery
     if mode == 'new':
         # clean and initialize the etcd table
