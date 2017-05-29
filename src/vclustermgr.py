@@ -8,6 +8,7 @@ from log import logger
 import env
 import proxytool
 import requests
+import traceback
 
 userpoint = "http://" + env.getenv('USER_IP') + ":" + str(env.getenv('USER_PORT'))
 def post_to_user(url = '/', data={}):
@@ -124,6 +125,7 @@ class VclusterMgr(object):
         hostpath = self.fspath+"/global/users/"+username+"/hosts/"+str(clusterid)+".hosts"
         hosts = "127.0.0.1\tlocalhost\n"
         proxy_server_ip = ""
+        proxy_public_ip = ""
         containers = []
         for i in range(0, clustersize):
             workerip = workers[random.randint(0, len(workers)-1)]
@@ -135,10 +137,14 @@ class VclusterMgr(object):
             if i == 0:
                 self.networkmgr.load_usrgw(username)
                 proxy_server_ip = self.networkmgr.usrgws[username]
+                [status, proxy_public_ip] = self.etcd.getkey("machines/publicIP/"+proxy_server_ip)
+                if not status:
+                    logger.error("Fail to get proxy_public_ip %s."%(proxy_server_ip))
+                    return [False, "Fail to get proxy server public IP."]
             lxc_name = username + "-" + str(clusterid) + "-" + str(i)
             hostname = "host-"+str(i)
             logger.info ("create container with : name-%s, username-%s, clustername-%s, clusterid-%s, hostname-%s, ip-%s, gateway-%s, image-%s" % (lxc_name, username, clustername, str(clusterid), hostname, ips[i], gateway, image_json))
-            [success,message] = oneworker.create_container(lxc_name, proxy_server_ip, username, uid, json.dumps(setting) , clustername, str(clusterid), str(i), hostname, ips[i], gateway, image_json)
+            [success,message] = oneworker.create_container(lxc_name, proxy_public_ip, username, uid, json.dumps(setting) , clustername, str(clusterid), str(i), hostname, ips[i], gateway, image_json)
             if success is False:
                 logger.info("container create failed, so vcluster create failed")
                 return [False, message]
@@ -149,8 +155,11 @@ class VclusterMgr(object):
         hostfile.write(hosts)
         hostfile.close()
         clusterfile = open(clusterpath, 'w')
-        proxy_url = env.getenv("PORTAL_URL") +"/"+ proxy_server_ip +"/_web/" + username + "/" + clustername
-        info = {'clusterid':clusterid, 'status':'stopped', 'size':clustersize, 'containers':containers, 'nextcid': clustersize, 'create_time':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'start_time':"------" , 'proxy_url':proxy_url, 'proxy_server_ip':proxy_server_ip}
+        proxy_url = env.getenv("PORTAL_URL") +"/"+ proxy_public_ip +"/_web/" + username + "/" + clustername
+        info = {'clusterid':clusterid, 'status':'stopped', 'size':clustersize, 'containers':containers, 'nextcid': clustersize, 'create_time':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'start_time':"------"}
+        info['proxy_url'] = proxy_url
+        info['proxy_server_ip'] = proxy_server_ip
+        info['proxy_public_ip'] = proxy_public_ip
         clusterfile.write(json.dumps(info))
         clusterfile.close()
         return [True, info]
@@ -180,8 +189,9 @@ class VclusterMgr(object):
         lxc_name = username + "-" + str(clusterid) + "-" + str(cid)
         hostname = "host-" + str(cid)
         proxy_server_ip = clusterinfo['proxy_server_ip']
+        proxy_public_ip = clusterinfo['proxy_public_ip']
         uid = json.loads(user_info)["data"]["id"]
-        [success, message] = oneworker.create_container(lxc_name, proxy_server_ip, username, uid, json.dumps(setting), clustername, clusterid, str(cid), hostname, ip, gateway, image_json)
+        [success, message] = oneworker.create_container(lxc_name, proxy_public_ip, username, uid, json.dumps(setting), clustername, clusterid, str(cid), hostname, ip, gateway, image_json)
         if success is False:
             logger.info("create container failed, so scale out failed")
             return [False, message]
@@ -212,9 +222,9 @@ class VclusterMgr(object):
         clusterinfo['proxy_ip'] = ip + ":" + port
         if self.distributedgw == 'True':
             worker = self.nodemgr.ip_to_rpc(clusterinfo['proxy_server_ip'])
-            worker.set_route("/"+ clusterinfo['proxy_server_ip'] + "/_web/" + username + "/" + clustername, target)
+            worker.set_route("/"+ clusterinfo['proxy_public_ip'] + "/_web/" + username + "/" + clustername, target)
         else:
-            proxytool.set_route("/" + clusterinfo['proxy_server_ip'] + "/_web/" + username + "/" + clustername, target)
+            proxytool.set_route("/" + clusterinfo['proxy_public_ip'] + "/_web/" + username + "/" + clustername, target)
         clusterfile = open(self.fspath + "/global/users/" + username + "/clusters/" + clustername, 'w')
         clusterfile.write(json.dumps(clusterinfo))
         clusterfile.close()
@@ -227,9 +237,9 @@ class VclusterMgr(object):
         clusterinfo.pop('proxy_ip')
         if self.distributedgw == 'True':
             worker = self.nodemgr.ip_to_rpc(clusterinfo['proxy_server_ip'])
-            worker.delete_route("/" + clusterinfo['proxy_server_ip'] + "/_web/" + username + "/" + clustername)
+            worker.delete_route("/" + clusterinfo['proxy_public_ip'] + "/_web/" + username + "/" + clustername)
         else:
-            proxytool.delete_route("/" + clusterinfo['proxy_server_ip'] + "/_web/" + username + "/" + clustername)
+            proxytool.delete_route("/" + clusterinfo['proxy_public_ip'] + "/_web/" + username + "/" + clustername)
         clusterfile = open(self.fspath + "/global/users/" + username + "/clusters/" + clustername, 'w')
         clusterfile.write(json.dumps(clusterinfo))
         clusterfile.close()
@@ -399,6 +409,29 @@ class VclusterMgr(object):
                         disk += int(container['setting']['disk'])
         return [True, {'cpu':cpu, 'memory':memory, 'disk':disk}]
 
+    def update_cluster_baseurl(self, clustername, username, oldip, newip):
+        [status, info] = self.get_clusterinfo(clustername, username)
+        if not status:
+            return [False, "cluster not found"]
+        logger.info("%s %s:base_url need to be modified(%s %s)."%(username,clustername,oldip,newip))
+        for container in info['containers']:
+            worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
+            if worker is None:
+                return [False, "The worker can't be found or has been stopped."]
+            worker.update_baseurl(container['containername'],oldip,newip)
+            worker.stop_container(container['containername'])
+
+    def check_public_ip(self, clustername, username):
+        [status, info] = self.get_clusterinfo(clustername, username)
+        [status, proxy_public_ip] = self.etcd.getkey("machines/publicIP/"+info['proxy_server_ip'])
+        if not info['proxy_public_ip'] == proxy_public_ip:
+            logger.info("%s %s proxy_public_ip has been changed, base_url need to be modified."%(username,clustername))
+            oldpublicIP= info['proxy_public_ip']
+            self.update_proxy_ipAndurl(clustername,username,info['proxy_server_ip'])
+            self.update_cluster_baseurl(clustername,username,oldpublicIP,proxy_public_ip)
+            return False
+        else:
+            return True
 
     def start_cluster(self, clustername, username, uid):
         [status, info] = self.get_clusterinfo(clustername, username)
@@ -406,34 +439,36 @@ class VclusterMgr(object):
             return [False, "cluster not found"]
         if info['status'] == 'running':
             return [False, "cluster is already running"]
-        # check gateway for user
-        # after reboot, user gateway goes down and lose its configuration
-        # so, check is necessary
-        self.networkmgr.check_usergw(username, uid, self.nodemgr,self.distributedgw=='True')
         # set proxy
         if not "proxy_server_ip" in info.keys():
             info['proxy_server_ip'] = self.addr
-            self.write_clusterinfo(info,clustername,username)
         try:
             target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000"
             if self.distributedgw == 'True':
                 worker = self.nodemgr.ip_to_rpc(info['proxy_server_ip'])
-                worker.set_route("/" + info['proxy_server_ip'] + '/go/'+username+'/'+clustername, target)
+                # check public ip
+                if not self.check_public_ip(clustername,username):
+                    [status, info] = self.get_clusterinfo(clustername, username)
+                worker.set_route("/" + info['proxy_public_ip'] + '/go/'+username+'/'+clustername, target)
             else:
                 if not info['proxy_server_ip'] == self.addr:
                     logger.info("%s %s proxy_server_ip has been changed, base_url need to be modified."%(username,clustername))
-                    for container in info['containers']:
-                        worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
-                        if worker is None:
-                            return [False, "The worker can't be found or has been stopped."]
-                        worker.update_baseurl(container['containername'],info['proxy_server_ip'],self.addr)
-                    info['proxy_server_ip'] = self.addr
-                    proxy_url = env.getenv("PORTAL_URL") +"/"+ self.addr +"/_web/" + username + "/" + clustername
-                    info['proxy_url'] = proxy_url
-                    self.write_clusterinfo(info,clustername,username)
-                proxytool.set_route("/" + info['proxy_server_ip'] + '/go/'+username+'/'+clustername, target)
+                    oldpublicIP= info['proxy_public_ip']
+                    self.update_proxy_ipAndurl(clustername,username,self.addr)
+                    [status, info] = self.get_clusterinfo(clustername, username)
+                    self.update_cluster_baseurl(clustername,username,oldpublicIP,info['proxy_public_ip'])
+                # check public ip
+                if not self.check_public_ip(clustername,username):
+                    [status, info] = self.get_clusterinfo(clustername, username)
+                proxytool.set_route("/" + info['proxy_public_ip'] + '/go/'+username+'/'+clustername, target)
         except:
+            logger.info(traceback.format_exc())
             return [False, "start cluster failed with setting proxy failed"]
+        # check gateway for user
+        # after reboot, user gateway goes down and lose its configuration
+        # so, check is necessary
+        self.networkmgr.check_usergw(username, uid, self.nodemgr,self.distributedgw=='True')
+        # start containers
         for container in info['containers']:
             # set up gre from user's gateway host to container's host.
             self.networkmgr.check_usergre(username, uid, container['host'], self.nodemgr, self.distributedgw=='True')
@@ -465,35 +500,40 @@ class VclusterMgr(object):
         [status, info] = self.get_clusterinfo(clustername, username)
         if not status:
             return [False, "cluster not found"]
-        # need to check and recover gateway of this user
-        self.networkmgr.check_usergw(username, uid, self.nodemgr,self.distributedgw=='True')
-        # recover proxy of cluster
         if not "proxy_server_ip" in info.keys():
             info['proxy_server_ip'] = self.addr
             self.write_clusterinfo(info,clustername,username)
+            [status, info] = self.get_clusterinfo(clustername, username)
+        if not "proxy_public_ip" in info.keys():
+            self.update_proxy_ipAndurl(clustername,username,info['proxy_server_ip'])
+            [status, info] = self.get_clusterinfo(clustername, username)
+            self.update_cluster_baseurl(clustername,username,info['proxy_server_ip'],info['proxy_public_ip'])
         if info['status'] == 'stopped':
             return [True, "cluster no need to start"]
+        # recover proxy of cluster
         try:
             target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000"
             if self.distributedgw == 'True':
                 worker = self.nodemgr.ip_to_rpc(info['proxy_server_ip'])
-                worker.set_route("/" + info['proxy_server_ip'] + '/go/'+username+'/'+clustername, target)
+                # check public ip
+                if not self.check_public_ip(clustername,username):
+                    [status, info] = self.get_clusterinfo(clustername, username)
+                worker.set_route("/" + info['proxy_public_ip'] + '/go/'+username+'/'+clustername, target)
             else:
                 if not info['proxy_server_ip'] == self.addr:
                     logger.info("%s %s proxy_server_ip has been changed, base_url need to be modified."%(username,clustername))
-                    for container in info['containers']:
-                        worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
-                        if worker is None:
-                            return [False, "The worker can't be found or has been stopped."]
-                        worker.update_baseurl(container['containername'],info['proxy_server_ip'],self.addr)
-                        worker.stop_container(container['containername'])
-                    info['proxy_server_ip'] = self.addr
-                    proxy_url = env.getenv("PORTAL_URL") +"/"+ self.addr +"/_web/" + username + "/" + clustername
-                    info['proxy_url'] = proxy_url
-                    self.write_clusterinfo(info,clustername,username)
-                proxytool.set_route("/" + info['proxy_server_ip'] + '/go/'+username+'/'+clustername, target)
+                    oldpublicIP= info['proxy_public_ip']
+                    self.update_proxy_ipAndurl(clustername,username,self.addr)
+                    [status, info] = self.get_clusterinfo(clustername, username)
+                    self.update_cluster_baseurl(clustername,username,oldpublicIP,info['proxy_public_ip'])
+                # check public ip
+                if not self.check_public_ip(clustername,username):
+                    [status, info] = self.get_clusterinfo(clustername, username)
+                proxytool.set_route("/" + info['proxy_public_ip'] + '/go/'+username+'/'+clustername, target)
         except:
             return [False, "start cluster failed with setting proxy failed"]
+        # need to check and recover gateway of this user
+        self.networkmgr.check_usergw(username, uid, self.nodemgr,self.distributedgw=='True')
         # recover containers of this cluster
         for container in info['containers']:
             # set up gre from user's gateway host to container's host.
@@ -516,9 +556,9 @@ class VclusterMgr(object):
             return [False, 'cluster is already stopped']
         if self.distributedgw == 'True':
             worker = self.nodemgr.ip_to_rpc(info['proxy_server_ip'])
-            worker.delete_route("/" + info['proxy_server_ip'] + '/go/'+username+'/'+clustername)
+            worker.delete_route("/" + info['proxy_public_ip'] + '/go/'+username+'/'+clustername)
         else:
-            proxytool.delete_route("/" + info['proxy_server_ip'] + '/go/'+username+'/'+clustername)
+            proxytool.delete_route("/" + info['proxy_public_ip'] + '/go/'+username+'/'+clustername)
         for container in info['containers']:
             worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
             if worker is None:
@@ -576,6 +616,21 @@ class VclusterMgr(object):
             return int(info['clusterid'])
         logger.error ("internal error: cluster:%s info file has no clusterid " % clustername)
         return -1
+
+    def update_proxy_ipAndurl(self, clustername, username, proxy_server_ip):
+        [status, info] = self.get_clusterinfo(clustername, username)
+        if not status:
+            return [False, "cluster not found"]
+        info['proxy_server_ip'] = proxy_server_ip
+        [status, proxy_public_ip] = self.etcd.getkey("machines/publicIP/"+proxy_server_ip)
+        if not status:
+            logger.error("Fail to get proxy_public_ip %s."%(proxy_server_ip))
+            proxy_public_ip = proxy_server_ip
+        info['proxy_public_ip'] = proxy_public_ip
+        proxy_url = env.getenv("PORTAL_URL") +"/"+ proxy_public_ip +"/_web/" + username + "/" + clustername
+        info['proxy_url'] = proxy_url
+        self.write_clusterinfo(info,clustername,username)
+        return proxy_public_ip
 
     def get_clusterinfo(self, clustername, username):
         clusterpath = self.fspath + "/global/users/" + username + "/clusters/" + clustername

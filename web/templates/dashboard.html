@@ -55,7 +55,7 @@
 				     <button type="button" class="btn btn-xs btn-default"> Delete </button>
 			     </td>
 				 <td>
-					 <a href="/{{ cluster['proxy_server_ip'] }}/go/{{ mysession['username'] }}/{{ cluster['name'] }}" target="_blank"><button type="button" class="btn btn-xs btn-success">&nbsp;&nbsp;&nbsp;Go&nbsp;&nbsp;&nbsp;</button></a>
+					 <a href="/{{ cluster['proxy_public_ip'] }}/go/{{ mysession['username'] }}/{{ cluster['name'] }}" target="_blank"><button type="button" class="btn btn-xs btn-success">&nbsp;&nbsp;&nbsp;Go&nbsp;&nbsp;&nbsp;</button></a>
 				</td>
 			     {% else %}
 			     <td><a href="/vclusters/"><div class="text-warning"><i class="fa fa-stop "></i> Stopped</div></a></td>

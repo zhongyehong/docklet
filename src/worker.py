@@ -180,6 +180,8 @@ class Worker(object):
         logger.info("Monitor Collector has been started.")
         # worker change it state itself. Independedntly from master.
         self.etcd.setkey("machines/runnodes/"+self.addr, "work")
+        publicIP = env.getenv("PUBLIC_IP")
+        self.etcd.setkey("machines/publicIP/"+self.addr,publicIP)
         self.thread_sendheartbeat = threading.Thread(target=self.sendheartbeat)
         self.thread_sendheartbeat.start()
         # start serving for rpc

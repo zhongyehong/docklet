@@ -1,4 +1,4 @@
-import os
+import os,netifaces
 
 def getenv(key):
     if key == "CLUSTER_NAME":
@@ -56,6 +56,13 @@ def getenv(key):
         return os.environ.get("DATA_QUOTA_CMD", "gluster volume quota docklet-volume limit-usage %s %s")
     elif key == 'DISTRIBUTED_GATEWAY':
         return os.environ.get("DISTRIBUTED_GATEWAY", "False")
+    elif key == "PUBLIC_IP":
+        device = os.environ.get("NETWORK_DEVICE","eth0")
+        addr = netifaces.ifaddresses(device)
+        if 2 in addr:
+            return os.environ.get("PUBLIC_IP",addr[2][0]['addr'])
+        else:
+            return os.environ.get("PUBLIC_IP","0.0.0.0")
     elif key == "NGINX_CONF":
         return os.environ.get("NGINX_CONF","/etc/nginx")
     elif key =="USER_IP":
