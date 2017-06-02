@@ -80,12 +80,15 @@ Pay attention to the following settings:
   container networks.
 - PORTAL_URL : the portal of the system. Users access the system
   by visiting this address. If the system is behind a firewall, then
-  a reverse proxy should be setup.
+  a reverse proxy should be setup. Default is MASTER_IP:NGINX_PORT.
 - NGINX_PORT : the access port of the public portal. User use this
   port to visit docklet system.
 - DISTRIBUTED_GATEWAY : whether the users' gateways are distributed
   or not. Both master and worker must be set by same value.
-
+- PUBLIC_IP : publick ip of this machine. If DISTRIBUTED_GATEWAY is True,
+  users' gateways can be setup on this machine. Users can visit this
+  machine by the public ip. default: IP of NETWORK_DEVICE.
+  
 ## Start ##
 
 ### distributed file system ###
