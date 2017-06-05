@@ -196,22 +196,27 @@ case "$1" in
     init)
         do_start_master "new"
         do_start_proxy
+	do_start_web
         ;;
     start)
         do_start_master "recovery"
         do_start_proxy
+	do_start_web
         ;;
 
     stop)
         do_stop_master
         do_stop_proxy
+	do_stop_web
         ;;
 
     restart)
         do_stop_master
         do_stop_proxy
+	do_stop_web
         do_start_master "recovery"
         do_start_proxy
+	do_start_web
         ;;
 
     start_proxy)

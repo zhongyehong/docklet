@@ -106,6 +106,13 @@ For multi hosts distributed environment, **must** start
 **dep/etcd-multi-nodes.sh** in each etcd server hosts. This scripts
 requires users providing the etcd server address as parameters.
 
+### supermaster ###
+Supermaster is a server consist of web server, user server and a master server instance.
+
+If it is the first time you start docklet, run `bin/docklet-supermaster init`
+to init and start a docklet master, web server and user server. Otherwise, run `bin/docklet-supermaster start`.
+When you start a supermaster,you don't need to start an extra master in the same cluster.
+
 ### master ###
 
 First, select a server with 2 network interface card, one having a
@@ -116,6 +123,9 @@ If it is the first time you start docklet, run `bin/docklet-master init`
 to init and start docklet master. Otherwise, run  `bin/docklet-master start`, 
 which will start master in recovery mode in background using 
 conf/docklet.conf. 
+
+Please fill the USER_IP and USER_PORT in conf/docklet.conf, it is the ip and port of user server.
+By default, it is `localhost` and `9100`
 
 You can check the daemon status by running `bin/docklet-master status`
 
