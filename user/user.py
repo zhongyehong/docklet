@@ -575,7 +575,7 @@ if __name__  ==  '__main__':
         mode = 'new'
 
 
-    G_usermgr = userManager.userManager('root',"unias")
+    G_usermgr = userManager.userManager('root')
     #if mode == "new":
     #    G_usermgr.initUsage()
     G_notificationmgr = notificationmgr.NotificationMgr()

@@ -87,7 +87,7 @@ Pay attention to the following settings:
   or not. Both master and worker must be set by same value.
 - PUBLIC_IP : publick ip of this machine. If DISTRIBUTED_GATEWAY is True,
   users' gateways can be setup on this machine. Users can visit this
-  machine by the public ip. default: IP of NETWORK_DEVICE.
+  machine by the public ip. default: IP of NETWORK_DEVICE. 
   
 ## Start ##
 
