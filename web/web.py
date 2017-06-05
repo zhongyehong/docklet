@@ -69,6 +69,7 @@ def home():
 
 @app.route("/login/", methods=['GET', 'POST'])
 def login():
+    loginView.open_registry = env.getenv("OPEN_REGISTRY")
     return loginView.as_view()
 
 @app.route(external_login_url, methods=['GET'])
@@ -91,7 +92,7 @@ def logout():
     return logoutView.as_view()
 
 @app.route("/register/", methods=['GET', 'POST'])
-@administration_required
+#@administration_required
 #now forbidden,only used by SEI & PKU Staffs and students.
 #can be used by admin for testing
 def register():

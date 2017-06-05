@@ -119,13 +119,13 @@ def register():
             return json.dumps({'success':'false'})
         newuser = G_usermgr.newuser()
         newuser.username = request.form.get('username')
-        newuser.password = request.form.get('password')
-        newuser.e_mail = request.form.get('email')
-        newuser.student_number = request.form.get('studentnumber')
-        newuser.department = request.form.get('department')
-        newuser.nickname = request.form.get('truename')
-        newuser.truename = request.form.get('truename')
-        newuser.description = request.form.get('description')
+        newuser.password = request.form.get('password','')
+        newuser.e_mail = request.form.get('email','')
+        newuser.student_number = request.form.get('studentnumber','')
+        newuser.department = request.form.get('department','')
+        newuser.nickname = request.form.get('truename','')
+        newuser.truename = request.form.get('truename','')
+        newuser.description = request.form.get('description','')
         newuser.status = "init"
         newuser.auth_method = "local"
         result = G_usermgr.register(user = newuser)
@@ -141,6 +141,7 @@ def register():
         newuser = G_usermgr.newuser()
         newuser.username = cur_user.username
         newuser.nickname = cur_user.truename
+        newuser.password = cur_user.password
         newuser.status = 'applying'
         newuser.user_group = cur_user.user_group
         newuser.auth_method = cur_user.auth_method

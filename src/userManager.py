@@ -849,11 +849,12 @@ class userManager:
         if (user_check != None and user_check.status != "init"):
             #for the activating form
             return {"success":'false', "reason": "Unauthorized action"}
+        newuser = kwargs['user']
         if (user_check != None and (user_check.status == "init")):
             db.session.delete(user_check)
             db.session.commit()
-        newuser = kwargs['user']
-        newuser.password = hashlib.sha512(newuser.password.encode('utf-8')).hexdigest()
+        else: 
+            newuser.password = hashlib.sha512(newuser.password.encode('utf-8')).hexdigest()
         db.session.add(newuser)
         db.session.commit()
 

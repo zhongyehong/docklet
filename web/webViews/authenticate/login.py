@@ -47,7 +47,7 @@ class loginView(normalView):
         else:
             link = ''
             url = ''
-        return render_template(self.template_path, link = link, url = url)
+        return render_template(self.template_path, link = link, url = url, open_registry=self.open_registry)
 
     @classmethod
     def post(self):
