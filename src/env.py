@@ -16,7 +16,7 @@ def getenv(key):
     elif key == "CONTAINER_MEMORY":
         return int(os.environ.get("CONTAINER_MEMORY", 1000))
     elif key == "DISKPOOL_SIZE":
-        return int(os.environ.get("DISKPOOL_SIZE", 5000))
+        return int(os.environ.get("DISKPOOL_SIZE", 10000))
     elif key == "ETCD":
         return os.environ.get("ETCD", "localhost:2379")
     elif key == "NETWORK_DEVICE":
@@ -71,5 +71,7 @@ def getenv(key):
         return int(os.environ.get("USER_PORT",9100))
     elif key =="AUTH_KEY":
         return os.environ.get("AUTH_KEY","docklet")
+    elif key =="OPEN_REGISTRY":
+        return os.environ.get("OPEN_REGISTRY","False")
     else:
         return os.environ.get(key,"")

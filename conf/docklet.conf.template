@@ -63,9 +63,9 @@
 # CONTAINER_MEMORY: memory quota of container, count in MB, default is 1000
 # CONTAINER_MEMORY=1000
 
-# DISKPOOL_SIZE: lvm group size, count in MB, default is 5000
+# DISKPOOL_SIZE: lvm group size, count in MB, default is 10000
 # Only valid with STORAGE=file
-# DISKPOOL_SIZE=5000
+# DISKPOOL_SIZE=10000
 
 # ETCD: etcd address, default is localhost:2379
 # For a muti hosts environment, the administrator should configure how
@@ -172,3 +172,7 @@
 # or to request master from users server. Please set the
 # same value on each machine. Please don't use the default value.
 # AUTH_KEY="docklet"
+
+# OPEN_REGISTRY: whether allow user to register new account or not.
+# default:False
+# OPEN_REGISTRY:False

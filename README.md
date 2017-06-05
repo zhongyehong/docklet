@@ -88,6 +88,9 @@ Pay attention to the following settings:
 - PUBLIC_IP : publick ip of this machine. If DISTRIBUTED_GATEWAY is True,
   users' gateways can be setup on this machine. Users can visit this
   machine by the public ip. default: IP of NETWORK_DEVICE. 
+- USER_IP : the ip of user server. default : localhost
+- MASTER_IPS : tell the web server the ips of all the cluster master.
+- OPEN_REGISTRY : whether allow user to register a new account.
   
 ## Start ##
 
