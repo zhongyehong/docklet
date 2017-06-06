@@ -1,6 +1,6 @@
 # Docklet
 
-http://docklet.unias.org
+https://unias.github.io/docklet
 
 ## Intro
 
@@ -34,7 +34,7 @@ The Docklet system runtime consists of four components:
 
 - distributed file system server
 - etcd server
-- docklet master
+- docklet supermaster, master
 - docklet worker
 
 ## Install
@@ -118,6 +118,7 @@ For multi hosts distributed environment, **must** start
 requires users providing the etcd server address as parameters.
 
 ### supermaster ###
+
 Supermaster is a server consist of web server, user server and a master server instance.
 
 If it is the first time you start docklet, run `bin/docklet-supermaster init`
@@ -125,6 +126,10 @@ to init and start a docklet master, web server and user server. Otherwise, run `
 When you start a supermaster,you don't need to start an extra master in the same cluster.
 
 ### master ###
+
+A master manages all the workers in one data center. Docklet can manage
+several data centers, each data center has one master server. But
+a docklet system will only have one supermaster.
 
 First, select a server with 2 network interface card, one having a
 public IP address/url, e.g., docklet.info; the other having a private IP
