@@ -1,6 +1,6 @@
 # Docklet
 
-http://docklet.unias.org
+https://unias.github.io/docklet
 
 ## Intro
 
