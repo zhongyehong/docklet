@@ -112,7 +112,7 @@ def dashboard():
 
 @app.route("/document/", methods=['GET'])
 def redirect_dochome():
-    return redirect("http://docklet.unias.org/userguide")
+    return redirect("http://unias.github.io/docklet/userguide")
 
 @app.route("/config/", methods=['GET'])
 @login_required

@@ -107,7 +107,6 @@ pre_start_master () {
 }
 
 do_start_master () {
-    pre_start_master
 
     DAEMON_OPTS_MASTER=$1
 
@@ -194,11 +193,13 @@ do_stop_user () {
 
 case "$1" in
     init)
+    	pre_start_master
         do_start_master "new"
         do_start_proxy
 	do_start_web
         ;;
     start)
+    	pre_start_master
         do_start_master "recovery"
         do_start_proxy
 	do_start_web
@@ -214,6 +215,7 @@ case "$1" in
         do_stop_master
         do_stop_proxy
 	do_stop_web
+    	pre_start_master
         do_start_master "recovery"
         do_start_proxy
 	do_start_web
@@ -234,6 +236,7 @@ case "$1" in
     reinit)
         do_stop_master
         do_stop_proxy
+    	pre_start_master
         do_start_master "new"
         do_start_proxy
         ;;
