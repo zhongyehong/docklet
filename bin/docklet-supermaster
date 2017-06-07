@@ -107,7 +107,6 @@ pre_start_master () {
 }
 
 do_start_master () {
-    pre_start_master
 
     DAEMON_OPTS_MASTER=$1
 
@@ -159,6 +158,7 @@ do_start_web () {
 }
 
 do_start_user () {
+    
     log_daemon_msg "Starting $DAEMON_NAME_USER in $FS_PREFIX"
 
     DAEMON_OPTS_USER="-p $USER_PORT"
@@ -198,12 +198,14 @@ do_stop_user () {
 
 case "$1" in
     init)
+    	pre_start_master
         do_start_user
         do_start_proxy
         do_start_web
         do_start_master "new"
         ;;
     start)
+    	pre_start_master
         do_start_user
         do_start_proxy
         do_start_web
@@ -222,6 +224,7 @@ case "$1" in
         do_stop_web
         do_stop_proxy
         do_stop_master
+    	pre_start_master
         do_start_user
         do_start_proxy
         do_start_web
@@ -249,6 +252,7 @@ case "$1" in
         do_stop_proxy
         do_stop_master
         do_stop_user
+    	pre_start_master
         do_start_user
         do_start_proxy
         do_start_web
