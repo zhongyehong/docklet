@@ -73,5 +73,7 @@ def getenv(key):
         return os.environ.get("AUTH_KEY","docklet")
     elif key =="OPEN_REGISTRY":
         return os.environ.get("OPEN_REGISTRY","False")
+    elif key =="APPROVAL_RBT":
+        return os.environ.get("APPROVAL_RBT","ON")
     else:
         return os.environ.get(key,"")
