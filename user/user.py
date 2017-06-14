@@ -591,7 +591,11 @@ if __name__  ==  '__main__':
 
     G_applicationmgr = beansapplicationmgr.ApplicationMgr()
     approvalrbt = beansapplicationmgr.ApprovalRobot()
-    approvalrbt.start()
+    if(env.getenv("APPROVAL_RBT") == "ON"):
+        approvalrbt .start()
+        logger.info("ApprovalRobot is started.")
+    else:
+        logger.info("ApprovalRobot is not started.")
 
     # server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
     logger.info("starting user server")

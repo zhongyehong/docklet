@@ -87,11 +87,16 @@ Pay attention to the following settings:
   or not. Both master and worker must be set by same value.
 - PUBLIC_IP : publick ip of this machine. If DISTRIBUTED_GATEWAY is True,
   users' gateways can be setup on this machine. Users can visit this
-  machine by the public ip. default: IP of NETWORK_DEVICE. 
+  machine by the public ip. default: IP of NETWORK_DEVICE.
 - USER_IP : the ip of user server. default : localhost
 - MASTER_IPS : tell the web server the ips of all the cluster master.
 - OPEN_REGISTRY : whether allow user to register a new account.
-  
+- AUTH_KEY: the key to request users server from master, or to request
+  master from users server. Please set the same value on each machine.
+  Please don't use the default value.
+- APPROVAL_RBT: whether to start the approval robot that will approve
+  beans applications from users automatically.
+
 ## Start ##
 
 ### distributed file system ###
