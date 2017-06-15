@@ -1,7 +1,7 @@
 import re, string, os
 
 
-editableParms = ["ADMIN_EMAIL_ADDRESS","LOG_LEVEL"]
+editableParms = ["LOG_LEVEL"]
 configPath = {"docklet": os.environ.get("DOCKLET_CONF")+"/docklet.conf",
     "container": os.environ.get("DOCKLET_CONF")+"/container.conf"}
 #configPath = {"docklet": "../conf/docklet.conf",
@@ -43,11 +43,11 @@ class SystemManager():
             for line in lines:
                 [linekind, lineparm, lineval] = parse_line(line)
                 if lineparm in editableParms:
-                    editable = 1
+                    editable = 1 # edit it in settings.py
                 else:
                     editable = 0
                 if linekind == "default":
-                    conf[lineparm] = {"val": "novalidvaluea", "default": lineval, 
+                    conf[lineparm] = {"val": "novalidvaluea", "default": lineval,
                         "history": [], "editable": editable, "details": ""}
             for line in lines:
                 [linekind, lineparm, lineval] = parse_line(line)
@@ -59,7 +59,7 @@ class SystemManager():
                             editable = 1
                         else:
                             editable = 0
-                        conf[lineparm] = {"val": lineval, "default": lineval, 
+                        conf[lineparm] = {"val": lineval, "default": lineval,
                             "history": [], "editable": editable, "details": ""}
             for line in lines:
                 [linekind, lineparm, lineval] = parse_line(line)
@@ -69,7 +69,7 @@ class SystemManager():
                 for seg in segs:
                     if parm in seg:
                         conf[parm]["details"] = seg
-            result[field] = [({'parm': parm, 'val': conf[parm]['val'], 
+            result[field] = [({'parm': parm, 'val': conf[parm]['val'],
                 'default': conf[parm]['default'], "history": conf[parm]['history'],
                 "editable": conf[parm]['editable'], "details": conf[parm]['details']}) for parm in sorted(conf.keys())]
         configFile = open(configPath["container"])
@@ -89,7 +89,7 @@ class SystemManager():
             line = lines[i]
             [linekind, lineparm, lineval] = parse_line(line)
             if linekind == "active" and lineparm == parm:
-                lines[i] = "## " + parm + "=" + lineval + "\n" 
+                lines[i] = "## " + parm + "=" + lineval + "\n"
                 lines.insert(i, parm + "=" + val + "\n")
                 if i == 0 or not parm in lines[i-1] or not "=" in lines[i-1]:
                     lines.insert(i, "# " + parm + "=" + lineval + "\n")
@@ -176,7 +176,7 @@ class SystemManager():
             line = lines[i]
             if activePattern.match(line) != None and not "#" in line:
                 segs = line.replace("\n", "").split("=")
-                lines[i] = segs[0].strip() + "=" + conf[segs[0].strip()]["default"] + "\n" 
+                lines[i] = segs[0].strip() + "=" + conf[segs[0].strip()]["default"] + "\n"
             elif historyPattern.match(line) != None and not "==" in line:
                 lines[i] = ""
         configFile = open(configPath[field], "w")
@@ -187,4 +187,3 @@ class SystemManager():
 
 #sysmgr = SystemManager()
 #print(sysmgr.getParmList())
-
