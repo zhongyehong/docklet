@@ -1,7 +1,7 @@
 import re, string, os
 
 
-editableParms = ["LOG_LEVEL"]
+editableParms = ["LOG_LEVEL","ADMIN_EMAIL_ADDRESS","EMAIL_FROM_ADDRESS","OPEN_REGISTRY","APPROVAL_RBT"]
 configPath = {"docklet": os.environ.get("DOCKLET_CONF")+"/docklet.conf",
     "container": os.environ.get("DOCKLET_CONF")+"/container.conf"}
 #configPath = {"docklet": "../conf/docklet.conf",

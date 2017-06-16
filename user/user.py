@@ -33,6 +33,7 @@ import threading,traceback
 from model import User,db
 from httplib2 import Http
 from urllib.parse import urlencode
+from settings import settings
 
 external_login = env.getenv('EXTERNAL_LOGIN')
 if(external_login == 'TRUE'):
@@ -390,6 +391,21 @@ def chlxcsetting_user(cur_user, user, form):
     logger.info("handle request: user/chlxcsetting/")
     result = G_usermgr.chlxcsetting(cur_user = cur_user, form = form)
     return json.dumps(result)
+
+@app.route("/settings/list/", methods=['POST'])
+@login_required
+def settings_list(cur_user, user, form):
+    return json.dumps(settings.list(user_group = 'admin'))
+
+@app.route("/settings/update/", methods=['POST'])
+@login_required
+def settings_update(user, beans, form):
+    newSetting = {}
+    newSetting['OPEN_REGISTRY'] = form.get('OPEN_REGISTRY','')
+    newSetting['APPROVAL_RBT'] = form.get('APPROVAL_RBT','')
+    newSetting['ADMIN_EMAIL_ADDRESS'] = form.get('ADMIN_EMAIL_ADDRESS', '')
+    newSetting['EMAIL_FROM_ADDRESS'] = form.get('EMAIL_FROM_ADDRESS', '')
+    return json.dumps(settings.update(user_group = 'admin', newSetting = newSetting))
 
 @app.route("/notification/list/", methods=['POST'])
 @login_required

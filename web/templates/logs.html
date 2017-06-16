@@ -1,0 +1,53 @@
+{% extends "base_AdminLTE.html"%}
+{% block title %}Docklet | Logs{% endblock %}
+
+{% block panel_title %}Logs{% endblock %}
+
+{% block panel_list %}
+<ol class="breadcrumb">
+  <li>
+      <a href="/dashboard/"><i class="fa fa-dashboard"></i>Home</a>
+  </li>
+  <li class="active">
+      <strong>Logs</strong>
+  </li>
+</ol>
+{% endblock %}
+
+{% block css_src %}
+
+<link href="/static/dist/css/filebox.css" rel="stylesheet">
+
+{% endblock %}
+
+{% block content %}
+
+
+<div class="row">
+<div class="col-md-12">
+  <div class="box box-primary">
+      <div class="box-header with-border">
+         <h3 class="box-title">Logs</h3>
+      </div>
+      <div class="box-body">
+          {% for filename in logs %}
+            <div class="file-box">
+                <div class="file">
+                    <a href="/logs/{{ filename }}/">
+                        <span class="corner"></span>
+
+                        <div class="icon">
+                            <i class="fa fa-file"></i>
+                        </div>
+                        <div class="file-name">
+                            {{ filename }}
+                        </div>
+                    </a>
+                </div>
+            </div>
+          {% endfor %}
+      </div>
+  </div>
+</div>
+</div>
+{% endblock %}
