@@ -172,12 +172,3 @@
 # or to request master from users server. Please set the
 # same value on each machine. Please don't use the default value.
 # AUTH_KEY=docklet
-
-# OPEN_REGISTRY: whether allow user to register new account or not.
-# default:False
-# OPEN_REGISTRY=False
-
-# APPROVAL_RBT: whether to start the approval robot that will approve
-# beans applications from users automatically.
-# ON or OFF, default: ON.
-# APPROVAL_RBT=ON

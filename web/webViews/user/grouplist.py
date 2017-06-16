@@ -20,4 +20,4 @@ class groupmodifyView(normalView):
     @classmethod
     def post(self):
         result =  json.dumps(dockletRequest.post('/user/groupModify/', request.form))
-        return redirect('/admin/')
+        return redirect('/settings/')

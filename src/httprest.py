@@ -24,7 +24,6 @@ import http.server, cgi, json, sys, shutil
 import xmlrpc.client
 from socketserver import ThreadingMixIn
 import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr
-from settings import settings
 from logs import logs
 import userManager,beansapplicationmgr
 import monitor,traceback
@@ -98,20 +97,6 @@ def isalive(user, beans, form):
     return json.dumps({'success':'true'})
 
 
-@app.route("/settings/list/", methods=['POST'])
-@login_required
-def settings_list(user, beans, form):
-    user_group = post_to_user('/user/selfQuery/', {'token': request.form.get("token", None)}).get('data', None).get('group', None)
-    return json.dumps(settings.list(user_group = user_group))
-
-@app.route("/settings/update/", methods=['POST'])
-@login_required
-def settings_update(user, beans, form):
-    user_group = post_to_user('/user/selfQuery/', {'token': request.form.get("token", None)}).get('data', None).get('group', None)
-    newSetting = {}
-    newSetting['ADMIN_EMAIL_ADDRESS'] = form.get('ADMIN_EMAIL_ADDRESS', '')
-    newSetting['EMAIL_FROM_ADDRESS'] = form.get('EMAIL_FROM_ADDRESS', '')
-    return json.dumps(settings.update(user_group = user_group, newSetting = newSetting))
 
 @app.route("/logs/list/", methods=['POST'])
 @login_required

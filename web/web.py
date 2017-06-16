@@ -27,7 +27,7 @@ from webViews.notification.notification import CreateNotificationView, Notificat
     QueryNotificationView, ModifyNotificationView, DeleteNotificationView
 from webViews.user.userinfo import userinfoView
 from webViews.user.userActivate import userActivateView
-from webViews.settings import settingsView
+from webViews.syslogs import logsView
 from webViews.user.grouplist import grouplistView, groupqueryView, groupdetailView, groupmodifyView
 from functools import wraps
 from webViews.dockletrequest import dockletRequest
@@ -69,7 +69,7 @@ def home():
 
 @app.route("/login/", methods=['GET', 'POST'])
 def login():
-    loginView.open_registry = env.getenv("OPEN_REGISTRY")
+    loginView.open_registry = os.environ["OPEN_REGISTRY"]
     return loginView.as_view()
 
 @app.route(external_login_url, methods=['GET'])
@@ -371,10 +371,10 @@ def monitorUserAll():
     return monitorUserAllView.as_view()
 '''
 
-@app.route("/settings/", methods=['GET', 'POST'])
+@app.route("/logs/", methods=['GET', 'POST'])
 @administration_required
-def settings():
-    return settingsView.as_view()
+def logs():
+    return logsView.as_view()
 
 @app.route("/logs/<filename>/", methods=['GET'])
 @administration_required
@@ -552,10 +552,15 @@ def systemdelete():
 def systemresetall():
     return systemresetallView.as_view()
 
-@app.route("/admin/", methods=['GET', 'POST'])
+@app.route("/settings/", methods=['GET', 'POST'])
 @administration_required
 def adminpage():
     return adminView.as_view()
+
+@app.route("/settings/update/", methods=['POST'])
+@administration_required
+def updatesettings():
+    return updatesettingsView.as_view()
 
 @app.route('/index/', methods=['GET'])
 def jupyter_control():
@@ -652,6 +657,14 @@ if __name__ == '__main__':
         secret_key_file = open(env.getenv('FS_PREFIX') + '/local/web_secret_key.txt', 'w')
         secret_key_file.write(secret_key)
         secret_key_file.close()
+
+    try:
+        open_registryfile = open(env.getenv('FS_PREFIX') + '/local/settings.conf')
+        settings = jsobn.loads(open_registryfile.read())
+        open_registryfile.close()
+        os.environ['OPEN_REGISTRY'] = settings.get('OPEN_REGISTRY',"False")
+    except:
+        os.environ['OPEN_REGISTRY'] = "False"
 
     os.environ['APP_KEY'] = app.secret_key
     runcmd = sys.argv[0]
