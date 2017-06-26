@@ -74,12 +74,12 @@
                                  {% endif %}
                                  <td>
 					 <label id='{{master.split("@")[1]}}_{{ loop.index }}_conrunning'>{{ phym['containers']['running'] }}</label> /
-					 <a href='/hosts/{{ phym['ip'] }}/containers/{{master.split("@")[0]}}/' id='{{master.split("@")[1]}}_{{ loop.index }}_contotal' >{{ phym['containers']['total'] }}</a>
+					 <a href='/hosts/{{master.split("@")[0]}}/{{ phym['ip'] }}/containers/' id='{{master.split("@")[1]}}_{{ loop.index }}_contotal' >{{ phym['containers']['total'] }}</a>
 				 </td>
 				 <td id='{{master.split("@")[1]}}_{{ loop.index }}_cpu'>--</td>
 				 <td id='{{master.split("@")[1]}}_{{ loop.index }}_mem'>--</td>
 				 <td id='{{master.split("@")[1]}}_{{ loop.index }}_disk'>--</td>
-				 <td><a class="btn btn-info btn-xs" href='/hosts/{{ phym['ip'] }}/{{master.split("@")[0]}}/'>Realtime</a></td>
+				 <td><a class="btn btn-info btn-xs" href='/hosts/{{master.split("@")[0]}}/{{ phym['ip'] }}/'>Realtime</a></td>
 				 <td><button class="btn btn-xs btn-default">Delete</button></td>
 			     </tr>
                              {% endfor %}
@@ -96,11 +96,11 @@
 
 {% block script_src %}
 <script type='text/javascript'>
-   function update(url,masterip,index)
+   function update(url,index)
    {
 
        var MB = 1024;
-       $.post(url+"/status/"+masterip+"/",{},function(data){
+       $.post(url+"/status/",{},function(data){
 	       console.log(data);
 		var status = data.monitor.status;
 		if(status == 'RUNNING')
@@ -118,7 +118,7 @@
 	   	    tmp.html("Stopped");
        		}
 
-       		$.post(url+"/containers/"+masterip+"/",{},function(data){
+       		$.post(url+"/containers/",{},function(data){
        			var containers = data.monitor.containers;
        			$("#"+index+"_contotal").html(containers.total);
        			$("#"+index+"_conrunning").html(containers.running);
@@ -132,20 +132,20 @@
 			return;
 		}
 
-       		$.post(url+"/cpuinfo/"+masterip+"/",{},function(data){
+       		$.post(url+"/cpuinfo/",{},function(data){
 		       	var idle = data.monitor.cpuinfo.idle;
 			    var usedp = (100 - idle).toFixed(2);
 		       	$("#"+index+"_cpu").html(String(usedp)+"%");
 		       	},"json");
 
-       		$.post(url+"/meminfo/"+masterip+"/",{},function(data){
+       		$.post(url+"/meminfo/",{},function(data){
 			var used = data.monitor.meminfo.used;
 			var total = data.monitor.meminfo.total;
 			var usedp = String(((used/total)*100).toFixed(2))+"%";
 		       	$("#"+index+"_mem").html(usedp);
 		       	},"json");
 
-  	     	$.post(url+"/diskinfo/"+masterip+"/",{},function(data){
+  	     	$.post(url+"/diskinfo/",{},function(data){
 		       	var val = data.monitor.diskinfo;
                 var usedp = val[0].percent;
 		       	$("#"+index+"_disk").html(String(usedp)+"%");
@@ -156,11 +156,12 @@
    function updateAll()
    {
         var host = window.location.host;
-        var url0 = "http://" + host + "/monitor/hosts/";
+      	//  var url0 = "http://" + host + "/monitor/hosts/";
    {% for master in allmachines %}
    {% for phym in allmachines[master] %}
-        url = url0 + '{{ phym['ip'] }}';
-	update(url,'{{master.split("@")[0]}}','{{master.split("@")[1]}}_{{ loop.index }}');
+   	url = "http://" + host + "/monitor/" + '{{master.split("@")[0]}}' + "/hosts/" + '{{phym["ip"]}}';
+        // url = url0 + '{{ phym['ip'] }}';
+	update(url,'{{master.split("@")[1]}}_{{ loop.index }}');
    {% endfor %}
    {% endfor %}
    }

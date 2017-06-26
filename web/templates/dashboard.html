@@ -51,7 +51,7 @@
 			     {% if cluster['status'] == 'running' %}
 			     <td><a href="/vclusters/"><div class="text-success"><i class="fa fa-play"></i> Running</div></a></td>
 			     <td>
-				     <a href="/workspace/stop/{{ cluster['name'] }}/{{master.split("@")[0]}}/"><button type="button"  class="btn btn-xs btn-warning"> &nbsp;Stop&nbsp;&nbsp; </button></a>
+				     <a href="/workspace/{{master.split("@")[0]}}/stop/{{ cluster['name'] }}/"><button type="button"  class="btn btn-xs btn-warning"> &nbsp;Stop&nbsp;&nbsp; </button></a>
 				     <button type="button" class="btn btn-xs btn-default"> Delete </button>
 			     </td>
 				 <td>
@@ -60,8 +60,8 @@
 			     {% else %}
 			     <td><a href="/vclusters/"><div class="text-warning"><i class="fa fa-stop "></i> Stopped</div></a></td>
 			     <td>
-				     <a href="/workspace/start/{{ cluster['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-success"> &nbsp;Start&nbsp;</button></a>
-				     <a href="/workspace/delete/{{ cluster['name'] }}/{{master.split("@")[0]}}/"><button type="button"  class="btn btn-xs btn-danger">Delete</button></a>
+				     <a href="/workspace/{{master.split("@")[0]}}/start/{{ cluster['name'] }}/"><button type="button" class="btn btn-xs btn-success"> &nbsp;Start&nbsp;</button></a>
+				     <a href="/workspace/{{master.split("@")[0]}}/delete/{{ cluster['name'] }}/"><button type="button"  class="btn btn-xs btn-danger">Delete</button></a>
 			     </td>
 				 <td>
 				     <button type="button" class="btn btn-xs btn-default">&nbsp;&nbsp;&nbsp;Go&nbsp;&nbsp;&nbsp;</button>

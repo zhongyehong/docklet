@@ -51,7 +51,7 @@
                       <th>{{ vnode.name }}</th>
                       <th>{{ vnode.billing }} beans</th>
 		      <th>{{ master.split("@")[1] }}</th>
-		      <td><a class="btn btn-info btn-xs" href='/history/{{ vnode.name }}/{{master.split("@")[0]}}/'>History</a></td>
+		      <td><a class="btn btn-info btn-xs" href='/history/{{master.split("@")[0]}}/{{ vnode.name }}/'>History</a></td>
                       </tr>
                       {% endfor %}
 		      {% endfor %}

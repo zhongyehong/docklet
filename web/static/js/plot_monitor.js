@@ -173,12 +173,12 @@ function plot_graph(container,url,processData,getY) {
 var host = window.location.host;
 
 var node_name = $("#node_name").html();
-var url = "http://" + host + "/monitor/vnodes/" + node_name;
 var masterip = $("#masterip").html();
+var url = "http://" + host + "/monitor/" + masterip + "/vnodes/" + node_name;
 
 function processDiskData()
 {
-    $.post(url+"/disk_use/"+masterip+"/",{},function(data){
+    $.post(url+"/disk_use/",{},function(data){
         var diskuse = data.monitor.disk_use;
         var usedp = diskuse.percent;
         var total = diskuse.total/1024.0/1024.0;
@@ -191,7 +191,7 @@ setInterval(processDiskData,1000);
 
 function processBasicInfo()
 {
-    $.post(url+"/basic_info/"+masterip+"/",{},function(data){
+    $.post(url+"/basic_info/",{},function(data){
         basic_info = data.monitor.basic_info;
         state = basic_info.State;
         if(state == 'STOPPED')
@@ -216,5 +216,5 @@ function processBasicInfo()
     },"json");
 }
 setInterval(processBasicInfo,1000);
-plot_graph($("#mem-chart"),url + "/mem_use/"+masterip+"/",processMemData,getMemY);
-plot_graph($("#cpu-chart"),url + "/cpu_use/"+masterip+"/",processCpuData,getCpuY);
+plot_graph($("#mem-chart"),url + "/mem_use/",processMemData,getMemY);
+plot_graph($("#cpu-chart"),url + "/cpu_use/",processCpuData,getCpuY);
