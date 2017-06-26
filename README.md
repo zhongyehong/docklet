@@ -17,7 +17,7 @@ Users manage and use their vcluster all through web. The only client
 tool needed is a modern web browser supporting HTML5, like Safari,
 Firefox, or Chrome.  The integrated *jupyter notebook* provides a web
 **Workspace**. In the Workspace, users can code, debug, test,
-and runn their programs, even visualize the outputs online.
+and run their programs, even visualize the outputs online.
 Therefore, it is ideal for data analysis and processing.
 
 Docklet creates virtual nodes from a base image. Admins can
@@ -37,9 +37,14 @@ The Docklet system runtime consists of four components:
 - docklet supermaster, master
 - docklet worker
 
+## Architecture
+![](./docklet-arch.png)
+
+For detailed information about configurations, please see [Config](#config).
+
 ## Install
 
-Currently the Docklet system is recommend to run in Unbuntu 15.10+.
+Currently the Docklet system is recommend to run in Ubuntu 15.10+.
 
 Ensure that python3.5 is the default python3 version.
 
@@ -76,7 +81,7 @@ Pay attention to the following settings:
   172.16.0.1/16. This network range should all be allocated to  and
   managed by docklet.
 - PROXY_PORT : the listening port of configurable-http-proxy. It proxy
-  connections from exteral public network to internal private
+  connections from external public network to internal private
   container networks.
 - PORTAL_URL : the portal of the system. Users access the system
   by visiting this address. If the system is behind a firewall, then
@@ -85,7 +90,7 @@ Pay attention to the following settings:
   port to visit docklet system.
 - DISTRIBUTED_GATEWAY : whether the users' gateways are distributed
   or not. Both master and worker must be set by same value.
-- PUBLIC_IP : publick ip of this machine. If DISTRIBUTED_GATEWAY is True,
+- PUBLIC_IP : public ip of this machine. If DISTRIBUTED_GATEWAY is True,
   users' gateways can be setup on this machine. Users can visit this
   machine by the public ip. default: IP of NETWORK_DEVICE.
 - USER_IP : the ip of user server. default : localhost
@@ -119,7 +124,7 @@ install etcd`, and it need not to start etcd manually. For others, you
 should install etcd manually.
 
 For multi hosts distributed environment, **must** start
-**dep/etcd-multi-nodes.sh** in each etcd server hosts. This scripts
+**tools/etcd-multi-nodes.sh** in each etcd server hosts. This scripts
 requires users providing the etcd server address as parameters.
 
 ### supermaster ###
@@ -128,7 +133,7 @@ Supermaster is a server consist of web server, user server and a master server i
 
 If it is the first time you start docklet, run `bin/docklet-supermaster init`
 to init and start a docklet master, web server and user server. Otherwise, run `bin/docklet-supermaster start`.
-When you start a supermaster,you don't need to start an extra master in the same cluster.
+When you start a supermaster, you don't need to start an extra master in the same cluster.
 
 ### master ###
 
