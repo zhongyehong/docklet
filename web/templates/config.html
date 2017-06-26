@@ -73,7 +73,7 @@
                                            </div>
                                            <div class="modal-body">
                                                 <div class="form-group">
-							<form action="/workspace/scaleout/{{ clustername }}/{{master.split("@")[0]}}/" method="POST" >
+							<form action="/workspace/{{master.split("@")[0]}}/scaleout/{{ clustername }}/" method="POST" >
                                 <table class="table table-striped table-bordered table-hover table-image">
 								<thead>
 									<tr>
@@ -181,7 +181,7 @@
                 {% if container['containername'][-2:] == '-0' %}
                 <td><button class="btn btn-xs btn-default">Delete</button></td>
                 {% else %}
-		<td><a class="btn btn-xs btn-danger" href="/workspace/scalein/{{ clustername }}/{{ container['containername'] }}/{{master.split("@")[0]}}/">Delete</a></td>
+		<td><a class="btn btn-xs btn-danger" href="/workspace/{{master.split("@")[0]}}/scalein/{{ clustername }}/{{ container['containername'] }}/">Delete</a></td>
                 {% endif %}
 		<div class="modal inmodal" id="DelModal_{{ container['containername'] }}_{{master.split("@")[1]}}" tabindex="-1" role="dialog" aria-hidden="true">
                                    <div class="modal-dialog">
@@ -194,7 +194,7 @@
                                            </div>
                                            <div class="modal-body">
                                                 <div class="form-group">
-							<form action="/workspace/save/{{ clustername }}/{{ container['containername'] }}/{{master.split("@")[0]}}/" method="POST" id="saveImage">
+							<form action="/workspace/{{master.split("@")[0]}}/save/{{ clustername }}/{{ container['containername'] }}/" method="POST" id="saveImage">
                                                   <label>Image Name</label>
 						  <input type="text" placeholder="Enter Image Name" class="form-control" name="ImageName" id="ImageName"/>
 						  <br/>
@@ -235,11 +235,11 @@
                        </div>
                      </div>
 									<div class="box-body">
-										<form action="/addproxy/{{ clustername }}/{{master.split("@")[0]}}/" id="addproxy" method="POST">
+										<form action="/addproxy/{{master.split("@")[0]}}/{{ clustername }}/" id="addproxy" method="POST">
                                         {% if 'proxy_ip' in clusterinfo %}
                                             <p>ip:<input type="text" id="proxy_ip" name="proxy_ip" value={{ clusterinfo['proxy_ip'][:clusterinfo['proxy_ip'].index(':')] }} readonly="true"/>port:<input type="text" id="proxy_port" name="proxy_port" value={{ clusterinfo['proxy_ip'][clusterinfo['proxy_ip'].index(':')+1:] }} readonly="true"/>
                                             <button type="button" class="btn-xs btn-default">enable</button>
-					    <a href="/deleteproxy/{{ clustername }}/{{master.split("@")[0]}}"><button type="button" class="btn-xs btn-danger">disable</button></a></p>
+					    <a href="/deleteproxy/{{master.split("@")[0]}}/{{ clustername }}/"><button type="button" class="btn-xs btn-danger">disable</button></a></p>
                                         {% else %}
                                         <p>ip:<input type="text" id="proxy_ip" name="proxy_ip" value={{ clusterinfo["containers"][0]["ip"][:clusterinfo["containers"][0]["ip"].index("/")] }} />port:<input type="text" id="proxy_port" name="proxy_port" value="80"/>
                                             <button type="submit" class="btn-xs btn-success">enable</button>
@@ -300,19 +300,19 @@
 				<td>private</td>
 				<td>{{mysession['username']}}</td>
 				<td>{{image['time']}}</td>
-				<td><a href="/image/description/{{image['name']}}_{{mysession['username']}}_private/{{master.split("@")[0]}}/" target="_blank">{{image['description']}}</a></td>
+				<td><a href="/image/{{master.split("@")[0]}}/description/{{image['name']}}_{{mysession['username']}}_private/" target="_blank">{{image['description']}}</a></td>
 				<td>{{master.split("@")[1]}}</td>
 				{% if image['isshared'] == 'false' %}
 					<td>unshared</td>
 					<td>
-						<a href="/image/share/{{ image['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-success">share</button></a>
-						<a href="/image/delete/{{ image['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
+						<a href="/image/{{master.split("@")[0]}}/share/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-success">share</button></a>
+						<a href="/image/{{master.split("@")[0]}}/delete/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
 					</td>
 				{% else %}
 					<td>shared</td>
 					<td>
-						<a href="/image/unshare/{{ image['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-warning">unshare</button></a>
-						<a href="/image/delete/{{ image['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
+						<a href="/image/{{master.split("@")[0]}}/unshare/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-warning">unshare</button></a>
+						<a href="/image/{{master.split("@")[0]}}/delete/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
 					</td>
 				{% endif %}
               		 </tr>
@@ -324,11 +324,11 @@
 				<td>public</td>
 				<td>{{p_user}}</td>
 				<td>{{image['time']}}</td>
-				<td><a href="/image/description/{{image['name']}}_{{p_user}}_public/{{master.split("@")[0]}}/" target="_blank">{{image['description']}}</a></td>
+				<td><a href="/image/{{master.split("@")[0]}}/description/{{image['name']}}_{{p_user}}_public/" target="_blank">{{image['description']}}</a></td>
 				<td>{{master.split("@")[1]}}</td>
 				<td></td>
 				{% if p_user == mysession['username'] %}
-				<td><a href="/image/unshare/{{ image['name'] }}/{{master.split("@")[0]}}/"><button type="button" class="btn btn-xs btn-warning">unshare</button></a></td>
+				<td><a href="/image/{{master.split("@")[0]}}/unshare/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-warning">unshare</button></a></td>
 				{% else %}
 				<td></td>
 				{% endif %}

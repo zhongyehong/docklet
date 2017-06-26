@@ -110,7 +110,7 @@
                                  <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_disk'>--</td>
                                  <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing'>--</td>
                                  <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billingthishour'>--</td>
-				 <td><a class="btn btn-info btn-xs" href='/vclusters/{{ clustername }}/{{ container['containername'] }}/{{master.split("@")[0]}}/'>Realtime</a></td>
+				 <td><a class="btn btn-info btn-xs" href='/vclusters/{{master.split("@")[0]}}/{{ clustername }}/{{ container['containername'] }}/'>Realtime</a></td>
 			     </tr>
                              {% endfor %}
                              </tbody>
@@ -127,12 +127,12 @@
 
 {% block script_src %}
 <script type='text/javascript'>
-   function update(url,masterip,index)
+   function update(url,index)
    {
 
-       $.post(url+"/basic_info/"+masterip+"/",{},function(data){
+       $.post(url+"/basic_info/",{},function(data){
 
-       		$.post(url+"/disk_use/"+masterip+"/",{},function(data){
+       		$.post(url+"/disk_use/",{},function(data){
                 var diskuse = data.monitor.disk_use;
 		       	var usedp = diskuse.percent;
                 var total = diskuse.total/1024.0/1024.0;
@@ -172,7 +172,7 @@
 		    return;
        		}
 
-       		$.post(url+"/cpu_use/"+masterip+"/",{},function(data){
+       		$.post(url+"/cpu_use/",{},function(data){
 		       	var usedp = data.monitor.cpu_use.usedp;
                 var quota = data.monitor.cpu_use.quota.cpu;
                 var quotaout = "("+quota;
@@ -183,7 +183,7 @@
 		       	$("#"+index+"_cpu").html((usedp/0.01).toFixed(2)+"%<br/>"+quotaout);
 		       	},"json");
 
-       		$.post(url+"/mem_use/"+masterip+"/",{},function(data){
+       		$.post(url+"/mem_use/",{},function(data){
 		       	var usedp = data.monitor.mem_use.usedp;
 			var unit = data.monitor.mem_use.unit;
 			var quota = data.monitor.mem_use.quota.memory/1024.0;
@@ -198,14 +198,14 @@
    function updateAll()
    {
         var host = window.location.host;
-        var url0 = "http://" + host + "/monitor/vnodes/";
-	var masterip;
+        //var url0 = "http://" + host + "/monitor/vnodes/";
 
 	{% for master in allcontainers %}
  	{% for clustername, clusterinfo in allcontainers[master].items() %}
 	{% for container in clusterinfo['containers'] %}
-	url = url0 + '{{ container['containername'] }}';
-	update(url,'{{master.split("@")[0]}}','{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}');
+	//url = url0 + '{{ container['containername'] }}';
+	url = "http://" + host + "/monitor/" + '{{master.split("@")[0]}}' + "/vnodes/" + '{{container["containername"]}}' ;
+	update(url,'{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}');
 	{% endfor %}
 	{% endfor %}
 	{% endfor %}

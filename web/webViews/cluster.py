@@ -262,7 +262,7 @@ class saveImageView(normalView):
                 #return res.as_view()
             else:
                 if result.get('reason') == "exists":
-                    return self.render(self.template_path, containername = self.containername, clustername = self.clustername, image = self.imagename, user = session['username'], description = self.description)
+                    return self.render(self.template_path, containername = self.containername, clustername = self.clustername, image = self.imagename, user = session['username'], description = self.description, masterip=masterip)
                 else:
                     return self.render(self.error_path, message = result.get('message'))
         else:

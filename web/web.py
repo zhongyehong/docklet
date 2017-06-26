@@ -125,13 +125,13 @@ def config():
 def addCluster():
     return addClusterView.as_view()
 
-@app.route("/workspace/list/<masterip>/", methods=['GET'])
+@app.route("/workspace/<masterip>/list/", methods=['GET'])
 @login_required
 def listCluster(masterip):
     listClusterView.masterip = masterip
     return listClusterView.as_view()
 
-@app.route("/workspace/add/<masterip>/", methods=['POST'])
+@app.route("/workspace/<masterip>/add/", methods=['POST'])
 @login_required
 def createCluster(masterip):
     createClusterView.clustername = request.form["clusterName"]
@@ -139,7 +139,7 @@ def createCluster(masterip):
     createClusterView.masterip = masterip
     return createClusterView.as_view()
 
-@app.route("/workspace/scaleout/<clustername>/<masterip>/", methods=['POST'])
+@app.route("/workspace/<masterip>/scaleout/<clustername>/", methods=['POST'])
 @login_required
 def scaleout(clustername,masterip):
     scaleoutView.image = request.form["image"]
@@ -147,7 +147,7 @@ def scaleout(clustername,masterip):
     scaleoutView.clustername = clustername
     return scaleoutView.as_view()
 
-@app.route("/workspace/scalein/<clustername>/<containername>/<masterip>/", methods=['GET'])
+@app.route("/workspace/<masterip>/scalein/<clustername>/<containername>/", methods=['GET'])
 @login_required
 def scalein(clustername,containername,masterip):
     scaleinView.clustername = clustername
@@ -155,42 +155,42 @@ def scalein(clustername,containername,masterip):
     scaleinView.masterip = masterip
     return scaleinView.as_view()
 
-@app.route("/workspace/start/<clustername>/<masterip>/", methods=['GET'])
+@app.route("/workspace/<masterip>/start/<clustername>/", methods=['GET'])
 @login_required
 def startClustet(clustername,masterip):
     startClusterView.clustername = clustername
     startClusterView.masterip = masterip
     return startClusterView.as_view()
 
-@app.route("/workspace/stop/<clustername>/<masterip>/", methods=['GET'])
+@app.route("/workspace/<masterip>/stop/<clustername>/", methods=['GET'])
 @login_required
 def stopClustet(clustername,masterip):
     stopClusterView.clustername = clustername
     stopClusterView.masterip = masterip
     return stopClusterView.as_view()
 
-@app.route("/workspace/delete/<clustername>/<masterip>/", methods=['GET'])
+@app.route("/workspace/<masterip>/delete/<clustername>/", methods=['GET'])
 @login_required
 def deleteClustet(clustername,masterip):
     deleteClusterView.clustername = clustername
     deleteClusterView.masterip = masterip
     return deleteClusterView.as_view()
 
-@app.route("/workspace/detail/<clustername>/<masterip>/", methods=['GET'])
+@app.route("/workspace/<masterip>/detail/<clustername>/", methods=['GET'])
 @login_required
 def detailCluster(clustername,masterip):
     detailClusterView.clustername = clustername
     detailClusterView.masterip = masterip
     return detailClusterView.as_view()
 
-@app.route("/workspace/flush/<clustername>/<containername>/<masterip>", methods=['GET'])
+@app.route("/workspace/<masterip>/flush/<clustername>/<containername>/", methods=['GET'])
 @login_required
 def flushCluster(clustername,containername):
     flushClusterView.clustername = clustername
     flushClusterView.containername = containername
     return flushClusterView.as_view()
 
-@app.route("/workspace/save/<clustername>/<containername>/<masterip>/", methods=['POST'])
+@app.route("/workspace/<masterip>/save/<clustername>/<containername>/", methods=['POST'])
 @login_required
 def saveImage(clustername,containername,masterip):
     saveImageView.clustername = clustername
@@ -201,7 +201,7 @@ def saveImage(clustername,containername,masterip):
     saveImageView.description = request.form['description']
     return saveImageView.as_view()
 
-@app.route("/workspace/save/<clustername>/<containername>/force/<masterip>/", methods=['POST'])
+@app.route("/workspace/<masterip>/save/<clustername>/<containername>/force/", methods=['POST'])
 @login_required
 def saveImage_force(clustername,containername,masterip):
     saveImageView.clustername = clustername
@@ -212,7 +212,7 @@ def saveImage_force(clustername,containername,masterip):
     saveImageView.description = request.form['description']
     return saveImageView.as_view()
 
-@app.route("/addproxy/<clustername>/<masterip>/", methods=['POST'])
+@app.route("/addproxy/<masterip>/<clustername>/", methods=['POST'])
 @login_required
 def addproxy(clustername,masterip):
     addproxyView.clustername = clustername
@@ -221,7 +221,7 @@ def addproxy(clustername,masterip):
     addproxyView.port = request.form['proxy_port']
     return addproxyView.as_view()
 
-@app.route("/deleteproxy/<clustername>/<masterip>/", methods=['GET'])
+@app.route("/deleteproxy/<masterip>/<clustername>/", methods=['GET'])
 @login_required
 def deleteproxy(clustername,masterip):
     deleteproxyView.clustername = clustername
@@ -239,7 +239,7 @@ def masterdesc(mastername):
     descriptionMasterView.desc=env.getenv(mastername+"_desc")[1:-1]
     return descriptionMasterView.as_view()
 
-@app.route("/image/list/<masterip>/", methods=['POST'])
+@app.route("/image/<masterip>/list/", methods=['POST'])
 @login_required
 def image_list(masterip):
     data = {
@@ -251,35 +251,35 @@ def image_list(masterip):
     logger.debug("image" + str(type(result)))
     return json.dumps(result)
 
-@app.route("/image/description/<image>/<masterip>/", methods=['GET'])
+@app.route("/image/<masterip>/description/<image>/", methods=['GET'])
 @login_required
 def descriptionImage(image,masterip):
     descriptionImageView.image = image
     descriptionImageView.masterip = masterip
     return descriptionImageView.as_view()
 
-@app.route("/image/share/<image>/<masterip>/", methods=['GET'])
+@app.route("/image/<masterip>/share/<image>/", methods=['GET'])
 @login_required
 def shareImage(image,masterip):
     shareImageView.image = image
     shareImageView.masterip = masterip
     return shareImageView.as_view()
 
-@app.route("/image/unshare/<image>/<masterip>/", methods=['GET'])
+@app.route("/image/<masterip>/unshare/<image>/", methods=['GET'])
 @login_required
 def unshareImage(image,masterip):
     unshareImageView.image = image
     unshareImageView.masterip = masterip
     return unshareImageView.as_view()
 
-@app.route("/image/delete/<image>/<masterip>/", methods=['GET'])
+@app.route("/image/<masterip>/delete/<image>/", methods=['GET'])
 @login_required
 def deleteImage(image,masterip):
     deleteImageView.image = image
     deleteImageView.masterip = masterip
     return deleteImageView.as_view()
 
-@app.route("/image/updatebase/<image>/<masterip>/", methods=['GET'])
+@app.route("/image/<masterip>/updatebase/<image>/", methods=['GET'])
 @login_required
 def updatebaseImage(image,masterip):
     updatebaseImageView.image = image
@@ -291,14 +291,14 @@ def updatebaseImage(image,masterip):
 def hosts():
     return hostsView.as_view()
 
-@app.route("/hosts/<com_ip>/<masterip>/", methods=['GET'])
+@app.route("/hosts/<masterip>/<com_ip>/", methods=['GET'])
 @administration_required
 def hostsRealtime(com_ip,masterip):
     hostsRealtimeView.com_ip = com_ip
     hostsRealtimeView.masterip = masterip
     return hostsRealtimeView.as_view()
 
-@app.route("/hosts/<com_ip>/containers/<masterip>/", methods=['GET'])
+@app.route("/hosts/<masterip>/<com_ip>/containers/", methods=['GET'])
 @administration_required
 def hostsConAll(com_ip,masterip):
     hostsConAllView.com_ip = com_ip
@@ -310,7 +310,7 @@ def hostsConAll(com_ip,masterip):
 def status():
     return statusView.as_view()
 
-@app.route("/vclusters/<vcluster_name>/<node_name>/<masterip>/", methods=['GET'])
+@app.route("/vclusters/<masterip>/<vcluster_name>/<node_name>/", methods=['GET'])
 @login_required
 def statusRealtime(vcluster_name,node_name,masterip):
     statusRealtimeView.masterip = masterip
@@ -323,24 +323,25 @@ def history():
     return historyView.as_view()
 
 
-@app.route("/history/<vnode_name>/<masterip>/", methods=['GET'])
+@app.route("/history/<masterip>/<vnode_name>/", methods=['GET'])
 @login_required
 def historyVNode(vnode_name,masterip):
     historyVNodeView.masterip = masterip
     historyVNodeView.vnode_name = vnode_name
     return historyVNodeView.as_view()
 
-@app.route("/monitor/hosts/<comid>/<infotype>/<masterip>/", methods=['POST'])
-@app.route("/monitor/vnodes/<comid>/<infotype>/<masterip>/", methods=['POST'])
+@app.route("/monitor/<masterip>/hosts/<comid>/<infotype>/", methods=['POST'])
+@app.route("/monitor/<masterip>/vnodes/<comid>/<infotype>/", methods=['POST'])
 @login_required
 def monitor_request(comid,infotype,masterip):
     data = {
         "user": session['username']
     }
-    path = request.path[:request.path.rfind("/")]
-    path = path[:path.rfind("/")+1]
+    path = request.path[request.path.find("/")+1:]
+    path = path[path.find("/")+1:]
+    path = path[path.find("/")+1:]
     logger.debug(path + "_____" + masterip)
-    result = dockletRequest.post(path, data, masterip)
+    result = dockletRequest.post("/monitor/"+path, data, masterip)
     logger.debug("monitor" + str(type(result)))
     return json.dumps(result)
 
