@@ -1,30 +1,28 @@
 # Architecture of Network
 
-## Architecture of container's networks
-在目前版本中，为了规避VLAN耗尽的问题，采用了新型的独享式虚拟网络结构，完全去掉了VLAN，其结构如下图：
+## Architecture of containers networks
+In current version, to avoid VLAN ID using up, docklet employs a new architecture of containers networks. According to the new architecture, users' networks are exclusive, while the network were shared by all users before. And the new architecture gets rid of VLAN, so it solves the problem of VLAN ID using up. The architecture is shown as follows:
 
 ![](./ovs_arch.png)
 
-在这个结构中，有如下几个要点：
+There are some points to describe the architecture:
 
-1.每个用户拥有一个独立的虚拟网。
+1.Each user has an unique and exclusive virtual network. The container inside the network communicates with outside via gateway.
 
-2.只要物理机有容器就有用户的虚拟网桥。每个用户容器通过Veth Pair连接到宿主机上的用户虚拟网桥(OVS网桥)。网桥命名为"docklet-br-<用户id>"。
+2.If there is a container in the host, then there will be a user's OVS bridge. Each user's container will connect to user's OVS bridge by Veth Pair. A user's OVS bridge will be named after "docklet-br-<userid>".
 
-3.每个虚拟网是星型拓扑，网关物理机和非网关物理机通过GRE隧道连接。在两个物理机之间可能存在多个GRE隧道（不同用户拥有一个），以用户的id作为key值区分。
+3.Each user's network is star topology, each host on which there is no gateway will connect to the host on which the user's gateway is by GRE tunnel. Thus, there may be many GRE tunnels between two hosts(Each GRE tunnels belongs to different user.), Docklet takes user's id as keys to distinguish from each other. 
 
-4.网桥和GRE隧道是动态创建和删除，用户启动(start)容器时才会创建相应网络（包括网桥和GRE隧道），用户停止(stop)容器时会调用/conf/lxc-script/lxc-ifdown
-脚本停止该容器的网络。
+4.OVS bridge and GRE tunnels are created and destroyed dynamically, which means that network including bridge and GRE tunnels is created only when user starts the container and is destroyed by calling '/conf/lxc-script/lxc-ifdown' script only when user stops the container.   
 
-5.分为集中式网关部署和分布式网关部署两种模式，即网关是集中式都部署在单Master物理机上，还是分布式部署到不同的Worker物理机上。上图展示的是分布式部署的
-情况。网关与外部网通讯仍需通过NAT/iptables。
+5.There are two modes to set up gateways: distributed or centralized. Centralized gateways is the default mode and it will set up the gateways only on Master host, while distributed gateways mode will set up gateways on different workers, just like the picture shown above. NAT/iptables in Linux Kernel is needed when container communicate with outside network via gateway.
 
 ## Processing users' requests (Workspace requests)
-对于用户请求的处理过程可以看出Docklet的结构，其处理过程如下两图，首先是Workspace请求部分。
+The picture of processing user's requests will show the whole architecture of Docklet. The process is shown as follows, firstly, these are the requests to Workspace: 
 
 ![](./workspace_requests.png)
 
 ## Processing users' requests (Other requests)
-其他请求部分。
+Other requests.
 
 ![](./other_requests.png)
