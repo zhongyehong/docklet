@@ -220,7 +220,6 @@
 						</div>
 					</div>
 		     </div>
-		     <br/>
 						<div class="row">
 							<div class="col-md-12">
                 <div class="box box-info">
@@ -250,6 +249,87 @@
 								</div>
 							</div>
 						</div>
+            <div class="row">
+    					<div class="col-md-12">
+                <div class="box box-info">
+                     <div class="box-header with-border">
+                       <h4 class="box-title">TCP Ports Mapping</h4>
+                       <div class="box-tools pull-right">
+                         <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+                         </button>
+                         <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                       </div>
+                     </div>
+    						<div class="box-body">
+    							<p>
+    							<button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#Addportsmapping_{{ clustername }}_{{master.split("@")[1]}}"><i class="fa fa-plus"></i>Apply</button>
+    			     				</p>
+    							<div class="modal inmodal" id="Addportsmapping_{{ clustername }}_{{master.split("@")[1]}}" tabindex="-1" role="dialog" aria-hidden="true">
+                                       <div class="modal-dialog">
+                                       <div class="modal-content animated fadeIn">
+                                               <div class="modal-header">
+                                                   <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                                                   <i class="fa fa-plus modal-icon"></i>
+                                                   <h4 class="modal-title">Apply for TCP Ports Mapping</h4>
+                                                   <small class="font-bold">Add a TCP port mapping for a node</small>
+                                               </div>
+                                               <div class="modal-body">
+                                                      <form action="/port_mapping/add/{{master.split("@")[0]}}/" method="POST" id="AddportsmappingForm">
+                                                        <div class="form-group">
+                                                          <label>Cluster Name</label>
+                                                          <input type = "text" value="{{ clustername }}" class="form-control" name="clustername" readonly="readonly">
+                                                        </div>
+                                                         <div class="form-group">
+                                                           <label>Node Name</label>
+                                                           <select class="form-control" name="node_name" onchange="chnodeip(this.value,node_ip)">
+                                                            {% for container in clusterinfo['containers'] %}
+                                                             <option value="{{ container['containername'] }}">{{ container['containername'] }}</option>
+                                                             {% endfor %}
+                                                           </select>
+                                                         </div>
+                                                         <div class="form-group">
+                                                           <label>Node IP</label>
+                                                           <input type = "text" value="{{ clusterinfo["containers"][0]["ip"][:clusterinfo["containers"][0]["ip"].index("/")] }}" class="form-control" name="node_ip" readonly="readonly">
+                                                         </div>
+                                                         <div class="form-group">
+                                                           <label>Node Port</label><small class="font-bold"> The port that the host port is mapping to(1-65535).</small>
+                                                           <input type="number" class="form-control" placeholder="1-65535" value="80" name="node_port" id="node_port" min="1" max="65535"/>
+                                                         </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
+                                                        <button type="submit" class="btn btn-primary">Submit</button>
+                                                    </div>
+                                                      </form>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                             <table class="table table-bordered">
+                                 <thead>
+                                 <tr>
+                                     <th>Node Name</th>
+                                     <th>Node IP</th>
+                                     <th>Node Port</th>
+                                     <th>Host Public IP</th>
+                                     <th>Host Port</th>
+                                     <th>Delete</th>
+                                 </tr>
+                                 </thead>
+                                 <tbody>
+                                 {% for record in clusterinfo['port_mapping'] %}
+                                 <tr>
+                                     <td>{{ record['node_name'] }}</td>
+                                     <td>{{ record['node_ip'] }}</td>
+                                     <td>{{ record['node_port'] }}</td>
+                                     <td>{{ clusterinfo['proxy_public_ip'] }}</td>
+                                     <td>{{ record['host_port'] }}</td>
+                                     <td><a class="btn btn-xs btn-danger" href="/port_mapping/delete/{{master.split("@")[0]}}/{{ clustername }}/{{ record['node_name'] }}/">Delete</a></td>
+                                 {% endfor %}
+                                 </tbody>
+                             </table>
+    						</div>
+    						</div>
+    					</div>
                      </div>
                  </div>
              </div>
@@ -356,7 +436,18 @@
             $(".table-image").DataTable();
             $(".table-image").attr("style","");
          });
-
+         var map_node_ip = [];
+         {% for master in allclusters %}
+         {% for clustername, clusterinfo in allclusters[master].items() %}
+         {% for container in clusterinfo['containers'] %}
+         map_node_ip["{{ container['containername'] }}"] = "{{ container["ip"][:container["ip"].index("/")] }}";
+         {% endfor %}
+         {% endfor %}
+         {% endfor %}
+         function chnodeip(node_name,field)
+         {
+           field.value = map_node_ip[node_name];
+         }
  </script>
 
 {% endblock %}

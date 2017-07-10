@@ -228,6 +228,20 @@ def deleteproxy(clustername,masterip):
     deleteproxyView.masterip = masterip
     return deleteproxyView.as_view()
 
+@app.route("/port_mapping/add/<masterip>/", methods=['POST'])
+@login_required
+def addPortMapping(masterip):
+    addPortMappingView.masterip = masterip
+    return addPortMappingView.as_view()
+
+@app.route("/port_mapping/delete/<masterip>/<clustername>/<node_name>/", methods=['GET'])
+@login_required
+def delPortMapping(masterip,clustername,node_name):
+    delPortMappingView.masterip = masterip
+    delPortMappingView.clustername = clustername
+    delPortMappingView.node_name = node_name
+    return delPortMappingView.as_view()
+
 @app.route("/getmasterdesc/<mastername>/", methods=['POST'])
 @login_required
 def getmasterdesc(mastername):

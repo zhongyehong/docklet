@@ -14,7 +14,7 @@ import xmlrpc.server, sys, time
 from socketserver import ThreadingMixIn
 import threading
 import etcdlib, network, container
-from nettools import netcontrol,ovscontrol
+from nettools import netcontrol,ovscontrol,portcontrol
 import monitor, proxytool
 from lvmtool import new_group, recover_group
 
@@ -115,6 +115,10 @@ class Worker(object):
         else:
             logger.error ("worker init mode:%s not supported" % value)
             sys.exit(1)
+        # init portcontrol
+        logger.info("init portcontrol")
+        portcontrol.init_new()
+
         # initialize rpc
         # xmlrpc.server.SimpleXMLRPCServer(addr) -- addr : (ip-addr, port)
         # if ip-addr is "", it will listen ports of all IPs of this host
@@ -133,6 +137,8 @@ class Worker(object):
         self.rpcserver.register_function(netcontrol.recover_usernet)
         self.rpcserver.register_function(proxytool.set_route)
         self.rpcserver.register_function(proxytool.delete_route)
+        self.rpcserver.register_function(portcontrol.acquire_port_mapping)
+        self.rpcserver.register_function(portcontrol.release_port_mapping)
         # register functions or instances to server for rpc
         #self.rpcserver.register_function(function_name)
 

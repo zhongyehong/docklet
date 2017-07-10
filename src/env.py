@@ -75,5 +75,7 @@ def getenv(key):
         return os.environ.get("OPEN_REGISTRY","False")
     elif key =="APPROVAL_RBT":
         return os.environ.get("APPROVAL_RBT","ON")
+    elif key =="ALLOCATED_PORTS":
+        return os.environ.get("ALLOCATED_PORTS","10000-65535")
     else:
         return os.environ.get(key,"")
