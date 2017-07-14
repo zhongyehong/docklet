@@ -264,6 +264,18 @@ class VclusterMgr(object):
         clusterfile.close()
         return [True, clusterinfo]
 
+    def recover_port_mapping(self,username,clustername):
+        [status, clusterinfo] = self.get_clusterinfo(clustername, username)
+        for rec in clusterinfo['port_mapping']:
+            if self.distributedgw == 'True':
+                worker = self.nodemgr.ip_to_rpc(clusterinfo['proxy_server_ip'])
+                [success, host_port] = worker.acquire_port_mapping(rec['node_name'], rec['node_ip'], rec['node_port'], rec['host_port'])
+            else:
+                [success, host_port] = portcontrol.acquire_port_mapping(rec['node_name'], rec['node_ip'], rec['node_port'], rec['host_port'])
+            if not success:
+                return [False, host_port]
+        return [True, clusterinfo]
+
     def delete_port_mapping(self, username, clustername, node_name):
         [status, clusterinfo] = self.get_clusterinfo(clustername, username)
         idx = 0
@@ -591,6 +603,10 @@ class VclusterMgr(object):
             namesplit = container['containername'].split('-')
             portname = namesplit[1] + '-' + namesplit[2]
             worker.recover_usernet(portname, uid, info['proxy_server_ip'], container['host']==info['proxy_server_ip'])
+        # recover ports mapping
+        [success, msg] = self.recover_port_mapping(username,clustername)
+        if not success:
+            return [False, msg]
         return [True, "start cluster"]
 
     # maybe here should use cluster id
@@ -606,10 +622,12 @@ class VclusterMgr(object):
         else:
             proxytool.delete_route("/" + info['proxy_public_ip'] + '/go/'+username+'/'+clustername)
         for container in info['containers']:
+            self.delete_port_mapping(username,clustername,container['containername'])
             worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.stop_container(container['containername'])
+        [status, info] = self.get_clusterinfo(clustername, username)
         info['status']='stopped'
         info['start_time']="------"
         infofile = open(self.fspath+"/global/users/"+username+"/clusters/"+clustername, 'w')

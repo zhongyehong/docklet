@@ -334,21 +334,26 @@ class portcontrol(object):
         return [True,""]
 
     @staticmethod
-    def acquire_port_mapping(container_name, container_ip, container_port):
+    def acquire_port_mapping(container_name, container_ip, container_port, host_port=None):
         global free_ports
         global allocated_ports
         if container_name in allocated_ports.keys():
             return [False, "This container already has a port mapping."]
         if container_name == "" or container_ip == "" or container_port == "":
             return [False, "Node Name or Node IP or Node Port can't be null."]
-        #print(free_ports[10000])
+        #print("acquire_port_mapping1")
         free_port = 1
-        while free_port <= 65535:
-            if free_ports[free_port]:
-                break
-            free_port += 1
-        if free_port == 65536:
-            return [False, "No free ports."]
+        if host_port is not None:
+            # recover from host_port
+            free_port = int(host_port)
+        else:
+            # acquire new free port
+            while free_port <= 65535:
+                if free_ports[free_port]:
+                    break
+                free_port += 1
+            if free_port == 65536:
+                return [False, "No free ports."]
         free_ports[free_port] = False
         allocated_ports[container_name] = free_port
         public_ip = env.getenv("PUBLIC_IP")
