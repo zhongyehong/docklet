@@ -44,7 +44,7 @@
                   <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
                 </div>
               </div>
-                     <div class="box-body" style="display:none">
+              <div class="box-body" style="display:none">
 				<div class="row">
 					<div class="col-md-12">
             <div class="box box-info">
@@ -210,7 +210,6 @@
                                        </div>
                                    </div>
                                </div>
-                               </div>
 
 			     </tr>
                              {% endfor %}
@@ -218,37 +217,8 @@
                          </table>
 						</div>
 						</div>
-					</div>
-		     </div>
-						<div class="row">
-							<div class="col-md-12">
-                <div class="box box-info">
-                     <div class="box-header with-border">
-                       <h3 class="box-title">SERVICE</h3>
-                       <h5><a href="{{ clusterinfo['proxy_url'] }}" title="click here jump to your proxy server">{{ clusterinfo['proxy_url'] }}</a></h5>
-
-                       <div class="box-tools pull-right">
-                         <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
-                         </button>
-                         <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
-                       </div>
-                     </div>
-									<div class="box-body">
-										<form action="/addproxy/{{master.split("@")[0]}}/{{ clustername }}/" id="addproxy" method="POST">
-                                        {% if 'proxy_ip' in clusterinfo %}
-                                            <p>ip:<input type="text" id="proxy_ip" name="proxy_ip" value={{ clusterinfo['proxy_ip'][:clusterinfo['proxy_ip'].index(':')] }} readonly="true"/>port:<input type="text" id="proxy_port" name="proxy_port" value={{ clusterinfo['proxy_ip'][clusterinfo['proxy_ip'].index(':')+1:] }} readonly="true"/>
-                                            <button type="button" class="btn-xs btn-default">enable</button>
-					    <a href="/deleteproxy/{{master.split("@")[0]}}/{{ clustername }}/"><button type="button" class="btn-xs btn-danger">disable</button></a></p>
-                                        {% else %}
-                                        <p>ip:<input type="text" id="proxy_ip" name="proxy_ip" value={{ clusterinfo["containers"][0]["ip"][:clusterinfo["containers"][0]["ip"].index("/")] }} />port:<input type="text" id="proxy_port" name="proxy_port" value="80"/>
-                                            <button type="submit" class="btn-xs btn-success">enable</button>
-                                            <button type="button" class="btn-xs btn-default">disable</button></p>
-                                        {% endif %}
-                                        </form>
-									</div>
-								</div>
-							</div>
 						</div>
+					</div>
             <div class="row">
     					<div class="col-md-12">
                 <div class="box box-info">
@@ -330,6 +300,7 @@
     						</div>
     						</div>
     					</div>
+  		                </div>
                      </div>
                  </div>
              </div>

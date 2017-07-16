@@ -212,21 +212,21 @@ def saveImage_force(clustername,containername,masterip):
     saveImageView.description = request.form['description']
     return saveImageView.as_view()
 
-@app.route("/addproxy/<masterip>/<clustername>/", methods=['POST'])
+'''@app.route("/addproxy/<masterip>/<clustername>/", methods=['POST'])
 @login_required
 def addproxy(clustername,masterip):
     addproxyView.clustername = clustername
     addproxyView.masterip = masterip
     addproxyView.ip = request.form['proxy_ip']
     addproxyView.port = request.form['proxy_port']
-    return addproxyView.as_view()
+    return addproxyView.as_view()'''
 
-@app.route("/deleteproxy/<masterip>/<clustername>/", methods=['GET'])
+'''@app.route("/deleteproxy/<masterip>/<clustername>/", methods=['GET'])
 @login_required
 def deleteproxy(clustername,masterip):
     deleteproxyView.clustername = clustername
     deleteproxyView.masterip = masterip
-    return deleteproxyView.as_view()
+    return deleteproxyView.as_view()'''
 
 @app.route("/port_mapping/add/<masterip>/", methods=['POST'])
 @login_required

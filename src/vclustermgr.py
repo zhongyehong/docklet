@@ -161,6 +161,7 @@ class VclusterMgr(object):
         info['proxy_url'] = proxy_url
         info['proxy_server_ip'] = proxy_server_ip
         info['proxy_public_ip'] = proxy_public_ip
+        info['port_mapping'] = []
         clusterfile.write(json.dumps(info))
         clusterfile.close()
         return [True, info]
