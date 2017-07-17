@@ -172,3 +172,9 @@
 # or to request master from users server. Please set the
 # same value on each machine. Please don't use the default value.
 # AUTH_KEY=docklet
+
+# ALLOCATED_PORTS: the ports on this host that will be allocated to users.
+# The allocated ports are for ports mapping. Default: 10000-65535
+# The two ports next to '-' are inclueded. If there are several ranges,
+# Please seperate them by ',' , for example: 10000-20000,30000-40000
+# ALLOCATED_PORTS=10000-65535

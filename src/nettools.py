@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
-import subprocess
+import subprocess,env
+from log import logger
 
 class ipcontrol(object):
     @staticmethod
@@ -300,3 +301,82 @@ class netcontrol(object):
                         ovscontrol.del_port("docklet-br-"+str(uid),port)
             ovscontrol.add_port_gre_withkey("docklet-br-"+str(uid), "gre-"+str(uid)+"-"+GatewayHost, GatewayHost, str(uid))
         ovscontrol.add_port("docklet-br-"+str(uid), portname)
+
+free_ports = [False]*65536
+allocated_ports = {}
+
+class portcontrol(object):
+
+    @staticmethod
+    def init_new():
+        Free_Ports_str = env.getenv("ALLOCATED_PORTS")
+        global free_ports
+        #logger.info(Free_Ports_str)
+        portsranges=Free_Ports_str.split(',')
+        #logger.info(postranges)
+        for portsrange in portsranges:
+            portsrange=portsrange.strip().split('-')
+            start = int(portsrange[0])
+            end = int(portsrange[1])
+            if end < start or end > 65535 or start < 1:
+                return [False, "Illegal port ranges."]
+            i = start
+            #logger.info(str(start)+" "+str(end))
+            while i <= end:
+                free_ports[i] = True
+                i += 1
+        #logger.info(free_ports[10001])
+        return [True,""]
+
+    @staticmethod
+    def init_recovery(Free_Ports_str):
+        Free_Ports_str = env.getenv("ALLOCATED_PORTS")
+        return [True,""]
+
+    @staticmethod
+    def acquire_port_mapping(container_name, container_ip, container_port, host_port=None):
+        global free_ports
+        global allocated_ports
+        if container_name in allocated_ports.keys():
+            return [False, "This container already has a port mapping."]
+        if container_name == "" or container_ip == "" or container_port == "":
+            return [False, "Node Name or Node IP or Node Port can't be null."]
+        #print("acquire_port_mapping1")
+        free_port = 1
+        if host_port is not None:
+            # recover from host_port
+            free_port = int(host_port)
+        else:
+            # acquire new free port
+            while free_port <= 65535:
+                if free_ports[free_port]:
+                    break
+                free_port += 1
+            if free_port == 65536:
+                return [False, "No free ports."]
+        free_ports[free_port] = False
+        allocated_ports[container_name] = free_port
+        public_ip = env.getenv("PUBLIC_IP")
+        try:
+            subprocess.run(['iptables','-t','nat','-A','PREROUTING','-d',public_ip,'-p','tcp','--dport',str(free_port),"-j","DNAT",'--to-destination','%s:%s'%(container_ip,container_port)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            subprocess.run(['iptables','-t','nat','-A','POSTROUTING','-d',container_ip,'-p','tcp','--dport',str(container_port),"-j","SNAT",'--to',public_ip], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            return [True, str(free_port)]
+        except subprocess.CalledProcessError as suberror:
+            return [False, "set port mapping failed : %s" % suberror.stdout.decode('utf-8')]
+
+    @staticmethod
+    def release_port_mapping(container_name, container_ip, container_port):
+        global free_ports
+        global allocated_ports
+        if container_name not in allocated_ports.keys():
+            return [False, "This container does not have a port mapping."]
+        free_port = allocated_ports[container_name]
+        public_ip = env.getenv("PUBLIC_IP")
+        try:
+            subprocess.run(['iptables','-t','nat','-D','PREROUTING','-d',public_ip,'-p','tcp','--dport',str(free_port),"-j","DNAT",'--to-destination','%s:%s'%(container_ip,container_port)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            subprocess.run(['iptables','-t','nat','-D','POSTROUTING','-d',container_ip,'-p','tcp','--dport',str(container_port),"-j","SNAT",'--to',public_ip], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+        except subprocess.CalledProcessError as suberror:
+            return [False, "release port mapping failed : %s" % suberror.stdout.decode('utf-8')]
+        free_ports[free_port] = True
+        allocated_ports.pop(container_name)
+        return [True, ""]

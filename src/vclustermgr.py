@@ -9,6 +9,7 @@ import env
 import proxytool
 import requests
 import traceback
+from nettools import portcontrol
 
 userpoint = "http://" + env.getenv('USER_IP') + ":" + str(env.getenv('USER_PORT'))
 def post_to_user(url = '/', data={}):
@@ -160,6 +161,7 @@ class VclusterMgr(object):
         info['proxy_url'] = proxy_url
         info['proxy_server_ip'] = proxy_server_ip
         info['proxy_public_ip'] = proxy_public_ip
+        info['port_mapping'] = []
         clusterfile.write(json.dumps(info))
         clusterfile.close()
         return [True, info]
@@ -240,6 +242,60 @@ class VclusterMgr(object):
             worker.delete_route("/" + clusterinfo['proxy_public_ip'] + "/_web/" + username + "/" + clustername)
         else:
             proxytool.delete_route("/" + clusterinfo['proxy_public_ip'] + "/_web/" + username + "/" + clustername)
+        clusterfile = open(self.fspath + "/global/users/" + username + "/clusters/" + clustername, 'w')
+        clusterfile.write(json.dumps(clusterinfo))
+        clusterfile.close()
+        return [True, clusterinfo]
+
+    def add_port_mapping(self,username,clustername,node_name,node_ip, port):
+        [status, clusterinfo] = self.get_clusterinfo(clustername, username)
+        host_port = 0
+        if self.distributedgw == 'True':
+            worker = self.nodemgr.ip_to_rpc(clusterinfo['proxy_server_ip'])
+            [success, host_port] = worker.acquire_port_mapping(node_name, node_ip, port)
+        else:
+            [success, host_port] = portcontrol.acquire_port_mapping(node_name, node_ip, port)
+        if not success:
+            return [False, host_port]
+        if 'port_mapping' not in clusterinfo.keys():
+            clusterinfo['port_mapping'] = []
+        clusterinfo['port_mapping'].append({'node_name':node_name, 'node_ip':node_ip, 'node_port':port, 'host_port':host_port})
+        clusterfile = open(self.fspath + "/global/users/" + username + "/clusters/" + clustername, 'w')
+        clusterfile.write(json.dumps(clusterinfo))
+        clusterfile.close()
+        return [True, clusterinfo]
+
+    def recover_port_mapping(self,username,clustername):
+        [status, clusterinfo] = self.get_clusterinfo(clustername, username)
+        for rec in clusterinfo['port_mapping']:
+            if self.distributedgw == 'True':
+                worker = self.nodemgr.ip_to_rpc(clusterinfo['proxy_server_ip'])
+                [success, host_port] = worker.acquire_port_mapping(rec['node_name'], rec['node_ip'], rec['node_port'], rec['host_port'])
+            else:
+                [success, host_port] = portcontrol.acquire_port_mapping(rec['node_name'], rec['node_ip'], rec['node_port'], rec['host_port'])
+            if not success:
+                return [False, host_port]
+        return [True, clusterinfo]
+
+    def delete_port_mapping(self, username, clustername, node_name):
+        [status, clusterinfo] = self.get_clusterinfo(clustername, username)
+        idx = 0
+        for item in clusterinfo['port_mapping']:
+            if item['node_name'] == node_name:
+                break
+            idx += 1
+        if idx == len(clusterinfo['port_mapping']):
+            return [False,"No port mapping."]
+        node_ip = clusterinfo['port_mapping'][idx]['node_ip']
+        node_port = clusterinfo['port_mapping'][idx]['node_port']
+        if self.distributedgw == 'True':
+            worker = self.nodemgr.ip_to_rpc(clusterinfo['proxy_server_ip'])
+            [success,msg] = worker.release_port_mapping(node_name, node_ip, node_port)
+        else:
+            [success,msg] = portcontrol.release_port_mapping(node_name, node_ip, node_port)
+        if not success:
+            return [False,msg]
+        clusterinfo['port_mapping'].pop(idx)
         clusterfile = open(self.fspath + "/global/users/" + username + "/clusters/" + clustername, 'w')
         clusterfile.write(json.dumps(clusterinfo))
         clusterfile.close()
@@ -381,6 +437,10 @@ class VclusterMgr(object):
                 new_hostinfo.append(host)
         hostfile.writelines(new_hostinfo)
         hostfile.close()
+        [success, msg] = self.delete_port_mapping(username, clustername, containername)
+        if not success:
+            return [False, msg]
+        [status, info] = self.get_clusterinfo(clustername, username)
         return [True, info]
 
     def get_clustersetting(self, clustername, username, containername, allcontainer):
@@ -508,6 +568,9 @@ class VclusterMgr(object):
             self.update_proxy_ipAndurl(clustername,username,info['proxy_server_ip'])
             [status, info] = self.get_clusterinfo(clustername, username)
             self.update_cluster_baseurl(clustername,username,info['proxy_server_ip'],info['proxy_public_ip'])
+        if not 'port_mapping' in info.keys():
+            info['port_mapping'] = []
+            self.write_clusterinfo(info,clustername,username)
         if info['status'] == 'stopped':
             return [True, "cluster no need to start"]
         # recover proxy of cluster
@@ -545,6 +608,10 @@ class VclusterMgr(object):
             namesplit = container['containername'].split('-')
             portname = namesplit[1] + '-' + namesplit[2]
             worker.recover_usernet(portname, uid, info['proxy_server_ip'], container['host']==info['proxy_server_ip'])
+        # recover ports mapping
+        [success, msg] = self.recover_port_mapping(username,clustername)
+        if not success:
+            return [False, msg]
         return [True, "start cluster"]
 
     # maybe here should use cluster id
@@ -560,10 +627,12 @@ class VclusterMgr(object):
         else:
             proxytool.delete_route("/" + info['proxy_public_ip'] + '/go/'+username+'/'+clustername)
         for container in info['containers']:
+            self.delete_port_mapping(username,clustername,container['containername'])
             worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.stop_container(container['containername'])
+        [status, info] = self.get_clusterinfo(clustername, username)
         info['status']='stopped'
         info['start_time']="------"
         infofile = open(self.fspath+"/global/users/"+username+"/clusters/"+clustername, 'w')

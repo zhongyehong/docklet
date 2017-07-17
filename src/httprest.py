@@ -30,6 +30,7 @@ import monitor,traceback
 import threading
 import sysmgr
 import requests
+from nettools import portcontrol
 
 #default EXTERNAL_LOGIN=False
 external_login = env.getenv('EXTERNAL_LOGIN')
@@ -397,6 +398,38 @@ def deleteproxy(user, beans, form):
     G_vclustermgr.deleteproxy(user,clustername)
     return json.dumps({'success':'true', 'action':'deleteproxy'})
 
+@app.route("/port_mapping/add/", methods=['POST'])
+@login_required
+def add_port_mapping(user, beans, form):
+    global G_vclustermgr
+    logger.info ("handle request : add port mapping")
+    node_name = form.get("node_name",None)
+    node_ip = form.get("node_ip", None)
+    node_port = form.get("node_port", None)
+    clustername = form.get("clustername", None)
+    if node_name is None or node_ip is None or node_port is None or clustername is None:
+        return json.dumps({'success':'false', 'message': 'Illegal form.'})
+    [status, message] = G_vclustermgr.add_port_mapping(user,clustername,node_name,node_ip,node_port)
+    if status is True:
+        return json.dumps({'success':'true', 'action':'addproxy'})
+    else:
+        return json.dumps({'success':'false', 'message': message})
+
+@app.route("/port_mapping/delete/", methods=['POST'])
+@login_required
+def delete_port_mapping(user, beans, form):
+    global G_vclustermgr
+    logger.info ("handle request : delete port mapping")
+    node_name = form.get("node_name",None)
+    clustername = form.get("clustername", None)
+    if node_name is None or clustername is None:
+        return json.dumps({'success':'false', 'message': 'Illegal form.'})
+    [status, message] = G_vclustermgr.delete_port_mapping(user,clustername,node_name)
+    if status is True:
+        return json.dumps({'success':'true', 'action':'addproxy'})
+    else:
+        return json.dumps({'success':'false', 'message': message})
+
 @app.route("/monitor/hosts/<com_id>/<issue>/", methods=['POST'])
 @login_required
 def hosts_monitor(user, beans, form, com_id, issue):
@@ -745,6 +778,9 @@ if __name__ == '__main__':
     logger.info("vclustermgr started")
     G_imagemgr = imagemgr.ImageMgr()
     logger.info("imagemgr started")
+
+    #init portcontrol
+    portcontrol.init_new()
 
     logger.info("startting to listen on: ")
     masterip = env.getenv('MASTER_IP')

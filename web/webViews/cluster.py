@@ -76,7 +76,7 @@ class createClusterView(normalView):
 
 class descriptionMasterView(normalView):
     template_path = "description.html"
-    
+
     @classmethod
     def get(self):
         return self.render(self.template_path, description=self.desc)
@@ -403,3 +403,37 @@ class configView(normalView):
     @classmethod
     def post(self):
         return self.get()
+
+class addPortMappingView(normalView):
+    template_path = "error.html"
+
+    @classmethod
+    def post(self):
+        data = {"clustername":request.form["clustername"],"node_name":request.form["node_name"],"node_ip":request.form["node_ip"],"node_port":request.form["node_port"]}
+        result = dockletRequest.post('/port_mapping/add/',data, self.masterip)
+        success = result.get("success")
+        if success == "true":
+            return redirect("/config/")
+        else:
+            return self.render(self.template_path, message = result.get("message"))
+
+    @classmethod
+    def get(self):
+        return self.post()
+
+class delPortMappingView(normalView):
+    template_path = "error.html"
+
+    @classmethod
+    def post(self):
+        data = {"clustername":self.clustername,"node_name":self.node_name}
+        result = dockletRequest.post('/port_mapping/delete/',data, self.masterip)
+        success = result.get("success")
+        if success == "true":
+            return redirect("/config/")
+        else:
+            return self.render(self.template_path, message = result.get("message"))
+
+    @classmethod
+    def get(self):
+        return self.post()
