@@ -437,6 +437,10 @@ class VclusterMgr(object):
                 new_hostinfo.append(host)
         hostfile.writelines(new_hostinfo)
         hostfile.close()
+        [success, msg] = self.delete_port_mapping(username, clustername, containername)
+        if not success:
+            return [False, msg]
+        [status, info] = self.get_clusterinfo(clustername, username)
         return [True, info]
 
     def get_clustersetting(self, clustername, username, containername, allcontainer):
