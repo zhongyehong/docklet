@@ -358,8 +358,7 @@ class portcontrol(object):
         allocated_ports[container_name] = free_port
         public_ip = env.getenv("PUBLIC_IP")
         try:
-            subprocess.run(['iptables','-t','nat','-A','PREROUTING','-d',public_ip,'-p','tcp','--dport',str(free_port),"-j","DNAT",'--to-destination','%s:%s'%(container_ip,container_port)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
-            subprocess.run(['iptables','-t','nat','-A','POSTROUTING','-d',container_ip,'-p','tcp','--dport',str(container_port),"-j","SNAT",'--to',public_ip], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            subprocess.run(['iptables','-t','nat','-A','PREROUTING','-p','tcp','--dport',str(free_port),"-j","DNAT",'--to-destination','%s:%s'%(container_ip,container_port)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
             return [True, str(free_port)]
         except subprocess.CalledProcessError as suberror:
             return [False, "set port mapping failed : %s" % suberror.stdout.decode('utf-8')]
@@ -373,8 +372,7 @@ class portcontrol(object):
         free_port = allocated_ports[container_name]
         public_ip = env.getenv("PUBLIC_IP")
         try:
-            subprocess.run(['iptables','-t','nat','-D','PREROUTING','-d',public_ip,'-p','tcp','--dport',str(free_port),"-j","DNAT",'--to-destination','%s:%s'%(container_ip,container_port)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
-            subprocess.run(['iptables','-t','nat','-D','POSTROUTING','-d',container_ip,'-p','tcp','--dport',str(container_port),"-j","SNAT",'--to',public_ip], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            subprocess.run(['iptables','-t','nat','-D','PREROUTING','-p','tcp','--dport',str(free_port),"-j","DNAT",'--to-destination','%s:%s'%(container_ip,container_port)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
         except subprocess.CalledProcessError as suberror:
             return [False, "release port mapping failed : %s" % suberror.stdout.decode('utf-8')]
         free_ports[free_port] = True
