@@ -315,7 +315,7 @@ class ImageMgr():
         workers = vclustermgr.nodemgr.get_nodeips()
         logger.info("update base image in all workers")
         for worker in workers:
-            workerrpc = xmlprc.client.ServerProxy("http://%s:%s" % (worker, env.getenv("WORKER_PORT")))
+            workerrpc = xmlrpc.client.ServerProxy("http://%s:%s" % (worker, env.getenv("WORKER_PORT")))
             workerrpc.update_basefs(image)
         logger.info("update base image success")
         #vclustermgr.mount_allclusters()
