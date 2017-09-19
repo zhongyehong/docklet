@@ -147,6 +147,7 @@ class VclusterMgr(object):
             logger.info ("create container with : name-%s, username-%s, clustername-%s, clusterid-%s, hostname-%s, ip-%s, gateway-%s, image-%s" % (lxc_name, username, clustername, str(clusterid), hostname, ips[i], gateway, image_json))
             [success,message] = oneworker.create_container(lxc_name, proxy_public_ip, username, uid, json.dumps(setting) , clustername, str(clusterid), str(i), hostname, ips[i], gateway, image_json)
             if success is False:
+                self.networkmgr.release_userips(username, ips[i])
                 logger.info("container create failed, so vcluster create failed")
                 return [False, message]
             logger.info("container create success")
@@ -195,6 +196,7 @@ class VclusterMgr(object):
         uid = json.loads(user_info)["data"]["id"]
         [success, message] = oneworker.create_container(lxc_name, proxy_public_ip, username, uid, json.dumps(setting), clustername, clusterid, str(cid), hostname, ip, gateway, image_json)
         if success is False:
+            self.networkmgr.release_userips(username, ip)
             logger.info("create container failed, so scale out failed")
             return [False, message]
         if clusterinfo['status'] == "running":

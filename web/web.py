@@ -259,9 +259,9 @@ def image_list(masterip):
     data = {
         "user": session['username']
     }
-    path = request.path[:request.path.rfind("/")]
-    path = path[:path.rfind("/")+1]
-    result = dockletRequest.post(path, data, masterip)
+#    path = request.path[:request.path.rfind("/")]
+#    path = path[:path.rfind("/")+1]
+    result = dockletRequest.post("/image/list/", data, masterip)
     logger.debug("image" + str(type(result)))
     return json.dumps(result)
 
