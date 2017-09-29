@@ -1,3 +1,23 @@
+v0.3.0,  Sep 29, 2017
+--------------------
+
+**Bug Fix**
+  * [#180] generated_password file no exist after master init
+  * Release ip when create container failed.
+
+**Improvement**
+  * [#16] display file size, modification time in jupyter notebook 
+  * [#86] time display in UserList
+  * [#87] add a new panel to approve or decline user activation requests
+  * [#121] Autofilling may lead to a bug that makes local users cannot login
+  * [#178] record and display history of all containers
+  * [#210] rename Dashboard to Workspace
+  * [#212] add docklet hyperlink in web portal 
+  * Separate user module from master.
+  * Support multiple masters run in the same time, and the user can choose which to use in webpage.
+  * Support distributed gateway, if enable, worker will setup its own gateway.
+  * Support user gateway.
+
 v0.2.8,  Jul 28, 2016
 --------------------
 
