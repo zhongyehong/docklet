@@ -155,7 +155,7 @@ class ImageMgr():
             self.prepareImage(user,image,layer)
             logger.info("image has been prepared")
             sys_run("mount -t aufs -o br=%s=rw:%s/local/basefs=ro+wh -o udba=reval none %s/" % (layer,self.NFS_PREFIX,rootfs),True)
-            sys_run("mkdir -p %s/local/temp/%s" % (self.NFS_PREFIX,lxc))
+            sys_run("mkdir -m 777 -p %s/local/temp/%s" % (self.NFS_PREFIX,lxc))
 
         except Exception as e:
             logger.error(e)

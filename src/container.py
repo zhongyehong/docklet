@@ -185,11 +185,14 @@ IP=%s
                 if Ret == 0:
                     logger.info("start ssh and jupyter notebook services for container %s success" % lxc_name)
                     return [True, "start container services success"]
+                else:
+                    logger.error('start services for container %s failed:jupyter' % lxc_name)
+                    return [False, "start services for container failed:jupyter"]
             else:
                 logger.info("start ssh service for container %s success" % lxc_name)
                 return [True, "start container services success"]
-        logger.error('start services for container %s failed' % lxc_name)
-        return [False, "start services for container failed"]
+        logger.error('start services for container %s failed:ssh' % lxc_name)
+        return [False, "start services for container failed:ssh"]
 
     # mount_container: mount base image and user image by aufs
     def mount_container(self,lxc_name):

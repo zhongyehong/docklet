@@ -8,7 +8,7 @@
 DAEMON_USER=root
 
 # settings for docklet worker
-DAEMON=/usr/local/bin/jupyterhub-singleuser
+DAEMON=`which jupyterhub-singleuser`
 DAEMON_NAME=jupyter
 # The process ID of the script when it runs is stored here:
 PIDFILE=/home/jupyter/$DAEMON_NAME.pid
