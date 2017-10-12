@@ -18,7 +18,7 @@ apt-get update
 echo "$MASTER_IP docklet-master" >> /etc/hosts
 
 #下载git包
-apt-get install git
+apt-get -y install git
 
 #下载docklet源码
 git clone http://github.com/unias/docklet.git /home/docklet
@@ -42,7 +42,7 @@ cp /home/docklet/conf/docklet.conf.template /home/docklet/conf/docklet.conf
 NETWORK_DEVICE=`route | grep default | awk {'print $8'};`
 
 #更改配置文件
-echo "DISKPOOL_SIZE=100000
+echo "DISKPOOL_SIZE=10000
 ETCD=$MASTER_IP:2379
 NETWORK_DEVICE=$NETWORK_DEVICE
 PORTAL_URL=http://iwork.pku.edu.cn
