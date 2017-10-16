@@ -20,6 +20,7 @@ Design:Monitor mainly consists of three parts: Collectors, Master_Collector and 
 import subprocess,re,os,etcdlib,psutil,math,sys
 import time,threading,json,traceback,platform
 import env
+import lxc
 import xmlrpc.client
 from datetime import datetime
 
@@ -231,10 +232,7 @@ class Container_Collector(threading.Thread):
         global laststopcpuval
         global laststopruntime
         # collect basic information, such as running time,state,pid,ip,name
-        output = subprocess.check_output("sudo lxc-info -n %s" % (container_name),shell=True)
-        output = output.decode('utf-8')
-        parts = re.split('\n',output)
-        info = {}
+        container = lxc.Container(container_name)
         basic_info = {}
         basic_exist = 'basic_info' in workercinfo[container_name].keys()
         if basic_exist:
@@ -244,34 +242,28 @@ class Container_Collector(threading.Thread):
             basic_info['billing'] = 0
         if 'billing_this_hour' not in basic_info.keys():
             basic_info['billing_this_hour'] = 0
-        for part in parts:
-            if not part == '':
-                key_val = re.split(':',part)
-                key = key_val[0]
-                val = key_val[1]
-                info[key] = val.lstrip()
-        basic_info['Name'] = info['Name']
-        basic_info['State'] = info['State']
+        basic_info['Name'] = container_name
+        basic_info['State'] = container.state
         #if basic_exist:
          #   logger.info(workercinfo[container_name]['basic_info'])
-        if(info['State'] == 'STOPPED'):
+        if(container.state == 'STOPPED'):
             workercinfo[container_name]['basic_info'] = basic_info
             #logger.info(basic_info)
             return False
-        if not info['PID'] in containerpids:
-            containerpids.append(info['PID'])
-            pid2name[info['PID']] = container_name
-        running_time = self.get_proc_etime(int(info['PID']))
+        container_pid_str = str(container.init_pid)
+        if not container_pid_str in containerpids:
+            containerpids.append(container_pid_str)
+            pid2name[container_pid_str] = container_name
+        running_time = self.get_proc_etime(container.init_pid)
         running_time += laststopruntime[container_name]
-        basic_info['PID'] = info['PID']
-        basic_info['IP'] = info['IP']
+        basic_info['PID'] = container_pid_str
+        basic_info['IP'] = container.get_ips()[0]
         basic_info['RunningTime'] = running_time
         workercinfo[container_name]['basic_info'] = basic_info
 
         # deal with cpu used value
-        cpu_parts = re.split(' +',info['CPU use'])
-        cpu_val = float(cpu_parts[0].strip())
-        cpu_unit = cpu_parts[1].strip()
+        cpu_val = float("%.2f" % (float(container.get_cgroup_item("cpuacct.usage")) / 1000000000))
+        cpu_unit = "seconds"
         if not container_name in self.cpu_last.keys():
             # read quota from config of container
             confpath = "/var/lib/lxc/%s/config"%(container_name)
@@ -324,22 +316,22 @@ class Container_Collector(threading.Thread):
             increment[container_name]['memincrement'] = 0
 
         # deal with memory used data
-        mem_parts = re.split(' +',info['Memory use'])
-        mem_val = mem_parts[0].strip()
-        mem_unit = mem_parts[1].strip()
+        memory = float(container.get_cgroup_item("memory.usage_in_bytes"))
+        increment[container_name]['memincrement'] += memory / 1024 / 1024
+
+        mem_val = memory / 1024
+        mem_unit = 'KiB'
+        if mem_val > 1024:
+            mem_val /= 1024
+            mem_unit = 'MiB'
+        if mem_val > 1024:
+            mem_val /= 1024
+            mem_unit = 'GiB'
+
         mem_use = {}
-        mem_use['val'] = mem_val
+        mem_use['val'] = float("%.2f" % mem_val)
         mem_use['unit'] = mem_unit
-        # change unit to KiB
-        if(mem_unit == "MiB"):
-            increment[container_name]['memincrement'] += float(mem_val)
-            mem_val = float(mem_val) * 1024
-        elif (mem_unit == "GiB"):
-            increment[container_name]['memincrement'] += float(mem_val)*1024
-            mem_val = float(mem_val) * 1024 * 1024
-        # compute used percent
-        mem_usedp = float(mem_val) / self.mem_quota[container_name]
-        mem_use['usedp'] = mem_usedp
+        mem_use['usedp'] = memory / 1024 / self.mem_quota[container_name]
         workercinfo[container_name]['mem_use'] = mem_use
         # compute billing value during this running hour up to now
         workercinfo[container_name]['basic_info']['billing_this_hour'] = self.billing_increment(container_name,False)
