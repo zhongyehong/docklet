@@ -63,7 +63,7 @@ echo ""
 
 echo "Before staring : you need a basefs image. "
 echo "basefs images are provided at: "
-echo "  http://docklet.unias.org/download"
+echo "  http://unias.github.io/download"
 echo "please download it to FS_PREFIX/local and then extract it using root. (defalut FS_PRERIX is /opt/docklet)"
 echo "you will get a directory structure like"
 echo "  /opt/docklet/local/basefs/etc "
