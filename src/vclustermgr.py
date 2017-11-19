@@ -57,9 +57,11 @@ class VclusterMgr(object):
         usersdir = self.fspath+"/global/users/"
         auth_key = env.getenv('AUTH_KEY')
         res = post_to_user("/master/user/groupinfo/", {'auth_key':auth_key})
-        groups = res['groups']
+        #logger.info(res)
+        groups = json.loads(res['groups'])
         quotas = {}
         for group in groups:
+            logger.info(group)
             quotas[group['name']] = group['quotas']
         for user in os.listdir(usersdir):
             for cluster in self.list_clusters(user)[1]:

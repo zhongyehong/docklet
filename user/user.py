@@ -338,6 +338,7 @@ def get_master_recoverinfo():
 @app.route("/master/user/groupinfo/", methods=['POST'])
 @auth_key_required
 def get_master_groupinfo():
+    fspath = env.getenv('FS_PREFIX')
     groupfile = open(fspath+"/global/sys/quota",'r')
     groups = json.loads(groupfile.read())
     groupfile.close()
