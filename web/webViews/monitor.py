@@ -12,10 +12,13 @@ class statusView(normalView):
         allclusters = dockletRequest.post_to_all('/cluster/list/')
         for master in allclusters:
             allclusters[master] = allclusters[master].get('clusters')
-        result = dockletRequest.post('/monitor/user/quotainfo/', data)
+        result = dockletRequest.post('/user/selfQuery/')
+        quotas = result['data']['groupinfo']
+        quotanames = quotas.keys()
+        '''result = dockletRequest.post('/monitor/user/quotainfo/', data)
         quotainfo = result.get('quotainfo')
         quotainfo['cpu'] = int(int(quotainfo['cpu']))
-        print(quotainfo)
+        print(quotainfo)'''
         allcontainers = {}
         if (result):
             containers = {}
@@ -29,7 +32,7 @@ class statusView(normalView):
                     else:
                         self.error()
                     allcontainers[master][cluster] = message
-            return self.render(self.template_path,  quotainfo = quotainfo, allcontainers = allcontainers, user = session['username'])
+            return self.render(self.template_path,  quotas = quotas, quotanames = quotanames, allcontainers = allcontainers, user = session['username'])
         else:
             self.error()
 
@@ -49,7 +52,7 @@ class statusRealtimeView(normalView):
 
 class historyView(normalView):
     template_path = "monitor/history.html"
-    
+
     @classmethod
     def get(self):
         data = {
@@ -64,7 +67,7 @@ class historyView(normalView):
 class historyVNodeView(normalView):
     template_path = "monitor/historyVNode.html"
     vnode_name = ""
-    
+
     @classmethod
     def get(self):
         masterip = self.masterip
