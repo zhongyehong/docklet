@@ -450,7 +450,7 @@ class NetworkMgr(object):
         self.load_usrgw(username)
         return username in self.usrgws.keys()
 
-    def setup_usrgw(self, username, uid, nodemgr, workerip=None):
+    def setup_usrgw(self, input_rate_limit, output_rate_limit, username, uid, nodemgr, workerip=None):
         if not self.has_user(username):
             return [False,"user doesn't exist."]
         self.load_usrgw(username)
@@ -464,12 +464,12 @@ class NetworkMgr(object):
             logger.info("setup gateway for %s with %s on %s" % (username, usrpools.get_gateway_cidr(), ip))
             self.usrgws[username] = ip
             self.dump_usrgw(username)
-            worker.setup_gw('docklet-br-'+str(uid), username, usrpools.get_gateway_cidr())
+            worker.setup_gw('docklet-br-'+str(uid), username, usrpools.get_gateway_cidr(), input_rate_limit, output_rate_limit)
         else:
             logger.info("setup gateway for %s with %s on master" % (username, usrpools.get_gateway_cidr() ))
             self.usrgws[username] = self.masterip
             self.dump_usrgw(username)
-            netcontrol.setup_gw('docklet-br-'+str(uid), username, usrpools.get_gateway_cidr())
+            netcontrol.setup_gw('docklet-br-'+str(uid), username, usrpools.get_gateway_cidr(), input_rate_limit, output_rate_limit)
         self.dump_user(username)
         del self.users[username]
         return [True, "set up gateway success"]
@@ -527,7 +527,7 @@ class NetworkMgr(object):
         del self.users[username]
         return [True, 'delete user success']
 
-    def check_usergw(self, username, uid, nodemgr, distributedgw=False):
+    def check_usergw(self, input_rate_limit, output_rate_limit, username, uid, nodemgr, distributedgw=False):
         logger.info("Check %s(%s) user gateway."%(username, str(uid)))
         if not self.has_user(username):
             return [False,"user doesn't exist."]
@@ -542,10 +542,10 @@ class NetworkMgr(object):
                 self.del_usrgwbr(username,uid,nodemgr)
                 self.usrgws[username] = self.masterip
                 self.dump_usrgw(username)
-            netcontrol.check_gw('docklet-br-'+str(uid), username, uid, self.users[username].get_gateway_cidr())
+            netcontrol.check_gw('docklet-br-'+str(uid), username, uid, self.users[username].get_gateway_cidr(), input_rate_limit, output_rate_limit)
         else:
             worker = nodemgr.ip_to_rpc(ip)
-            worker.check_gw('docklet-br-'+str(uid), username, uid, self.users[username].get_gateway_cidr())
+            worker.check_gw('docklet-br-'+str(uid), username, uid, self.users[username].get_gateway_cidr(), input_rate_limit, output_rate_limit)
         del self.users[username]
         return [True, 'check gw ok']
 

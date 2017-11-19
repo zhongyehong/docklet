@@ -325,15 +325,23 @@ def selfQuery_user(cur_user, user, form):
     result = G_usermgr.selfQuery(cur_user = cur_user)
     return json.dumps(result)
 
-@app.route("/user/uid/", methods=['POST'])
+@app.route("/master/user/recoverinfo/", methods=['POST'])
 @auth_key_required
-def get_userid():
+def get_master_recoverinfo():
     username = request.form.get("username",None)
     if username is None:
         return json.dumps({'success':'false', 'message':'username field is required.'})
     else:
         user = User.query.filter_by(username=username).first()
-        return json.dumps({'success':'true', 'uid':user.id})
+        return json.dumps({'success':'true', 'uid':user.id, 'groupname':user.user_group})
+
+@app.route("/master/user/groupinfo/", methods=['POST'])
+@auth_key_required
+def get_master_groupinfo():
+    groupfile = open(fspath+"/global/sys/quota",'r')
+    groups = json.loads(groupfile.read())
+    groupfile.close()
+    return json.dumps({'success':'true', 'groups':json.dumps(groups)})
 
 @app.route("/user/selfModify/", methods=['POST'])
 @login_required
@@ -470,7 +478,7 @@ def query_self_notifications_infos(cur_user, user, form):
     return json.dumps(result)
 
 @app.route("/billing/beans/", methods=['POST'])
-#@auth_key_required
+@auth_key_required
 def billing_beans():
         logger.info("handle request: /billing/beans/")
         form = request.form
