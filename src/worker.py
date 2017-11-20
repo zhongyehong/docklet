@@ -154,6 +154,9 @@ class Worker(object):
                     ovscontrol.del_bridge(bridge)
         else:
             logger.error(bridges)
+        [success, message] = ovscontrol.destroy_all_qos()
+        if not success:
+            logger.error(message)
         '''if (self.addr == self.master):
             logger.info ("master also on this node. reuse master's network")
         else:

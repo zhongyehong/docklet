@@ -231,6 +231,51 @@ class ovscontrol(object):
         except subprocess.CalledProcessError as suberror:
             return [False, "set port tag failed : %s" % suberror.stdout.decode('utf-8')]
 
+    @staticmethod
+    def set_port_input_qos(port, input_rate_limit):
+        input_rate_limiting = int(input_rate_limit)*1000
+        try:
+            p = subprocess.run(['ovs-vsctl', 'create', 'qos', 'type=linux-htb', 'other_config:max-rate='+str(input_rate_limiting)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            subprocess.run(['ovs-vsctl', 'set', 'Port', str(port), 'qos='+p.stdout.decode('utf-8').rstrip()], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            return [True, str(port)]
+        except subprocess.CalledProcessError as suberror:
+            return [False, "set port input qos failed : %s" % suberror.stdout.decode('utf-8')]
+
+    @staticmethod
+    def del_port_input_qos(port):
+        try:
+            p = subprocess.run(['ovs-vsctl', 'get', 'port', str(port), 'qos'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            subprocess.run(['ovs-vsctl', 'clear', 'port', str(port), 'qos'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            subprocess.run(['ovs-vsctl', 'destroy', 'qos', p.stdout.decode('utf-8').rstrip()], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            return [True, str(port)]
+        except subprocess.CalledProcessError as suberror:
+            return [False, "del port input qos failed : %s" % suberror.stdout.decode('utf-8')]
+
+    @staticmethod
+    def set_port_output_qos(port, output_rate_limit):
+        try:
+            subprocess.run(['ovs-vsctl', 'set', 'interface', str(port), 'ingress_policing_rate='+str(output_rate_limit)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            subprocess.run(['ovs-vsctl', 'set', 'interface', str(port), 'ingress_policing_burst='+str(output_rate_limit)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            return [True, str(port)]
+        except subprocess.CalledProcessError as suberror:
+            return [False, "set port output qos failed : %s" % suberror.stdout.decode('utf-8')]
+
+    @staticmethod
+    def del_port_output_qos(port):
+        try:
+            subprocess.run(['ovs-vsctl', 'set', 'interface', str(port), 'ingress_policing_rate=0'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            subprocess.run(['ovs-vsctl', 'set', 'interface', str(port), 'ingress_policing_burst=0'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            return [True, str(port)]
+        except subprocess.CalledProcessError as suberror:
+            return [False, "del port output qos failed : %s" % suberror.stdout.decode('utf-8')]
+
+    @staticmethod
+    def destroy_all_qos():
+        try:
+            ret = subprocess.run(['ovs-vsctl', '--all', 'destroy', 'qos'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            return [True, 'succeed to destroying all qos.']
+        except subprocess.CalledProcessError as suberror:
+            return [False, "destroy all qos failed : %s" % suberror.stdout.decode('utf-8')]
 
 class netcontrol(object):
     @staticmethod
@@ -259,24 +304,36 @@ class netcontrol(object):
         return ovscontrol.port_exists(gwport)
 
     @staticmethod
-    def setup_gw(bridge, gwport, addr):
+    def setup_gw(bridge, gwport, addr, input_rate_limit, output_rate_limit):
         [status, result] = ovscontrol.add_port_internal(bridge, gwport)
         if not status:
             return [status, result]
         [status, result] = ipcontrol.add_addr(gwport, addr)
         if not status:
             return [status, result]
-        return ipcontrol.up_link(gwport)
+        [status, result] = ipcontrol.up_link(gwport)
+        if not status:
+            return [status, result]
+        [status, result] = ovscontrol.set_port_input_qos(gwport, input_rate_limit)
+        if not status:
+            return [status, result]
+        return ovscontrol.set_port_output_qos(gwport, output_rate_limit)
 
     @staticmethod
     def del_gw(bridge, gwport):
+        [status, result] = ovscontrol.del_port_input_qos(gwport)
+        if not status:
+            return [status, result]
+        [status, result] = ovscontrol.del_port_output_qos(gwport)
+        if not status:
+            return [status, result]
         return ovscontrol.del_port(bridge, gwport)
 
     @staticmethod
-    def check_gw(bridge, gwport, uid, addr):
+    def check_gw(bridge, gwport, uid, addr, input_rate_limit, output_rate_limit):
         ovscontrol.add_bridge(bridge)
         if not netcontrol.gw_exists(bridge, gwport):
-            return netcontrol.setup_gw(bridge, gwport, addr)
+            return netcontrol.setup_gw(bridge, gwport, addr, input_rate_limit, output_rate_limit)
         [status, info] = ipcontrol.link_info(gwport)
         if not status:
             return [False, "get gateway info failed"]

@@ -56,11 +56,23 @@ class VclusterMgr(object):
         logger.info("recovering all vclusters for all users...")
         usersdir = self.fspath+"/global/users/"
         auth_key = env.getenv('AUTH_KEY')
+        res = post_to_user("/master/user/groupinfo/", {'auth_key':auth_key})
+        #logger.info(res)
+        groups = json.loads(res['groups'])
+        quotas = {}
+        for group in groups:
+            logger.info(group)
+            quotas[group['name']] = group['quotas']
         for user in os.listdir(usersdir):
             for cluster in self.list_clusters(user)[1]:
                 logger.info ("recovering cluster:%s for user:%s ..." % (cluster, user))
-                res = post_to_user('/user/uid/',{'username':user,'auth_key':auth_key})
-                self.recover_cluster(cluster, user, res['uid'])
+                #res = post_to_user('/user/uid/',{'username':user,'auth_key':auth_key})
+                recover_info = post_to_user("/master/user/recoverinfo/", {'username':user,'auth_key':auth_key})
+                uid = recover_info['uid']
+                groupname = recover_info['groupname']
+                input_rate_limit = quotas[groupname]['input_rate_limit']
+                output_rate_limit = quotas[groupname]['output_rate_limit']
+                self.recover_cluster(cluster, user, uid, input_rate_limit, output_rate_limit)
         logger.info("recovered all vclusters for all users")
 
     def mount_allclusters(self):
@@ -98,6 +110,7 @@ class VclusterMgr(object):
         workers = self.nodemgr.get_nodeips()
         image_json = json.dumps(image)
         groupname = json.loads(user_info)["data"]["group"]
+        groupquota = json.loads(user_info)["data"]["groupinfo"]
         uid = json.loads(user_info)["data"]["id"]
         if (len(workers) == 0):
             logger.warning ("no workers to start containers, start cluster failed")
@@ -106,7 +119,7 @@ class VclusterMgr(object):
         if not self.networkmgr.has_user(username):
             self.networkmgr.add_user(username, cidr=29, isshared = True if str(groupname) == "fundation" else False)
             if self.distributedgw == "False":
-                [success,message] = self.networkmgr.setup_usrgw(username, uid, self.nodemgr)
+                [success,message] = self.networkmgr.setup_usrgw(groupquota['input_rate_limit'], groupquota['output_rate_limit'], username, uid, self.nodemgr)
                 if not success:
                     return [False, message]
         elif not self.networkmgr.has_usrgw(username):
@@ -132,7 +145,7 @@ class VclusterMgr(object):
             workerip = workers[random.randint(0, len(workers)-1)]
             oneworker = xmlrpc.client.ServerProxy("http://%s:%s" % (workerip, env.getenv("WORKER_PORT")))
             if self.distributedgw == "True" and i == 0 and not self.networkmgr.has_usrgw(username):
-                [success,message] = self.networkmgr.setup_usrgw(username, uid, self.nodemgr, workerip)
+                [success,message] = self.networkmgr.setup_usrgw(groupquota['input_rate_limit'], groupquota['output_rate_limit'], username, uid, self.nodemgr, workerip)
                 if not success:
                     return [False, message]
             if i == 0:
@@ -533,7 +546,10 @@ class VclusterMgr(object):
         else:
             return True
 
-    def start_cluster(self, clustername, username, uid):
+    def start_cluster(self, clustername, username, user_info):
+        uid = user_info['data']['id']
+        input_rate_limit = user_info['data']['groupinfo']['input_rate_limit']
+        output_rate_limit = user_info['data']['groupinfo']['output_rate_limit']
         [status, info] = self.get_clusterinfo(clustername, username)
         if not status:
             return [False, "cluster not found"]
@@ -567,7 +583,7 @@ class VclusterMgr(object):
         # check gateway for user
         # after reboot, user gateway goes down and lose its configuration
         # so, check is necessary
-        self.networkmgr.check_usergw(username, uid, self.nodemgr,self.distributedgw=='True')
+        self.networkmgr.check_usergw(input_rate_limit, output_rate_limit, username, uid, self.nodemgr,self.distributedgw=='True')
         # start containers
         for container in info['containers']:
             # set up gre from user's gateway host to container's host.
@@ -596,7 +612,7 @@ class VclusterMgr(object):
             worker.mount_container(container['containername'])
         return [True, "mount cluster"]
 
-    def recover_cluster(self, clustername, username, uid):
+    def recover_cluster(self, clustername, username, uid, input_rate_limit, output_rate_limit):
         [status, info] = self.get_clusterinfo(clustername, username)
         if not status:
             return [False, "cluster not found"]
@@ -636,7 +652,7 @@ class VclusterMgr(object):
         except:
             return [False, "start cluster failed with setting proxy failed"]
         # need to check and recover gateway of this user
-        self.networkmgr.check_usergw(username, uid, self.nodemgr,self.distributedgw=='True')
+        self.networkmgr.check_usergw(input_rate_limit, output_rate_limit, username, uid, self.nodemgr,self.distributedgw=='True')
         # recover containers of this cluster
         for container in info['containers']:
             # set up gre from user's gateway host to container's host.

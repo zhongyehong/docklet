@@ -32,28 +32,32 @@
                          <table class="table table-bordered">
                              <thead>
                              <tr>
-				                <th>CPU</th>
-				                <th>Memory</th>
-                                <th>Disk</th>
-                                <th>Vnode</th>
-                                <th>Image</th>
-                                <th>Idletime</th>
-                                <th>Ports</th>
+                              {% for quotaname in quotanames %}
+                                <th> {{ quotaname }} </th>
+                              {% endfor %}
                              </tr>
                              </thead>
                              <tbody>
                              <tr>
-                                {% if quotainfo['cpu'] > 1 %}
-                                    <th>{{ quotainfo['cpu'] }} Cores</th>
-                                {% else %}
-                                    <th>{{ quotainfo['cpu'] }} Core</th>
-                                {% endif %}
-                                <th>{{ quotainfo['memory'] }} MB</th>
-                                <th>{{ quotainfo['disk'] }} MB</th>
-                                <th>{{ quotainfo['vnode'] }}</th>
-                                <th>{{ quotainfo['image'] }}</th>
-                                <th>{{ quotainfo['idletime'] }} hours</th>
-                                <th>{{ quotainfo['portmapping'] }}</th>
+                                {% for quotaname in quotanames %}
+                                  {% if quotaname == 'cpu' %}
+                                    {% if quotas['cpu'] == '1' %}
+                                    <th>{{ quotas['cpu'] }} Core</th>
+                                    {% else %}
+                                    <th>{{ quotas['cpu'] }} Cores</th>
+                                    {% endif %}
+                                  {% elif quotaname == 'memory' or quotaname == 'disk' %}
+                                    <th>{{ quotas[quotaname] }} MB</th>
+                                  {% elif quotaname == 'idletime' %}
+                                    <th>{{ quotas[quotaname] }} hours</th>
+                                  {% elif quotaname == 'input_rate_limit' or quotaname == 'output_rate_limit'%}
+                                    <th>{{ quotas[quotaname] }} kbps</th>
+                                  {% elif quotaname == 'data' %}
+                                    <th>{{ quotas[quotaname] }} GB</th>
+                                  {% else %}
+                                    <th>{{ quotas[quotaname] }}</th>
+                                  {% endif %}
+                                {% endfor %}
 			                 </tr>
                              </tbody>
                          </table>
