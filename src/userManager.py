@@ -9,7 +9,7 @@ Original author: Liu Peidong
 
 from model import db, User, UserGroup, Notification, UserUsage
 from functools import wraps
-import os, subprocess
+import os, subprocess, math
 import hashlib
 import pam
 from base64 import b64encode
@@ -755,7 +755,12 @@ class userManager:
                     if key == "groupname" or key == "token":
                         pass
                     else:
-                        group['quotas'][key] = form.get(key)
+                        if key == "vnode":
+                            vnode = int(form['vnode'])
+                            val = str(2**(round(math.log(vnode+3, 2))) - 3 )
+                            group["quotas"][key] = val
+                        else:
+                            group['quotas'][key] = form.get(key)
                 groupfile = open(fspath+"/global/sys/quota",'w')
                 groupfile.write(json.dumps(groups))
                 groupfile.close()
@@ -915,7 +920,12 @@ class userManager:
             if key == "groupname" or key == "token":
                 pass
             else:
-                group['quotas'][key] = form.get(key)
+                if key == "vnode":
+                    vnode = int(form['vnode'])
+                    val = str(2**(round(math.log(vnode+3, 2))) - 3 )
+                    group['quotas'][key] = val
+                else:
+                    group['quotas'][key] = form.get(key)
         groups.append(group)
         groupfile = open(fspath+"/global/sys/quota",'w')
         groupfile.write(json.dumps(groups))

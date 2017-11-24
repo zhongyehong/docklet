@@ -58,6 +58,9 @@
                                 {% for quota in quotas %}
                                 <div class="form-group">
                                     <label>{{ quota['name'] }}</label>
+                                    {% if quota['name'] == 'vnode' %}
+                                    <small class="font-bold"> Only 2^n - 3 is legal. Any other value will be reset to the nearest 2^n - 3.</small>
+                                    {% endif %}
                                     <input type="text" class="form-control" name={{ quota['name'] }} placeholder="{{quota['hint']}}" />
                                 </div>
                                 {% endfor %}
@@ -181,6 +184,9 @@
                                       {% for quota in quotas %}
                                       <div class="form-group">
                                           <label> {{ quota['name'] }}</label>
+                                          {% if quota['name'] == 'vnode' %}
+                                          <small class="font-bold"> Only 2^n - 3 is legal. Any other value will be reset to the nearest 2^n - 3.</small>
+                                          {% endif %}
                                           <input type="text" placeholder="{{ quota['hint'] }}" class="form-control" name={{ quota['name'] }} value={{ group['quotas'][quota['name']] }} />
                                       </div>
                                       {% endfor %}
