@@ -189,6 +189,21 @@ function processDiskData()
 }
 setInterval(processDiskData,1000);
 
+function num2human(data)
+{
+   units=['','K','M','G','T'];
+   tempdata = data/1.0;
+   //return tempdata;
+   for(var i = 1; i < units.length; ++i)
+   {
+      if( tempdata / 1000.0 > 1)
+          tempdata = tempdata/1000.0;
+      else
+          return tempdata.toFixed(2) + units[i-1];
+   }
+   return tempdata.toFixed(2) + units[4];
+}
+
 function processBasicInfo()
 {
     $.post(url+"/basic_info/",{},function(data){
@@ -210,9 +225,24 @@ function processBasicInfo()
         var hour = Math.floor(total / 3600);
         var min = Math.floor(total % 3600 / 60);
         var secs = Math.floor(total % 3600 % 60);
-        $("#con_time").html(hour+"h "+min+"m "+secs+"s")
+        $("#con_time").html(hour+"h "+min+"m "+secs+"s");
         $("#con_billing").html(basic_info.billing+" <img src='/static/img/bean.png' />");
         $("#con_billingthishour").html(basic_info.billing_this_hour+" <img src='/static/img/bean.png' />");
+    },"json");
+    $.post(url+"/net_stats/",{},function(data){
+        var net_stats = data.monitor.net_stats;
+        var in_rate = parseInt(net_stats.bytes_recv_per_sec);
+        var out_rate = parseInt(net_stats.bytes_sent_per_sec);
+        $("#net_in_rate").html(num2human(in_rate)+"Bps");
+        $("#net_out_rate").html(num2human(out_rate)+"Bps");
+        $("#net_in_bytes").html(num2human(net_stats.bytes_recv)+"B");
+        $("#net_out_bytes").html(num2human(net_stats.bytes_sent)+"B");
+        $("#net_in_packs").html(net_stats.packets_recv);
+        $("#net_out_packs").html(net_stats.packets_sent);
+        $("#net_in_err").html(net_stats.errout);
+        $("#net_out_err").html(net_stats.errin);
+        $("#net_in_drop").html(net_stats.dropout);
+        $("#net_out_drop").html(net_stats.dropin);
     },"json");
 }
 setInterval(processBasicInfo,1000);

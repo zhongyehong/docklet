@@ -237,6 +237,12 @@ class Container_Collector(threading.Thread):
                 self.net_stats[key]['bytes_sent_per_sec'] = round((int(raw_stats[key].bytes_recv) - self.net_stats[key]['bytes_sent']) / self.interval)
                 self.net_stats[key]['bytes_recv'] = int(raw_stats[key].bytes_sent)
                 self.net_stats[key]['bytes_sent'] = int(raw_stats[key].bytes_recv)
+                self.net_stats[key]['packets_recv'] = int(raw_stats[key].packets_sent)
+                self.net_stats[key]['packets_sent'] = int(raw_stats[key].packets_recv)
+                self.net_stats[key]['errin'] = int(raw_stats[key].errout)
+                self.net_stats[key]['errout'] = int(raw_stats[key].errin)
+                self.net_stats[key]['dropin'] = int(raw_stats[key].dropout)
+                self.net_stats[key]['dropout'] = int(raw_stats[key].dropin)
         #logger.info(self.net_stats)
 
     # the main function to collect monitoring data of a container
@@ -358,7 +364,7 @@ class Container_Collector(threading.Thread):
         containerids = re.split("-",container_name)
         if len(containerids) >= 3:
             workercinfo[container_name]['net_stats'] = self.net_stats[containerids[1] + '-' + containerids[2]]
-            #logger.info(workercinfo[container_name]['net_stats'])
+            logger.info(workercinfo[container_name]['net_stats'])
 
         if not container_name in lastbillingtime.keys():
             lastbillingtime[container_name] = int(running_time/self.billingtime)
@@ -638,6 +644,16 @@ class Container_Fetcher:
         global monitor_vnodes
         try:
             res = monitor_vnodes[self.owner][self.con_id]['disk_use']
+        except Exception as err:
+            logger.warning(traceback.format_exc())
+            logger.warning(err)
+            res = {}
+        return res
+
+    def get_net_stats(self):
+        global monitor_vnodes
+        try:
+            res = monitor_vnodes[self.owner][self.con_id]['net_stats']
         except Exception as err:
             logger.warning(traceback.format_exc())
             logger.warning(err)

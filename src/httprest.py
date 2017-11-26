@@ -489,6 +489,8 @@ def vnodes_monitor(user, beans, form, con_id, issue):
         res['disk_use'] = fetcher.get_disk_use()
     elif issue == 'basic_info':
         res['basic_info'] = fetcher.get_basic_info()
+    elif issue == 'net_stats':
+        res['net_stats'] = fetcher.get_net_stats()
     elif issue == 'history':
         res['history'] = G_historymgr.getHistory(con_id)
     elif issue == 'owner':
