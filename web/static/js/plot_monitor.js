@@ -226,8 +226,8 @@ function processBasicInfo()
         var min = Math.floor(total % 3600 / 60);
         var secs = Math.floor(total % 3600 % 60);
         $("#con_time").html(hour+"h "+min+"m "+secs+"s");
-        $("#con_billing").html(basic_info.billing+" <img src='/static/img/bean.png' />");
-        $("#con_billingthishour").html(basic_info.billing_this_hour+" <img src='/static/img/bean.png' />");
+        $("#con_billing").html("<a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>"+basic_info.billing+" <img src='/static/img/bean.png' /></a>");
+        $("#con_billingthishour").html("<a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>"+basic_info.billing_this_hour+" <img src='/static/img/bean.png' /></a>");
     },"json");
     $.post(url+"/net_stats/",{},function(data){
         var net_stats = data.monitor.net_stats;

@@ -364,7 +364,7 @@ class Container_Collector(threading.Thread):
         containerids = re.split("-",container_name)
         if len(containerids) >= 3:
             workercinfo[container_name]['net_stats'] = self.net_stats[containerids[1] + '-' + containerids[2]]
-            logger.info(workercinfo[container_name]['net_stats'])
+            #logger.info(workercinfo[container_name]['net_stats'])
 
         if not container_name in lastbillingtime.keys():
             lastbillingtime[container_name] = int(running_time/self.billingtime)

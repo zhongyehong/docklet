@@ -152,8 +152,8 @@
             var secs = Math.floor(total % 3600 % 60);
 	    console.log(index,hour,min,secs);
             $("#"+index+"_time").html(hour+"h "+min+"m "+secs+"s")
-            $("#"+index+"_billing").html(data.monitor.basic_info.billing+" <img src='/static/img/bean.png' />")
-            $("#"+index+"_billingthishour").html(data.monitor.basic_info.billing_this_hour+" <img src='/static/img/bean.png' />")
+            $("#"+index+"_billing").html("<a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>"+data.monitor.basic_info.billing+" <img src='/static/img/bean.png' /></a>")
+            $("#"+index+"_billingthishour").html("<a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>"+data.monitor.basic_info.billing_this_hour+" <img src='/static/img/bean.png' /></a>")
 
 		var state = data.monitor.basic_info.State;
 		    if(state == 'RUNNING')
