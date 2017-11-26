@@ -58,6 +58,9 @@
                                 {% for quota in quotas %}
                                 <div class="form-group">
                                     <label>{{ quota['name'] }}</label>
+                                    {% if quota['name'] == 'vnode' %}
+                                    <small class="font-bold"> Only 2^n - 3 is legal. Any other value will be reset to the nearest 2^n - 3.</small>
+                                    {% endif %}
                                     <input type="text" class="form-control" name={{ quota['name'] }} placeholder="{{quota['hint']}}" />
                                 </div>
                                 {% endfor %}
@@ -181,9 +184,13 @@
                                       {% for quota in quotas %}
                                       <div class="form-group">
                                           <label> {{ quota['name'] }}</label>
+                                          {% if quota['name'] == 'vnode' %}
+                                          <small class="font-bold"> Only 2^n - 3 are legal. Any other value will be reset to the nearest 2^n - 3.</small>
+                                          {% endif %}
                                           <input type="text" placeholder="{{ quota['hint'] }}" class="form-control" name={{ quota['name'] }} value={{ group['quotas'][quota['name']] }} />
                                       </div>
                                       {% endfor %}
+                                      <small class="font-bold"> *: The update of <i>vnode</i>, <i>input_rate_limit</i> and <i>output_rate_limit</i> will take effect when a user deletes all his/her workpsaces.</small>
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>

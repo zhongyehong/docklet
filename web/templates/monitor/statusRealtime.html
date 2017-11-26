@@ -63,13 +63,64 @@
                         <td id='con_cpu'>--</td>
                         <td id='con_mem'>--</td>
                         <td id='con_disk'>--</td>
-                        <td id='con_billing'>{{ container['billing'] }} <img src='/static/img/bean.png' /></td>
-                        <td id='con_billingthishour'>{{ container['billing_this_hour'] }} <img src='/static/img/bean.png' /></td>
+                        <td id='con_billing'><a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>{{ container['billing'] }} <img src='/static/img/bean.png' /></a></td>
+                        <td id='con_billingthishour'><a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>{{ container['billing_this_hour'] }} <img src='/static/img/bean.png' /></a></td>
                       </tr>
                     </tbody>
                 </table>
 
             </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+	<div class="col-md-12">
+         <div class="box box-info">
+              <div class="box-header with-border">
+                <h3 class="box-title">Network Statistics</h3>
+                <div class="box-tools pull-right">
+                  <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+                  </button>
+                  <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                </div>
+              </div>
+                     <div class="ibox-body table-responsive">
+
+                         <table class="table table-bordered">
+                             <thead>
+                             <tr>
+                                <th colspan="5" style="text-align:center">Ingress</th>
+                                <th colspan="5" style="text-align:center">Egress</th>
+                             </tr>
+                             <tr>
+                                <th>Rate</th>
+                                <th>Received Bytes</th>
+                                <th>Received Packets</th>
+                                <th>Error Packets</th>
+                                <th>Dropped Packets</th>
+                                <th>Rate</th>
+                                <th>Sent Bytes</th>
+                                <th>Sent Packets</th>
+                                <th>Error Packets</th>
+                                <th>Dropped Packets</th>
+                             </tr>
+                             </thead>
+                             <tbody>
+                             <tr>
+                               <td id='net_in_rate'>--</td>
+                               <td id='net_in_bytes'>--</td>
+                               <td id='net_in_packs'>--</td>
+                               <td id='net_in_err'>--</td>
+                               <td id='net_in_drop'>--</td>
+                               <td id='net_out_rate'>--</td>
+                               <td id='net_out_bytes'>--</td>
+                               <td id='net_out_packs'>--</td>
+                               <td id='net_out_err'>--</td>
+                               <td id='net_out_drop'>--</td>
+			                       </tr>
+                             </tbody>
+                         </table>
+                     </div>
         </div>
     </div>
 </div>

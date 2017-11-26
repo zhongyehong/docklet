@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import os, random, json, sys, imagemgr
-import datetime
+import datetime, math
 import xmlrpc.client
 
 from log import logger
@@ -61,7 +61,7 @@ class VclusterMgr(object):
         groups = json.loads(res['groups'])
         quotas = {}
         for group in groups:
-            logger.info(group)
+            #logger.info(group)
             quotas[group['name']] = group['quotas']
         for user in os.listdir(usersdir):
             for cluster in self.list_clusters(user)[1]:
@@ -117,7 +117,9 @@ class VclusterMgr(object):
             return [False, "no workers are running"]
         # check user IP pool status, should be moved to user init later
         if not self.networkmgr.has_user(username):
-            self.networkmgr.add_user(username, cidr=29, isshared = True if str(groupname) == "fundation" else False)
+            ipnum = int(groupquota["vnode"]) + 3
+            cidr = 32 - math.ceil(math.log(ipnum,2))
+            self.networkmgr.add_user(username, cidr=cidr, isshared = True if str(groupname) == "fundation" else False)
             if self.distributedgw == "False":
                 [success,message] = self.networkmgr.setup_usrgw(groupquota['input_rate_limit'], groupquota['output_rate_limit'], username, uid, self.nodemgr)
                 if not success:
