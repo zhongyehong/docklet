@@ -108,6 +108,7 @@ class Container_Collector(threading.Thread):
         self.cpu_last = {}
         self.cpu_quota = {}
         self.mem_quota = {}
+        self.net_stats = {}
         self.cores_num = int(subprocess.getoutput("grep processor /proc/cpuinfo | wc -l"))
         containers = self.list_container()
         for container in containers:    # recovery
@@ -222,6 +223,21 @@ class Container_Collector(threading.Thread):
         data = {"owner_name":owner_name,"billing":billingval, "auth_key":auth_key}
         request_master("/billing/beans/",data)
         return billingval
+
+    # Collect net statistics of containers by psutil
+    def collect_net_stats(self):
+        raw_stats = psutil.net_io_counters(pernic=True)
+        for key in raw_stats.keys():
+            if re.match('[\d]+-[\d]+',key) is not None:
+                if key not in self.net_stats.keys():
+                    self.net_stats[key] = {}
+                    self.net_stats[key]['bytes_sent'] = 0
+                    self.net_stats[key]['bytes_recv'] = 0
+                self.net_stats[key]['bytes_recv_per_sec'] = round((int(raw_stats[key].bytes_sent) - self.net_stats[key]['bytes_recv']) / self.interval)
+                self.net_stats[key]['bytes_sent_per_sec'] = round((int(raw_stats[key].bytes_recv) - self.net_stats[key]['bytes_sent']) / self.interval)
+                self.net_stats[key]['bytes_recv'] = int(raw_stats[key].bytes_sent)
+                self.net_stats[key]['bytes_sent'] = int(raw_stats[key].bytes_recv)
+        #logger.info(self.net_stats)
 
     # the main function to collect monitoring data of a container
     def collect_containerinfo(self,container_name):
@@ -338,6 +354,11 @@ class Container_Collector(threading.Thread):
         # compute billing value during this running hour up to now
         workercinfo[container_name]['basic_info']['billing_this_hour'] = self.billing_increment(container_name,False)
 
+        # deal with network used data
+        containerids = re.split("-",container_name)
+        if len(containerids) >= 3:
+            workercinfo[container_name]['net_stats'] = self.net_stats[containerids[1] + '-' + containerids[2]]
+            #logger.info(workercinfo[container_name]['net_stats'])
 
         if not container_name in lastbillingtime.keys():
             lastbillingtime[container_name] = int(running_time/self.billingtime)
@@ -358,6 +379,7 @@ class Container_Collector(threading.Thread):
         global workerinfo
         cnt = 0
         while not self.thread_stop:
+            self.collect_net_stats()
             containers = self.list_container()
             countR = 0
             conlist = []

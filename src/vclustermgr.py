@@ -61,7 +61,7 @@ class VclusterMgr(object):
         groups = json.loads(res['groups'])
         quotas = {}
         for group in groups:
-            logger.info(group)
+            #logger.info(group)
             quotas[group['name']] = group['quotas']
         for user in os.listdir(usersdir):
             for cluster in self.list_clusters(user)[1]:
