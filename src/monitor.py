@@ -253,6 +253,7 @@ class Container_Collector(threading.Thread):
                     gateways_stats[key] = {}
                 gateways_stats[key]['bytes_recv'] = int(raw_stats[key].bytes_sent)
                 gateways_stats[key]['bytes_sent'] = int(raw_stats[key].bytes_recv)
+                gateways_stats[key]['bytes_total'] = gateways_stats[key]['bytes_recv'] + gateways_stats[key]['bytes_sent']
         #logger.info(self.net_stats)
 
     # the main function to collect monitoring data of a container
@@ -587,8 +588,26 @@ class Master_Collector(threading.Thread):
         self.thread_stop = False
         self.nodemgr = nodemgr
         self.master_ip = master_ip
+        self.net_lastbillings = {}
+        self.bytes_per_beans = 1000000000
         return
 
+    def net_billings(self, username, now_bytes_total):
+        global monitor_vnodes
+        if not username in self.net_lastbillings.keys():
+            self.net_lastbillings[username] = 0
+        elif int(now_bytes_total/self.bytes_per_beans) < self.net_lastbillings[username]:
+            self.net_lastbillings[username] = 0
+        diff = int(now_bytes_total/self.bytes_per_beans) - self.net_lastbillings[username]
+        if diff > 0:
+            auth_key = env.getenv('AUTH_KEY')
+            data = {"owner_name":username,"billing":diff, "auth_key":auth_key}
+            header = {'Content-Type':'application/x-www-form-urlencoded'}
+            http = Http()
+            [resp,content] = http.request("http://"+self.master_ip+"/billing/beans/","POST",urlencode(data),headers = header)
+            logger.info("response from master:"+content.decode('utf-8'))
+        self.net_lastbillings[username] += diff
+        monitor_vnodes[username]['net_stats']['net_billings'] = self.net_lastbillings[username]
 
     def run(self):
         global monitor_hosts
@@ -616,6 +635,7 @@ class Master_Collector(threading.Thread):
                             continue
                         else:
                             monitor_vnodes[user]['net_stats'] = info[2][user]
+                            self.net_billings(user, info[2][user]['bytes_total'])
                 except Exception as err:
                     logger.warning(traceback.format_exc())
                     logger.warning(err)

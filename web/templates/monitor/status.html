@@ -190,7 +190,7 @@ function num2human(data)
         $("#"+index+"_bytes_sent").html(num2human(bytes_sent)+"B");
         $("#"+index+"_bytes_recv").html(num2human(bytes_recv)+"B");
         $("#"+index+"_bytes_total").html(num2human(bytes_sent+bytes_recv)+"B");
-        //$("#"+index+"_net_billings").html(data.net_stats.billings);
+        $("#"+index+"_net_billings").html(data.net_stats.net_billings);
      },"json");
    }
    function update(url,index)
