@@ -360,6 +360,18 @@ def monitor_request(comid,infotype,masterip):
     logger.debug("monitor" + str(type(result)))
     return json.dumps(result)
 
+@app.route("/monitor/<masterip>/user/<issue>/", methods=['POST'])
+@login_required
+def monitor_user_request(issue,masterip):
+    data = {
+        "user": session['username']
+    }
+    path = "/monitor/user/" + str(issue) + "/"
+    logger.debug(path + "_____" + masterip)
+    result = dockletRequest.post(path, data, masterip)
+    logger.debug("monitor" + str(type(result)))
+    return json.dumps(result)
+
 @app.route("/beans/application/", methods=['GET'])
 @login_required
 def beansapplication():

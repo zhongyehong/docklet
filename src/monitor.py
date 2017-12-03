@@ -73,6 +73,11 @@ workerinfo = {}
 # has the second keys same as the third keys in monitor_vnodes.
 workercinfo = {}
 
+# store the network statistics of users' gateways on current Worker.
+# key is username
+# bytes_sent and bytes_recv are the second keys
+gateways_stats = {}
+
 # only use on worker
 containerpids = []
 pid2name = {}
@@ -243,6 +248,11 @@ class Container_Collector(threading.Thread):
                 self.net_stats[key]['errout'] = int(raw_stats[key].errin)
                 self.net_stats[key]['dropin'] = int(raw_stats[key].dropout)
                 self.net_stats[key]['dropout'] = int(raw_stats[key].dropin)
+            else:
+                if key not in gateways_stats.keys():
+                    gateways_stats[key] = {}
+                gateways_stats[key]['bytes_recv'] = int(raw_stats[key].bytes_sent)
+                gateways_stats[key]['bytes_sent'] = int(raw_stats[key].bytes_recv)
         #logger.info(self.net_stats)
 
     # the main function to collect monitoring data of a container
@@ -542,10 +552,11 @@ class Collector(threading.Thread):
 def workerFetchInfo(master_ip):
     global workerinfo
     global workercinfo
+    global gateways_stats
     global G_masterip
     # tell the worker the ip address of the master
     G_masterip = master_ip
-    return str([workerinfo, workercinfo])
+    return str([workerinfo, workercinfo, gateways_stats])
 
 # get owner name of a container
 def get_owner(container_name):
@@ -578,6 +589,7 @@ class Master_Collector(threading.Thread):
         self.master_ip = master_ip
         return
 
+
     def run(self):
         global monitor_hosts
         global monitor_vnodes
@@ -599,6 +611,11 @@ class Master_Collector(threading.Thread):
                         if not owner in monitor_vnodes.keys():
                             monitor_vnodes[owner] = {}
                         monitor_vnodes[owner][container] = info[1][container]
+                    for user in info[2].keys():
+                        if not user in monitor_vnodes.keys():
+                            continue
+                        else:
+                            monitor_vnodes[user]['net_stats'] = info[2][user]
                 except Exception as err:
                     logger.warning(traceback.format_exc())
                     logger.warning(err)
@@ -838,4 +855,15 @@ class History_Manager:
         for vnode in vnodes:
             tmp = {"name":vnode.name,"billing":vnode.billing}
             res.append(tmp)
+        return res
+
+    # get users' net_stats
+    def get_user_net_stats(self,owner):
+        global monitor_vnodes
+        try:
+            res = monitor_vnodes[owner]['net_stats']
+        except Exception as err:
+            logger.warning(traceback.format_exc())
+            logger.warning(err)
+            res = {}
         return res

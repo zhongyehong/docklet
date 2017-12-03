@@ -67,6 +67,41 @@
 	   </div>
 
 {% for master in allcontainers %}
+<div class="row">
+	<div class="col-md-12">
+         <div class="box box-info">
+              <div class="box-header with-border">
+                <h3 class="box-title">Total Network Statistics @ {{master.split("@")[1]}}</h3>
+                <div class="box-tools pull-right">
+                  <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+                  </button>
+                  <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                </div>
+              </div>
+                     <div class="box-body table-responsive">
+
+                         <table class="table table-bordered">
+                             <thead>
+                             <tr>
+                                <th>Total Bytes Sent</th>
+                                <th>Total Bytes Received</th>
+                                <th>Total Bytes Transefer</th>
+                                <th>Network Billings</th>
+                             </tr>
+                             </thead>
+                             <tbody>
+                             <tr>
+                                <td id='{{master.split("@")[1]}}_bytes_sent'>--</td>
+                                <td id='{{master.split("@")[1]}}_bytes_recv'>--</td>
+                                <td id='{{master.split("@")[1]}}_bytes_total'>--</td>
+                                <td id='{{master.split("@")[1]}}_net_billings'>--</td>
+			                       </tr>
+                             </tbody>
+                         </table>
+                     </div>
+                 </div>
+             </div>
+	   </div>
 {% for clustername, clusterinfo in allcontainers[master].items() %}
 	  <div class="row">
 	     <div class="col-md-12">
@@ -133,6 +168,31 @@
 
 {% block script_src %}
 <script type='text/javascript'>
+function num2human(data)
+{
+   units=['','K','M','G','T'];
+   tempdata = data/1.0;
+   //return tempdata;
+   for(var i = 1; i < units.length; ++i)
+   {
+      if( tempdata / 1000.0 > 1)
+          tempdata = tempdata/1000.0;
+      else
+          return tempdata.toFixed(2) + units[i-1];
+   }
+   return tempdata.toFixed(2) + units[4];
+}
+   function update_net_stats(url,index)
+   {
+     $.post(url,{},function(data){
+          var bytes_sent = parseInt(data.net_stats.bytes_sent);
+          var bytes_recv = parseInt(data.net_stats.bytes_recv);
+        $("#"+index+"_bytes_sent").html(num2human(bytes_sent)+"B");
+        $("#"+index+"_bytes_recv").html(num2human(bytes_recv)+"B");
+        $("#"+index+"_bytes_total").html(num2human(bytes_sent+bytes_recv)+"B");
+        //$("#"+index+"_net_billings").html(data.net_stats.billings);
+     },"json");
+   }
    function update(url,index)
    {
 
@@ -207,6 +267,8 @@
         //var url0 = "http://" + host + "/monitor/vnodes/";
 
 	{% for master in allcontainers %}
+	url = "http://" + host + "/monitor/" + '{{master.split("@")[0]}}' + "/user/net_stats/";
+  update_net_stats(url,'{{master.split("@")[1]}}')
  	{% for clustername, clusterinfo in allcontainers[master].items() %}
 	{% for container in clusterinfo['containers'] %}
 	//url = url0 + '{{ container['containername'] }}';
