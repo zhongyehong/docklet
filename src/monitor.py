@@ -34,6 +34,7 @@ from httprest import post_to_user
 a_cpu = 500         # seconds
 b_mem = 2000000     # MB
 c_disk = 4000       # MB
+d_port = 1
 
 # major dict to store the monitoring data
 # only use on Master
@@ -119,7 +120,12 @@ class Container_Collector(threading.Thread):
                     workercinfo[container] = {}
                     workercinfo[container]['basic_info'] = {}
                     workercinfo[container]['basic_info']['billing'] = vnode.billing
+                    workercinfo[container]['basic_info']['billing_history'] = get_billing_history(container)
                     workercinfo[container]['basic_info']['RunningTime'] = vnode.laststopruntime
+                    workercinfo[container]['basic_info']['a_cpu'] = a_cpu
+                    workercinfo[container]['basic_info']['b_mem'] = b_mem
+                    workercinfo[container]['basic_info']['c_disk'] = c_disk
+                    workercinfo[container]['basic_info']['d_port'] = d_port
                 except:
                     laststopcpuval[container] = 0
                     laststopruntime[container] = 0
@@ -158,9 +164,10 @@ class Container_Collector(threading.Thread):
         global a_cpu
         global b_mem
         global c_disk
+        global d_port
         cpu_val = '0'
         if vnode_name not in workercinfo.keys():
-            return 0
+            return {'total': 0}
         if 'cpu_use' in workercinfo[vnode_name].keys():
             cpu_val = workercinfo[vnode_name]['cpu_use']['val']
         if vnode_name not in increment.keys():
@@ -182,13 +189,23 @@ class Container_Collector(threading.Thread):
         # get ports
         ports_count = count_port_mapping(vnode_name)
         # billing value = cpu used/a + memory used/b + disk quota/c + ports
-        billingval = math.ceil(cpu_increment/a_cpu + avemem/b_mem + float(disk_quota)/1024.0/1024.0/c_disk + ports_count)
+        billing = {}
+        billing['cpu'] = round(cpu_increment/a_cpu, 2)
+        billing['cpu_time'] = round(cpu_increment, 2)
+        billing['mem'] = round(avemem/b_mem, 2)
+        billing['mem_use'] = round(avemem, 2)
+        billing['disk'] = round(float(disk_quota)/1024.0/1024.0/c_disk, 2)
+        billing['disk_use'] = round(float(disk_quota)/1024.0/1024.0, 2)
+        billing['port'] = round(ports_count/d_port, 2)
+        billing['port_use'] = ports_count
+        billing['total'] = math.ceil(billing['cpu'] + billing['mem'] + billing['disk'] + billing['port'])
+        billingval = billing['total']
         if billingval > 100:
             # report outsize billing value
             logger.info("Huge Billingval for "+vnode_name+". cpu_increment:"+str(cpu_increment)+" avemem:"+str(avemem)+" disk:"+str(disk_quota)+"\n")
         if not isreal:
             # only compute
-            return math.ceil(billingval)
+            return billing
         # initialize increment for next billing
         increment[vnode_name]['lastcputime'] = cpu_val
         increment[vnode_name]['memincrement'] = 0
@@ -200,6 +217,12 @@ class Container_Collector(threading.Thread):
         nowbillingval = workercinfo[vnode_name]['basic_info']['billing']
         nowbillingval += billingval
         workercinfo[vnode_name]['basic_info']['billing'] = nowbillingval
+        workercinfo[vnode_name]['basic_info']['billing_history']['cpu'] += billing['cpu']
+        workercinfo[vnode_name]['basic_info']['billing_history']['mem'] += billing['mem']
+        workercinfo[vnode_name]['basic_info']['billing_history']['disk'] += billing['disk']
+        workercinfo[vnode_name]['basic_info']['billing_history']['port'] += billing['port']
+        # update vnodes billing history
+        save_billing_history(vnode_name, workercinfo[vnode_name]['basic_info']['billing_history'])
         # update vnodes' tables in database
         try:
             vnode = VNode.query.get(vnode_name)
@@ -221,7 +244,7 @@ class Container_Collector(threading.Thread):
         auth_key = env.getenv('AUTH_KEY')
         data = {"owner_name":owner_name,"billing":billingval, "auth_key":auth_key}
         request_master("/billing/beans/",data)
-        return billingval
+        return billing
 
     # the main function to collect monitoring data of a container
     def collect_containerinfo(self,container_name):
@@ -243,7 +266,7 @@ class Container_Collector(threading.Thread):
             basic_info['RunningTime'] = 0
             basic_info['billing'] = 0
         if 'billing_this_hour' not in basic_info.keys():
-            basic_info['billing_this_hour'] = 0
+            basic_info['billing_this_hour'] = {'total': 0}
         basic_info['Name'] = container_name
         basic_info['State'] = container.state
         #if basic_exist:
@@ -524,21 +547,71 @@ def get_owner(container_name):
     names = container_name.split('-')
     return names[0]
 
+# get cluster id of a container
+def get_cluster(container_name):
+    names = container_name.split('-')
+    return names[1]
+
 def count_port_mapping(vnode_name):
-    user = get_owner(vnode_name)
-    fspath = env.getenv("FS_PREFIX")
-    if not os.path.exists(fspath+"/global/users/"+user+"/clusters"):
+    clusters_dir = env.getenv("FS_PREFIX")+"/global/users/"+get_owner(vnode_name)+"/clusters/"
+    if not os.path.exists(clusters_dir):
         return 0
-    clusters = os.listdir(fspath+"/global/users/"+user+"/clusters")
+    clusters = os.listdir(clusters_dir)
     ports_count = 0
     for cluster in clusters:
-        clusterpath = fspath + "/global/users/" + get_owner(vnode_name) + "/clusters/" + cluster
+        clusterpath = clusters_dir + cluster
         if not os.path.isfile(clusterpath):
-            return 0
+            continue
         infofile = open(clusterpath, 'r')
         info = json.loads(infofile.read())
+        infofile.close()
         ports_count += len([mapping for mapping in info['port_mapping'] if mapping['node_name'] == vnode_name])
     return ports_count
+
+def save_billing_history(vnode_name, billing_history):
+    clusters_dir = env.getenv("FS_PREFIX")+"/global/users/"+get_owner(vnode_name)+"/clusters/"
+    if not os.path.exists(clusters_dir):
+        return
+    clusters = os.listdir(clusters_dir)
+    vnode_cluster_id = get_cluster(vnode_name)
+    for cluster in clusters:
+        clusterpath = clusters_dir + cluster
+        if not os.path.isfile(clusterpath):
+            continue
+        infofile = open(clusterpath, 'r')
+        info = json.loads(infofile.read())
+        infofile.close()
+        if vnode_cluster_id != str(info['clusterid']):
+            continue
+        if 'billing_history' not in info:
+            info['billing_history'] = {}
+        info['billing_history'][vnode_name] = billing_history
+        infofile = open(clusterpath, 'w')
+        infofile.write(json.dumps(info))
+        infofile.close()
+        break
+    return
+
+def get_billing_history(vnode_name):
+    clusters_dir = env.getenv("FS_PREFIX")+"/global/users/"+get_owner(vnode_name)+"/clusters/"
+    if os.path.exists(clusters_dir):
+        clusters = os.listdir(clusters_dir)
+        for cluster in clusters:
+            clusterpath = clusters_dir + cluster
+            if not os.path.isfile(clusterpath):
+                continue
+            infofile = open(clusterpath, 'r')
+            info = json.loads(infofile.read())
+            infofile.close()
+            if 'billing_history' not in info or vnode_name not in info['billing_history']:
+                continue
+            return info['billing_history'][vnode_name]
+    default = {}
+    default['cpu'] = 0
+    default['mem'] = 0
+    default['disk'] = 0
+    default['port'] = 0
+    return default
 
 # the thread to collect data from each worker and store them in monitor_hosts and monitor_vnodes
 class Master_Collector(threading.Thread):
