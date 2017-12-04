@@ -15,6 +15,12 @@
 </ol>
 {% endblock %}
 
+{% block css_src %}
+<link href="//cdn.bootcss.com/datatables/1.10.11/css/dataTables.bootstrap.min.css" rel="stylesheet">
+<link href="//cdn.bootcss.com/datatables/1.10.11/css/jquery.dataTables_themeroller.css" rel="stylesheet">
+<link href="/static/dist/css/modalconfig.css" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
 <div class="row">
 	<div class="col-md-12">
@@ -82,6 +88,105 @@
               </div>
                      <div class="box-body table-responsive">
 
+                             {% for container in clusterinfo['containers'] %}
+                                  <div class="modal inmodal" id='DetailModal_{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}' tabindex="-1" role="dialog" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                      <div class="modal-content animated fadeIn">
+                                        <div class="modal-header">
+                                          <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                                          <h4 class="modal-title">{{ container['containername'] }} Billing Detail</h4>
+                                          <small class="font-bold">The Detail of the Billing In This Hour<br>Billing = cpu(s) / <span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_cpu_a'>?</span> + mem(MiB) / <span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_mem_b'>?</span> + Disk(MiB) / <span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_disk_c'>?</span> + Ports / <span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_port_d'>?</span>, <a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>See User Guide</a></small>
+                                        </div>
+                                        <div class="modal-body">
+                                          <table class="table table-bordered">
+                                            <thead>
+                                              <tr>
+                                                <th>Field</th>
+                                                <th>Usage</th>
+                                                <th>Cost</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              <tr>
+                                                <td>Cpu</td>
+                                                <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_cpu_use'>--</td>
+                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_cpu'>--</span></td>
+                                              </tr>
+                                              <tr>
+                                                <td>Memory</td>
+                                                <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_mem_use'>--</td>
+                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_mem'>--</span></td>
+                                              </tr>
+                                              <tr>
+                                                <td>Disk</td>
+                                                <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_disk_use'>--</td>
+                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_disk'>--</span></td>
+                                              </tr>
+                                              <tr>
+                                                <td>Ports</td>
+                                                <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_port_use'>--</td>
+                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_port'>--</span></td>
+                                              </tr>
+                                              <tr>
+                                                <td colspan="2">Total</td>
+                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_total'>--</span></td>
+                                              </tr>
+                                            </tbody>
+                                          </table>
+                                          <div class="modal-footer">
+                                            <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div class="modal inmodal" id='HistoryDetailModal_{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}' tabindex="-1" role="dialog" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                      <div class="modal-content animated fadeIn">
+                                        <div class="modal-header">
+                                          <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                                          <h4 class="modal-title">{{ container['containername'] }} Total Billing Detail</h4>
+                                        </div>
+                                        <div class="modal-body">
+                                          <table class="table table-bordered">
+                                            <thead>
+                                              <tr>
+                                                <th>Field</th>
+                                                <th>Cost</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              <tr>
+                                                <td>Cpu</td>
+                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_history_cpu'>--</span></td>
+                                              </tr>
+                                              <tr>
+                                                <td>Memory</td>
+                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_history_mem'>--</span></td>
+                                              </tr>
+                                              <tr>
+                                                <td>Disk</td>
+                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_history_disk'>--</span></td>
+                                              </tr>
+                                              <tr>
+                                                <td>Ports</td>
+                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_history_port'>--</span></td>
+                                              </tr>
+                                              <tr>
+                                                <td>Total</td>
+                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_history_total'>--</span></td>
+                                              </tr>
+                                            </tbody>
+                                          </table>
+                                          <div class="modal-footer">
+                                            <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                             {% endfor %}
                          <table class="table table-bordered">
                              <thead>
                              <tr>
@@ -114,9 +219,9 @@
                                  <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_cpu'>--</td>
                                  <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_mem'>--</td>
                                  <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_disk'>--</td>
-                                 <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing'>--</td>
-                                 <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billingthishour'>--</td>
-				 <td><a class="btn btn-info btn-xs" href='/vclusters/{{master.split("@")[0]}}/{{ clustername }}/{{ container['containername'] }}/'>Realtime</a></td>
+                                 <td><a role="button" id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing' data-toggle="modal" data-target='#HistoryDetailModal_{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}'>--</a> <img src='/static/img/bean.png' /></td>
+                                 <td ><a role="button" id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billingthishour' data-toggle="modal" data-target='#DetailModal_{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}'>--</a> <img src='/static/img/bean.png' /></td>
+				                         <td><a class="btn btn-info btn-xs" href='/vclusters/{{master.split("@")[0]}}/{{ clustername }}/{{ container['containername'] }}/'>Realtime</a></td>
 			     </tr>
                              {% endfor %}
                              </tbody>
@@ -132,6 +237,11 @@
 {% endblock %}
 
 {% block script_src %}
+
+<script src="http://cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.js"></script>
+<script src="http://cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.js"></script>
+<script src="http://cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
+
 <script type='text/javascript'>
    function update(url,index)
    {
@@ -152,8 +262,29 @@
             var secs = Math.floor(total % 3600 % 60);
 	    console.log(index,hour,min,secs);
             $("#"+index+"_time").html(hour+"h "+min+"m "+secs+"s")
-            $("#"+index+"_billing").html("<a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>"+data.monitor.basic_info.billing+" <img src='/static/img/bean.png' /></a>")
-            $("#"+index+"_billingthishour").html("<a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>"+data.monitor.basic_info.billing_this_hour+" <img src='/static/img/bean.png' /></a>")
+            $("#"+index+"_billing").html(data.monitor.basic_info.billing)
+            $("#"+index+"_billingthishour").html(data.monitor.basic_info.billing_this_hour.total)
+            $("#"+index+"_billing_total").html(data.monitor.basic_info.billing_this_hour.total)
+            if (parseInt(data.monitor.basic_info.billing_this_hour.total) != 0) {
+              $("#"+index+"_billing_cpu").html(data.monitor.basic_info.billing_this_hour.cpu)
+              $("#"+index+"_billing_cpu_use").html(data.monitor.basic_info.billing_this_hour.cpu_time + " s")
+              $("#"+index+"_billing_mem").html(data.monitor.basic_info.billing_this_hour.mem)
+              $("#"+index+"_billing_mem_use").html(data.monitor.basic_info.billing_this_hour.mem_use + " MiB")
+              $("#"+index+"_billing_disk").html(data.monitor.basic_info.billing_this_hour.disk)
+              $("#"+index+"_billing_disk_use").html(data.monitor.basic_info.billing_this_hour.disk_use + " MiB")
+              $("#"+index+"_billing_port").html(data.monitor.basic_info.billing_this_hour.port)
+              $("#"+index+"_billing_port_use").html(data.monitor.basic_info.billing_this_hour.port_use)
+            }
+            $("#"+index+"_billing_history_cpu").html(data.monitor.basic_info.billing_history.cpu)
+            $("#"+index+"_billing_history_mem").html(data.monitor.basic_info.billing_history.mem)
+            $("#"+index+"_billing_history_disk").html(data.monitor.basic_info.billing_history.disk)
+            $("#"+index+"_billing_history_port").html(data.monitor.basic_info.billing_history.port)
+            $("#"+index+"_billing_history_total").html(data.monitor.basic_info.billing)
+
+            $("#"+index+"_billing_cpu_a").html(data.monitor.basic_info.a_cpu)
+            $("#"+index+"_billing_mem_b").html(data.monitor.basic_info.b_mem)
+            $("#"+index+"_billing_disk_c").html(data.monitor.basic_info.c_disk)
+            $("#"+index+"_billing_port_d").html(data.monitor.basic_info.d_port)
 
 		var state = data.monitor.basic_info.State;
 		    if(state == 'RUNNING')
