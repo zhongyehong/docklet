@@ -273,7 +273,7 @@ function plot_net(host,monitorurl)
    $.post(url,{},function(data){
       ingress_rate_limit = parseInt(data.groupinfo.input_rate_limit);
       egress_rate_limit = parseInt(data.groupinfo.output_rate_limit);
-      plot_graph($("#ingress-chart"), monitorurl, processRate, getIngressRateP,false,ingress_rate_limit*1.5);
+      plot_graph($("#ingress-chart"), monitorurl, processRate, getIngressRateP,false,ingress_rate_limit);
       plot_graph($("#egress-chart"), monitorurl, processRate, getEgressRateP,false,egress_rate_limit*1.5);
    },"json");
 }

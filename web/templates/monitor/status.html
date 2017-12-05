@@ -335,10 +335,20 @@ function num2human(data)
               $("#"+index+"_billing_port").html(data.monitor.basic_info.billing_this_hour.port)
               $("#"+index+"_billing_port_use").html(data.monitor.basic_info.billing_this_hour.port_use)
             }
-            $("#"+index+"_billing_history_cpu").html(data.monitor.basic_info.billing_history.cpu)
-            $("#"+index+"_billing_history_mem").html(data.monitor.basic_info.billing_history.mem)
-            $("#"+index+"_billing_history_disk").html(data.monitor.basic_info.billing_history.disk)
-            $("#"+index+"_billing_history_port").html(data.monitor.basic_info.billing_history.port)
+            if(!!data.monitor.basic_info.billing_history)
+            {
+              $("#"+index+"_billing_history_cpu").html(data.monitor.basic_info.billing_history.cpu);
+              $("#"+index+"_billing_history_mem").html(data.monitor.basic_info.billing_history.mem);
+              $("#"+index+"_billing_history_disk").html(data.monitor.basic_info.billing_history.disk);
+              $("#"+index+"_billing_history_port").html(data.monitor.basic_info.billing_history.port);
+            }
+            else
+            {
+              $("#"+index+"_billing_history_cpu").html(0);
+              $("#"+index+"_billing_history_mem").html(0);
+              $("#"+index+"_billing_history_disk").html(0);
+              $("#"+index+"_billing_history_port").html(0);
+            }
             $("#"+index+"_billing_history_total").html(data.monitor.basic_info.billing)
 
             $("#"+index+"_billing_cpu_a").html(data.monitor.basic_info.a_cpu)

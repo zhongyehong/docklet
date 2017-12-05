@@ -223,6 +223,7 @@ class Container_Collector(threading.Thread):
         nowbillingval = workercinfo[vnode_name]['basic_info']['billing']
         nowbillingval += billingval
         workercinfo[vnode_name]['basic_info']['billing'] = nowbillingval
+        workercinfo[vnode_name]['basic_info']['billing_history'] = get_billing_history(vnode_name)
         workercinfo[vnode_name]['basic_info']['billing_history']['cpu'] += billing['cpu']
         workercinfo[vnode_name]['basic_info']['billing_history']['mem'] += billing['mem']
         workercinfo[vnode_name]['basic_info']['billing_history']['disk'] += billing['disk']
