@@ -491,6 +491,12 @@ def groupdel(groupname):
 def userinfo():
     return userinfoView.as_view()
 
+@app.route("/user/selfQuery/", methods=['GET', 'POST'])
+@login_required
+def userselfQuery():
+    result = dockletRequest.post('/user/selfQuery/')
+    return json.dumps(result['data'])
+
 @app.route("/user/query/", methods=['GET', 'POST'])
 @administration_required
 def userquery():

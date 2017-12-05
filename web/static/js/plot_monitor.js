@@ -1,6 +1,10 @@
 var mem_usedp = 0;
 var cpu_usedp = 0;
 var is_running = true;
+var ingress_rate_p = 0;
+var egress_rate_p = 0;
+var ingress_rate_limit = 0;
+var egress_rate_limit = 0;
 
 function processMemData(data)
 {
@@ -50,7 +54,12 @@ function getCpuY()
 	return cpu_usedp*100;
 }
 
-function plot_graph(container,url,processData,getY) {
+function processIngressRate(data)
+{
+
+}
+
+function plot_graph(container,url,processData,getY,fetchdata=true, maxy=110) {
 
     //var container = $("#flot-line-chart-moving");
 
@@ -88,8 +97,9 @@ function plot_graph(container,url,processData,getY) {
         }
 
         if (data.length < maximum) {
-            $.post(url,{user:"root",key:"root"},processData,"json");
-	    var y = getY();
+            if(fetchdata)
+                $.post(url,{},processData,"json");
+	          var y = getY();
             data.push(y < 0 ? 0 : y > 100 ? 100 : y);
         }
 
@@ -152,7 +162,7 @@ function plot_graph(container,url,processData,getY) {
         },
         yaxis: {
             min: 0,
-            max: 110
+            max: maxy
         },
         legend: {
             show: true
@@ -245,6 +255,19 @@ function processBasicInfo()
         $("#net_out_drop").html(net_stats.dropin);
     },"json");
 }
+
+function plot_net(host,monitorurl)
+{
+  var url = "http://" + host + "/user/selfQuery/";
+
+   $.post(url,{},function(data){
+      var input_rate_limit = data.groupinfo.input_rate_limit;
+      var output_rate_limit = data.groupinfo.output_rate_limit;
+      plot_graph($("#ingress-chart"), monitorurl,)
+   },"json");
+}
+
 setInterval(processBasicInfo,1000);
 plot_graph($("#mem-chart"),url + "/mem_use/",processMemData,getMemY);
 plot_graph($("#cpu-chart"),url + "/cpu_use/",processCpuData,getCpuY);
+plot_net(host, url + "/net_stats/");
