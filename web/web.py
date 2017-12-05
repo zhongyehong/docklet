@@ -360,6 +360,18 @@ def monitor_request(comid,infotype,masterip):
     logger.debug("monitor" + str(type(result)))
     return json.dumps(result)
 
+@app.route("/monitor/<masterip>/user/<issue>/", methods=['POST'])
+@login_required
+def monitor_user_request(issue,masterip):
+    data = {
+        "user": session['username']
+    }
+    path = "/monitor/user/" + str(issue) + "/"
+    logger.debug(path + "_____" + masterip)
+    result = dockletRequest.post(path, data, masterip)
+    logger.debug("monitor" + str(type(result)))
+    return json.dumps(result)
+
 @app.route("/beans/application/", methods=['GET'])
 @login_required
 def beansapplication():
@@ -478,6 +490,12 @@ def groupdel(groupname):
 @login_required
 def userinfo():
     return userinfoView.as_view()
+
+@app.route("/user/selfQuery/", methods=['GET', 'POST'])
+@login_required
+def userselfQuery():
+    result = dockletRequest.post('/user/selfQuery/')
+    return json.dumps(result['data'])
 
 @app.route("/user/query/", methods=['GET', 'POST'])
 @administration_required

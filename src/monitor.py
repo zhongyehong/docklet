@@ -74,6 +74,11 @@ workerinfo = {}
 # has the second keys same as the third keys in monitor_vnodes.
 workercinfo = {}
 
+# store the network statistics of users' gateways on current Worker.
+# key is username
+# bytes_sent and bytes_recv are the second keys
+gateways_stats = {}
+
 # only use on worker
 containerpids = []
 pid2name = {}
@@ -218,6 +223,7 @@ class Container_Collector(threading.Thread):
         nowbillingval = workercinfo[vnode_name]['basic_info']['billing']
         nowbillingval += billingval
         workercinfo[vnode_name]['basic_info']['billing'] = nowbillingval
+        workercinfo[vnode_name]['basic_info']['billing_history'] = get_billing_history(vnode_name)
         workercinfo[vnode_name]['basic_info']['billing_history']['cpu'] += billing['cpu']
         workercinfo[vnode_name]['basic_info']['billing_history']['mem'] += billing['mem']
         workercinfo[vnode_name]['basic_info']['billing_history']['disk'] += billing['disk']
@@ -266,6 +272,12 @@ class Container_Collector(threading.Thread):
                 self.net_stats[key]['errout'] = int(raw_stats[key].errin)
                 self.net_stats[key]['dropin'] = int(raw_stats[key].dropout)
                 self.net_stats[key]['dropout'] = int(raw_stats[key].dropin)
+            else:
+                if key not in gateways_stats.keys():
+                    gateways_stats[key] = {}
+                gateways_stats[key]['bytes_recv'] = int(raw_stats[key].bytes_sent)
+                gateways_stats[key]['bytes_sent'] = int(raw_stats[key].bytes_recv)
+                gateways_stats[key]['bytes_total'] = gateways_stats[key]['bytes_recv'] + gateways_stats[key]['bytes_sent']
         #logger.info(self.net_stats)
 
     # the main function to collect monitoring data of a container
@@ -565,10 +577,11 @@ class Collector(threading.Thread):
 def workerFetchInfo(master_ip):
     global workerinfo
     global workercinfo
+    global gateways_stats
     global G_masterip
     # tell the worker the ip address of the master
     G_masterip = master_ip
-    return str([workerinfo, workercinfo])
+    return str([workerinfo, workercinfo, gateways_stats])
 
 # get owner name of a container
 def get_owner(container_name):
@@ -649,7 +662,26 @@ class Master_Collector(threading.Thread):
         self.thread_stop = False
         self.nodemgr = nodemgr
         self.master_ip = master_ip
+        self.net_lastbillings = {}
+        self.bytes_per_beans = 1000000000
         return
+
+    def net_billings(self, username, now_bytes_total):
+        global monitor_vnodes
+        if not username in self.net_lastbillings.keys():
+            self.net_lastbillings[username] = 0
+        elif int(now_bytes_total/self.bytes_per_beans) < self.net_lastbillings[username]:
+            self.net_lastbillings[username] = 0
+        diff = int(now_bytes_total/self.bytes_per_beans) - self.net_lastbillings[username]
+        if diff > 0:
+            auth_key = env.getenv('AUTH_KEY')
+            data = {"owner_name":username,"billing":diff, "auth_key":auth_key}
+            header = {'Content-Type':'application/x-www-form-urlencoded'}
+            http = Http()
+            [resp,content] = http.request("http://"+self.master_ip+"/billing/beans/","POST",urlencode(data),headers = header)
+            logger.info("response from master:"+content.decode('utf-8'))
+        self.net_lastbillings[username] += diff
+        monitor_vnodes[username]['net_stats']['net_billings'] = self.net_lastbillings[username]
 
     def run(self):
         global monitor_hosts
@@ -672,6 +704,12 @@ class Master_Collector(threading.Thread):
                         if not owner in monitor_vnodes.keys():
                             monitor_vnodes[owner] = {}
                         monitor_vnodes[owner][container] = info[1][container]
+                    for user in info[2].keys():
+                        if not user in monitor_vnodes.keys():
+                            continue
+                        else:
+                            monitor_vnodes[user]['net_stats'] = info[2][user]
+                            self.net_billings(user, info[2][user]['bytes_total'])
                 except Exception as err:
                     logger.warning(traceback.format_exc())
                     logger.warning(err)
@@ -911,4 +949,15 @@ class History_Manager:
         for vnode in vnodes:
             tmp = {"name":vnode.name,"billing":vnode.billing}
             res.append(tmp)
+        return res
+
+    # get users' net_stats
+    def get_user_net_stats(self,owner):
+        global monitor_vnodes
+        try:
+            res = monitor_vnodes[owner]['net_stats']
+        except Exception as err:
+            logger.warning(traceback.format_exc())
+            logger.warning(err)
+            res = {}
         return res

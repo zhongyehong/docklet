@@ -1,6 +1,10 @@
 var mem_usedp = 0;
 var cpu_usedp = 0;
 var is_running = true;
+var ingress_rate = 0;
+var egress_rate = 0;
+var ingress_rate_limit = 0;
+var egress_rate_limit = 0;
 
 function processMemData(data)
 {
@@ -50,7 +54,20 @@ function getCpuY()
 	return cpu_usedp*100;
 }
 
-function plot_graph(container,url,processData,getY) {
+function processRate(data)
+{
+}
+function getIngressRateP()
+{
+  //alert(ingress_rate*8 / 1000.0);
+  return ingress_rate * 8 / 1000.0;
+}
+function getEgressRateP()
+{
+  return egress_rate * 8 / 1000.0;
+}
+
+function plot_graph(container,url,processData,getY,fetchdata=true, maxy=110) {
 
     //var container = $("#flot-line-chart-moving");
 
@@ -88,9 +105,10 @@ function plot_graph(container,url,processData,getY) {
         }
 
         if (data.length < maximum) {
-            $.post(url,{user:"root",key:"root"},processData,"json");
-	    var y = getY();
-            data.push(y < 0 ? 0 : y > 100 ? 100 : y);
+            if(fetchdata)
+                $.post(url,{},processData,"json");
+	          var y = getY();
+            data.push(y < 0 ? 0 : y > maxy ? maxy : y);
         }
 
         // zip the generated y values with the x values
@@ -152,7 +170,7 @@ function plot_graph(container,url,processData,getY) {
         },
         yaxis: {
             min: 0,
-            max: 110
+            max: maxy
         },
         legend: {
             show: true
@@ -227,12 +245,14 @@ function processBasicInfo()
         var secs = Math.floor(total % 3600 % 60);
         $("#con_time").html(hour+"h "+min+"m "+secs+"s");
         $("#con_billing").html("<a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>"+basic_info.billing+" <img src='/static/img/bean.png' /></a>");
-        $("#con_billingthishour").html("<a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>"+basic_info.billing_this_hour+" <img src='/static/img/bean.png' /></a>");
+        $("#con_billingthishour").html("<a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>"+basic_info.billing_this_hour.total+" <img src='/static/img/bean.png' /></a>");
     },"json");
     $.post(url+"/net_stats/",{},function(data){
         var net_stats = data.monitor.net_stats;
         var in_rate = parseInt(net_stats.bytes_recv_per_sec);
         var out_rate = parseInt(net_stats.bytes_sent_per_sec);
+        ingress_rate = in_rate;
+        egress_rate = out_rate;
         $("#net_in_rate").html(num2human(in_rate)+"Bps");
         $("#net_out_rate").html(num2human(out_rate)+"Bps");
         $("#net_in_bytes").html(num2human(net_stats.bytes_recv)+"B");
@@ -245,6 +265,20 @@ function processBasicInfo()
         $("#net_out_drop").html(net_stats.dropin);
     },"json");
 }
+
+function plot_net(host,monitorurl)
+{
+  var url = "http://" + host + "/user/selfQuery/";
+
+   $.post(url,{},function(data){
+      ingress_rate_limit = parseInt(data.groupinfo.input_rate_limit);
+      egress_rate_limit = parseInt(data.groupinfo.output_rate_limit);
+      plot_graph($("#ingress-chart"), monitorurl, processRate, getIngressRateP,false,ingress_rate_limit);
+      plot_graph($("#egress-chart"), monitorurl, processRate, getEgressRateP,false,egress_rate_limit*1.5);
+   },"json");
+}
+
 setInterval(processBasicInfo,1000);
 plot_graph($("#mem-chart"),url + "/mem_use/",processMemData,getMemY);
 plot_graph($("#cpu-chart"),url + "/cpu_use/",processCpuData,getCpuY);
+plot_net(host, url + "/net_stats/");
