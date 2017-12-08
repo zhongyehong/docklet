@@ -295,6 +295,14 @@ function num2human(data)
    function update_net_stats(url,index)
    {
      $.post(url,{},function(data){
+       if(!data.net_stats.bytes_sent)
+       {
+         $("#"+index+"_bytes_sent").html("--");
+         $("#"+index+"_bytes_recv").html("--");
+         $("#"+index+"_bytes_total").html("--");
+         $("#"+index+"_net_billings").html("--");
+         return;
+       }
           var bytes_sent = parseInt(data.net_stats.bytes_sent);
           var bytes_recv = parseInt(data.net_stats.bytes_recv);
         $("#"+index+"_bytes_sent").html(num2human(bytes_sent)+"B");

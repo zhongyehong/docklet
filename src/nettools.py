@@ -234,6 +234,8 @@ class ovscontrol(object):
     @staticmethod
     def set_port_input_qos(port, input_rate_limit):
         input_rate_limiting = int(input_rate_limit)*1000
+        if input_rate_limiting == 0:
+            return [True, str(port)]
         try:
             p = subprocess.run(['ovs-vsctl', 'create', 'qos', 'type=linux-htb', 'other_config:max-rate='+str(input_rate_limiting)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
             subprocess.run(['ovs-vsctl', 'set', 'Port', str(port), 'qos='+p.stdout.decode('utf-8').rstrip()], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)

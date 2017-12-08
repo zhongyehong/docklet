@@ -186,8 +186,8 @@ class userManager:
             quotas['quotainfo'].append({'name':'idletime', 'hint':'will stop cluster after idletime, number of hours, e.g. 24'})
             quotas['quotainfo'].append({'name':'vnode', 'hint':'how many containers the user can have, e.g. 8'})
             quotas['quotainfo'].append({'name':'portmapping', 'hint':'how many ports the user can map, e.g. 8'})
-            quotas['quotainfo'].append({'name':'input_rate_limit', 'hint':'the ingress speed of the network, number of kbps'})
-            quotas['quotainfo'].append({'name':'output_rate_limit', 'hint':'the egress speed of the network, number of kbps'})
+            quotas['quotainfo'].append({'name':'input_rate_limit', 'hint':'the ingress speed of the network, number of kbps. 0 means the rate are unlimited.'})
+            quotas['quotainfo'].append({'name':'output_rate_limit', 'hint':'the egress speed of the network, number of kbps. 0 means the rate are unlimited.'})
             quotafile.write(json.dumps(quotas))
             quotafile.close()
         if not os.path.exists(fspath+"/global/sys/lxc.default"):
