@@ -151,22 +151,22 @@
 # PUBLIC_IP=0.0.0.0
 
 # NGINX_CONF: the config path of nginx, default: /etc/nginx
-# NGINX_CONF="/etc/nginx"
+# NGINX_CONF=/etc/nginx
 
 # MASTER_IPS: all master ips in a cente, depart by ','.
 # e.g:192.168.192.191@master1,192.168.192.192@master2
 # you can also add description to each master.
 # e.g:master1_desc="this is master1"
 # defalut:0.0.0.0@docklet
-# MASTER_IPS=""
+# MASTER_IPS=0.0.0.0@docklet
 
 # USER_IP: user listen ip
 # default:0.0.0.0
-# USER_IP=""
+# USER_IP=0.0.0.0
 
 # USER_PORT: user listen port
 # default:9100
-# USER_PORT=""
+# USER_PORT=9100
 
 # AUTH_KEY: the key to request users server from master,
 # or to request master from users server. Please set the
