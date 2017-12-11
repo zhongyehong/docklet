@@ -1,3 +1,19 @@
+v0.3.2,  Dec 11, 2017
+--------------------
+
+**Bug Fix**
+  * Fix the problem that some monitoring data are used before initialnizing.
+  * Add some error message when start service failed.
+  * Add npm registry.
+
+**Improvement**
+  * [#277] Support egress and ingress qos rate limiting.
+  * [#277] Support network and ports mappings billings.
+  * Support network monitoring.
+  * Limit the number of users' vnodes by ip addresses.
+  * Add billing detail and billing history detail
+  * Replace lxc-info with lxc.Container.get_cgroup_item()
+
 v0.3.0,  Sep 29, 2017
 --------------------
 
