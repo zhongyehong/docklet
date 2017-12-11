@@ -127,7 +127,7 @@
 			<hr>
 
 			<footer>
-				<p class="pull-right">Powered by <a href="http://docklet.unias.org" style="color:blue">Docklet</a></p>
+				<p class="pull-right">Powered by <a href="https://github.com/unias/docklet/" style="color:blue">Docklet</a></p>
 				<p>&copy; SEI, PKU</p>
 			</footer>
 
