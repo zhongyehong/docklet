@@ -51,8 +51,19 @@ echo ""
 [[ -f web/templates/home.html ]] || { echo "Generating HomePage from home.template" && cp web/templates/home.template web/templates/home.html; }
 
 mkdir -p /opt/docklet/global
-mkdir -p /opt/docklet/local
+mkdir -p /opt/docklet/local/
+
 echo "directory /opt/docklet have been created"
+
+if [ ! -d /opt/docklet/local/basefs ]; then
+	mkdir -p /opt/docklet/local/basefs
+	echo "Generating basefs"
+	wget -P /opt/docklet/local http://iwork.pku.edu.cn:1616/basefs-0.11.tar.bz2 && tar xvf /opt/docklet/local/basefs-0.11.tar.bz2 -C /opt/docklet/local/ > /dev/null
+	[ $? != "0" ] && echo "Generate basefs failed, please download it from http://unias.github.io/docklet/download to FS_PREFIX/local and then extract it using root. (defalut FS_PRERIX is /opt/docklet)"
+fi 
+
+echo "Some packagefs can be downloaded from http://unias.github.io/docklet.download"
+echo "you can download the packagefs and extract it to FS_PREFIX/local using root. (default FS_PREFIX is /opt/docklet"
 
 echo ""
 echo "All preparation installations are done."
@@ -61,14 +72,6 @@ echo "* Please Read Lines Below Before Start *"
 echo "****************************************"
 echo ""
 
-echo "Before staring : you need a basefs image. "
-echo "basefs images are provided at: "
-echo "  http://unias.github.io/docklet/download"
-echo "please download it to FS_PREFIX/local and then extract it using root. (defalut FS_PRERIX is /opt/docklet)"
-echo "you will get a directory structure like"
-echo "  /opt/docklet/local/basefs/etc "
-echo "  /opt/docklet/local/basefs/bin "
-echo "  /opt/docklet/local/basefs/..."
 echo "you may want to custom home page of docklet. Please modify web/templates/home.html"
 
 echo "Next, make sure exim4 can deliver mail out. To enable, run:"
@@ -76,6 +79,4 @@ echo "dpkg-reconfigure exim4-config"
 echo "select internet site"
 
 echo ""
-
-
 echo "Then start docklet as described in README.md"
