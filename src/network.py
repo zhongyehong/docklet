@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import json, sys, netifaces
+import json, sys, netifaces, threading
 from nettools import netcontrol,ovscontrol
 
 from log import logger
@@ -386,9 +386,11 @@ class NetworkMgr(object):
         [status, userdata] = self.etcd.getkey("network/users/"+username)
         usercopy = json.loads(userdata)
         user = UserPool(copy = usercopy)
+        logger.debug("load user into dict")
         self.users[username] = user
 
     def dump_user(self, username):
+        logger.debug("dump user into etcd")
         self.etcd.setkey("network/users/"+username, json.dumps({'info':self.users[username].info, 'gateway':self.users[username].gateway, 'pool':self.users[username].pool}))
 
     def load_usrgw(self,username):
@@ -586,6 +588,7 @@ class NetworkMgr(object):
         result = self.users[username].acquire_cidr(num)
         self.dump_user(username)
         del self.users[username]
+
         return result
 
     # ip_or_ips : one IP address or a list of IPs

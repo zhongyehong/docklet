@@ -85,9 +85,11 @@ pre_start () {
     iptables -t nat -A POSTROUTING -s $CLUSTER_NET -j MASQUERADE
 
 	if [ ! -d $FS_PREFIX/local/basefs ]; then
-		log_daemon_msg "create basefs ..."
-		[ ! -f $tempdir/basefs.tar.bz ] && log_daemon_msg "$tempdir/basefs.tar.bz not exist, run prepare.sh first" && exit 1
-		tar xvf $tempdir/basefs.tar.bz -C $FS_PREFIX/local > /dev/null
+		log_daemon_msg "basefs does not exist, run prepare.sh first" && exit 1
+	fi
+	
+	if [ ! -d $FS_PREFIX/local/packagefs ]; then
+		mkdir -p $FS_PREFIX/local/packagefs
 	fi
 }
 
