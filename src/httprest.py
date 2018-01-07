@@ -523,7 +523,7 @@ def user_quotainfo_monitor(user, beans, form, issue):
     elif issue == 'net_stats':
         logger.info("handle request: monitor/user/net_stats/")
         res = G_historymgr.get_user_net_stats(user)
-        return json.dumps({'success':'true', 'net_stats':res})                
+        return json.dumps({'success':'true', 'net_stats':res})
     else:
         return json.dumps({'success':'false', 'message':"Unspported Method!"})
 
@@ -768,6 +768,8 @@ if __name__ == '__main__':
         if etcdclient.isdir("_lock")[0]:
             etcdclient.deldir("_lock")
 
+    #init portcontrol
+    portcontrol.init_new()
 
     clusternet = env.getenv("CLUSTER_NET")
     logger.info("using CLUSTER_NET %s" % clusternet)
@@ -785,9 +787,6 @@ if __name__ == '__main__':
     logger.info("vclustermgr started")
     G_imagemgr = imagemgr.ImageMgr()
     logger.info("imagemgr started")
-
-    #init portcontrol
-    portcontrol.init_new()
 
     logger.info("startting to listen on: ")
     masterip = env.getenv('MASTER_IP')
