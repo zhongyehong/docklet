@@ -279,6 +279,7 @@ class NetworkMgr(object):
     def __init__(self, addr_cidr, etcdclient, mode, masterip):
         self.etcd = etcdclient
         self.masterip = masterip
+        self.user_locks = threading.Lock()
         if mode == 'new':
             logger.info("init network manager with %s" % addr_cidr)
             self.center = IntervalPool(addr_cidr=addr_cidr)
@@ -478,11 +479,14 @@ class NetworkMgr(object):
 
     def add_user(self, username, cidr, isshared = False):
         logger.info ("add user %s with cidr=%s" % (username, str(cidr)))
+        self.user_locks.acquire()
         if self.has_user(username):
+            self.user_locks.release()
             return [False, "user already exists in users set"]
         [status, result] = self.center.allocate(cidr)
         self.dump_center()
         if status == False:
+            self.user_locks.release()
             return [False, result]
         '''[status, vlanid] = self.acquire_vlanid(isshared)
         if status:
@@ -496,6 +500,7 @@ class NetworkMgr(object):
         #netcontrol.setup_gw('docklet-br', username, self.users[username].get_gateway_cidr(), str(vlanid))
         self.dump_user(username)
         del self.users[username]
+        self.user_locks.release()
         return [True, 'add user success']
 
     def del_usrgwbr(self, username, uid, nodemgr):
@@ -515,7 +520,9 @@ class NetworkMgr(object):
         return [True, 'delete user\' gateway success']
 
     def del_user(self, username):
+        self.user_locks.acquire()
         if not self.has_user(username):
+            self.user_locks.release()
             return [False, username+" not in users set"]
         self.load_user(username)
         [addr, cidr] = self.users[username].info.split('/')
@@ -527,6 +534,7 @@ class NetworkMgr(object):
         #netcontrol.del_gw('docklet-br', username)
         self.etcd.deldir("network/users/"+username)
         del self.users[username]
+        self.user_locks.release()
         return [True, 'delete user success']
 
     def check_usergw(self, input_rate_limit, output_rate_limit, username, uid, nodemgr, distributedgw=False):

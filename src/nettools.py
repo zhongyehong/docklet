@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import subprocess,env
+import subprocess, env, threading
 from log import logger
 
 class ipcontrol(object):
@@ -363,6 +363,7 @@ class netcontrol(object):
 
 free_ports = [False]*65536
 allocated_ports = {}
+ports_lock = threading.Lock()
 
 class portcontrol(object):
 
@@ -396,13 +397,17 @@ class portcontrol(object):
     def acquire_port_mapping(container_name, container_ip, container_port, host_port=None):
         global free_ports
         global allocated_ports
+        global ports_lock
+        ports_lock.acquire()
         # if container_name in allocated_ports.keys():
         #     return [False, "This container already has a port mapping."]
         if container_name not in allocated_ports.keys():
             allocated_ports[container_name] = {}
         elif container_port in allocated_ports[container_name].keys():
-            return [False, "This container already has a port mapping."]
+            ports_lock.release()
+            return [False, "This container port already has a port mapping."]
         if container_name == "" or container_ip == "" or container_port == "":
+            ports_lock.release()
             return [False, "Node Name or Node IP or Node Port can't be null."]
         #print("acquire_port_mapping1")
         free_port = 1
@@ -416,10 +421,12 @@ class portcontrol(object):
                     break
                 free_port += 1
             if free_port == 65536:
+                ports_lock.release()
                 return [False, "No free ports."]
         free_ports[free_port] = False
         allocated_ports[container_name][container_port] = free_port
         public_ip = env.getenv("PUBLIC_IP")
+        ports_lock.release()
         try:
             subprocess.run(['iptables','-t','nat','-A','PREROUTING','-p','tcp','--dport',str(free_port),"-j","DNAT",'--to-destination','%s:%s'%(container_ip,container_port)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
             return [True, str(free_port)]
@@ -430,6 +437,7 @@ class portcontrol(object):
     def release_port_mapping(container_name, container_ip, container_port):
         global free_ports
         global allocated_ports
+        global ports_lock
         if container_name not in allocated_ports.keys():
             return [False, "This container does not have a port mapping."]
         free_port = allocated_ports[container_name][container_port]
@@ -438,6 +446,8 @@ class portcontrol(object):
             subprocess.run(['iptables','-t','nat','-D','PREROUTING','-p','tcp','--dport',str(free_port),"-j","DNAT",'--to-destination','%s:%s'%(container_ip,container_port)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
         except subprocess.CalledProcessError as suberror:
             return [False, "release port mapping failed : %s" % suberror.stdout.decode('utf-8')]
+        ports_lock.acquire()
         free_ports[free_port] = True
         allocated_ports[container_name].pop(container_port)
+        ports_lock.release()
         return [True, ""]

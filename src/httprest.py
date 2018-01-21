@@ -23,7 +23,7 @@ import os
 import http.server, cgi, json, sys, shutil
 import xmlrpc.client
 from socketserver import ThreadingMixIn
-import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr
+import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr, lockmgr
 from logs import logs
 import userManager,beansapplicationmgr
 import monitor,traceback
@@ -117,9 +117,11 @@ def logs_get(user, beans, form):
 @beans_check
 def create_cluster(user, beans, form):
     global G_vclustermgr
+    global G_ulockmgr
     clustername = form.get('clustername', None)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
+    G_ulockmgr.acquire(user)
     image = {}
     image['name'] = form.get("imagename", None)
     image['type'] = form.get("imagetype", None)
@@ -136,8 +138,10 @@ def create_cluster(user, beans, form):
     status = res.get('success')
     result = res.get('result')
     if not status:
+        G_ulockmgr.release(user)
         return json.dumps({'success':'false', 'action':'create cluster', 'message':result})
     [status, result] = G_vclustermgr.create_cluster(clustername, user, image, user_info, setting)
+    G_ulockmgr.release(user)
     if status:
         return json.dumps({'success':'true', 'action':'create cluster', 'message':result})
     else:
@@ -149,10 +153,12 @@ def create_cluster(user, beans, form):
 @beans_check
 def scaleout_cluster(user, beans, form):
     global G_vclustermgr
+    global G_ulockmgr
     clustername = form.get('clustername', None)
     logger.info ("scaleout: %s" % form)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
+    G_ulockmgr.acquire(user)
     logger.info("handle request : scale out %s" % clustername)
     image = {}
     image['name'] = form.get("imagename", None)
@@ -169,8 +175,10 @@ def scaleout_cluster(user, beans, form):
     status = res.get('success')
     result = res.get('result')
     if not status:
+        G_ulockmgr.release(user)
         return json.dumps({'success':'false', 'action':'scale out', 'message': result})
     [status, result] = G_vclustermgr.scale_out_cluster(clustername, user, image, user_info, setting)
+    G_ulockmgr.release(user)
     if status:
         return json.dumps({'success':'true', 'action':'scale out', 'message':result})
     else:
@@ -181,15 +189,18 @@ def scaleout_cluster(user, beans, form):
 @login_required
 def scalein_cluster(user, beans, form):
     global G_vclustermgr
+    global G_ulockmgr
     clustername = form.get('clustername', None)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
+    G_ulockmgr.acquire(user)
     logger.info("handle request : scale in %s" % clustername)
     containername = form.get("containername", None)
     [status, usage_info] = G_vclustermgr.get_clustersetting(clustername, user, containername, False)
     if status:
         post_to_user("/user/usageRelease/", {'token':form.get('token'), 'cpu':usage_info['cpu'], 'memory':usage_info['memory'],'disk':usage_info['disk']})
     [status, result] = G_vclustermgr.scale_in_cluster(clustername, user, containername)
+    G_ulockmgr.release(user)
     if status:
         return json.dumps({'success':'true', 'action':'scale in', 'message':result})
     else:
@@ -200,12 +211,15 @@ def scalein_cluster(user, beans, form):
 @beans_check
 def start_cluster(user, beans, form):
     global G_vclustermgr
+    global G_ulockmgr
     clustername = form.get('clustername', None)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
+    G_ulockmgr.acquire(user)
     user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
     logger.info ("handle request : start cluster %s" % clustername)
     [status, result] = G_vclustermgr.start_cluster(clustername, user, user_info)
+    G_ulockmgr.release(user)
     if status:
         return json.dumps({'success':'true', 'action':'start cluster', 'message':result})
     else:
@@ -215,11 +229,14 @@ def start_cluster(user, beans, form):
 @login_required
 def stop_cluster(user, beans, form):
     global G_vclustermgr
+    global G_ulockmgr
     clustername = form.get('clustername', None)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
+    G_ulockmgr.acquire(user)
     logger.info ("handle request : stop cluster %s" % clustername)
     [status, result] = G_vclustermgr.stop_cluster(clustername, user)
+    G_ulockmgr.release(user)
     if status:
         return json.dumps({'success':'true', 'action':'stop cluster', 'message':result})
     else:
@@ -229,9 +246,11 @@ def stop_cluster(user, beans, form):
 @login_required
 def delete_cluster(user, beans, form):
     global G_vclustermgr
+    global G_ulockmgr
     clustername = form.get('clustername', None)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
+    G_ulockmgr.acquire(user)
     logger.info ("handle request : delete cluster %s" % clustername)
     user_info = post_to_user("/user/selfQuery/" , {'token':form.get("token")})
     user_info = json.dumps(user_info)
@@ -239,6 +258,7 @@ def delete_cluster(user, beans, form):
     if status:
         post_to_user("/user/usageRelease/", {'token':form.get('token'), 'cpu':usage_info['cpu'], 'memory':usage_info['memory'],'disk':usage_info['disk']})
     [status, result] = G_vclustermgr.delete_cluster(clustername, user, user_info)
+    G_ulockmgr.release(user)
     if status:
         return json.dumps({'success':'true', 'action':'delete cluster', 'message':result})
     else:
@@ -271,7 +291,7 @@ def list_cluster(user, beans, form):
         return json.dumps({'success':'false', 'action':'list cluster', 'message':clusterlist})
 
 @app.route("/cluster/stopall/",methods=['POST'])
-#@auth_key_required
+@auth_key_required
 def stopall_cluster():
     global G_vclustermgr
     user = request.form.get('username',None)
@@ -689,6 +709,7 @@ if __name__ == '__main__':
     global G_sysmgr
     global G_historymgr
     global G_applicationmgr
+    global G_ulockmgr
     # move 'tools.loadenv' to the beginning of this file
 
     fs_path = env.getenv("FS_PREFIX")
@@ -770,6 +791,7 @@ if __name__ == '__main__':
 
     #init portcontrol
     portcontrol.init_new()
+    G_ulockmgr = lockmgr.LockMgr()
 
     clusternet = env.getenv("CLUSTER_NET")
     logger.info("using CLUSTER_NET %s" % clusternet)
