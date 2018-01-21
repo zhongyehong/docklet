@@ -7,7 +7,7 @@ import xmlrpc.client
 from log import logger
 import env
 import proxytool
-import requests
+import requests, threading
 import traceback
 from nettools import portcontrol
 
@@ -32,6 +32,7 @@ class VclusterMgr(object):
         self.etcd = etcdclient
         self.defaultsize = env.getenv("CLUSTER_SIZE")
         self.fspath = env.getenv("FS_PREFIX")
+        self.clusterid_locks = threading.Lock()
 
         logger.info ("vcluster start on %s" % (self.addr))
         if self.mode == 'new':
@@ -778,6 +779,8 @@ class VclusterMgr(object):
 
     # acquire cluster id from etcd
     def _acquire_id(self):
+        self.clusterid_locks.acquire()
         clusterid = self.etcd.getkey("vcluster/nextid")[1]
         self.etcd.setkey("vcluster/nextid", str(int(clusterid)+1))
+        self.clusterid_locks.release()
         return int(clusterid)
