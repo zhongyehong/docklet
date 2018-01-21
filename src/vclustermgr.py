@@ -327,7 +327,7 @@ class VclusterMgr(object):
             clusterfile.write(json.dumps(clusterinfo))
             clusterfile.close()
         else:
-            return [False,"No port mapping."]
+            return [True,"No port mapping."]
         if error_msg is not None:
             return [False,error_msg]
         else:
