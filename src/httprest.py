@@ -294,16 +294,20 @@ def list_cluster(user, beans, form):
 @auth_key_required
 def stopall_cluster():
     global G_vclustermgr
+    global G_ulockmgr
     user = request.form.get('username',None)
     if user is None:
         return json.dumps({'success':'false', 'message':'User is required!'})
+    G_ulockmgr.acquire(user)
     logger.info ("handle request : stop all clusters for %s" % user)
     [status, clusterlist] = G_vclustermgr.list_clusters(user)
     if status:
         for cluster in clusterlist:
             G_vclustermgr.stop_cluster(cluster,user)
+        G_ulockmgr.release(user)
         return json.dumps({'success':'true', 'action':'stop all cluster'})
     else:
+        G_ulockmgr.release(user)
         return json.dumps({'success':'false', 'action':'stop all cluster', 'message':clusterlist})
 
 @app.route("/cluster/flush/", methods=['POST'])
@@ -421,6 +425,7 @@ def deleteproxy(user, beans, form):
 @login_required
 def add_port_mapping(user, beans, form):
     global G_vclustermgr
+    global G_ulockmgr
     logger.info ("handle request : add port mapping")
     node_name = form.get("node_name",None)
     node_ip = form.get("node_ip", None)
@@ -429,7 +434,9 @@ def add_port_mapping(user, beans, form):
     if node_name is None or node_ip is None or node_port is None or clustername is None:
         return json.dumps({'success':'false', 'message': 'Illegal form.'})
     user_info = post_to_user("/user/selfQuery/", data = {"token": form.get("token")})
+    G_ulockmgr.acquire(user)
     [status, message] = G_vclustermgr.add_port_mapping(user,clustername,node_name,node_ip,node_port,user_info['data']['groupinfo'])
+    G_ulockmgr.release(user)
     if status is True:
         return json.dumps({'success':'true', 'action':'addproxy'})
     else:
@@ -439,13 +446,16 @@ def add_port_mapping(user, beans, form):
 @login_required
 def delete_port_mapping(user, beans, form):
     global G_vclustermgr
+    global G_ulockmgr
     logger.info ("handle request : delete port mapping")
     node_name = form.get("node_name",None)
     clustername = form.get("clustername", None)
     node_port = form.get("node_port", None)
     if node_name is None or clustername is None:
         return json.dumps({'success':'false', 'message': 'Illegal form.'})
+    G_ulockmgr.acquire(user)
     [status, message] = G_vclustermgr.delete_port_mapping(user,clustername,node_name,node_port)
+    G_ulockmgr.release(user)
     if status is True:
         return json.dumps({'success':'true', 'action':'addproxy'})
     else:
@@ -557,7 +567,7 @@ def listphynodes_monitor(user, beans, form):
     return json.dumps({'success':'true', 'monitor':res})
 
 @app.route("/billing/beans/", methods=['POST'])
-#@auth_key_required
+@auth_key_required
 def billing_beans():
     form = request.form
     res = post_to_user("/billing/beans/",data=form)
