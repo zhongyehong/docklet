@@ -694,7 +694,7 @@ if __name__ == '__main__':
 
     try:
         open_registryfile = open(env.getenv('FS_PREFIX') + '/local/settings.conf')
-        settings = jsobn.loads(open_registryfile.read())
+        settings = json.loads(open_registryfile.read())
         open_registryfile.close()
         os.environ['OPEN_REGISTRY'] = settings.get('OPEN_REGISTRY',"False")
     except:
