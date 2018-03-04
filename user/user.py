@@ -28,7 +28,7 @@ for masterip in masterips:
 
 from flask import Flask, request, session, render_template, redirect, send_from_directory, make_response, url_for, abort
 from functools import wraps
-import userManager,beansapplicationmgr, notificationmgr
+import userManager,beansapplicationmgr, notificationmgr, lockmgr
 import threading,traceback
 from model import User,db
 from httplib2 import Http
@@ -210,7 +210,9 @@ def modify_user(cur_user, user, form):
 def groupModify_user(cur_user, user, form):
     global G_usermgr
     logger.info("handle request: user/groupModify/")
+    G_lockmgr.acquire('__quotafile')
     result = G_usermgr.groupModify(newValue = form, cur_user = cur_user)
+    G_lockmgr.release('__quotafile')
     return json.dumps(result)
 
 
@@ -250,7 +252,9 @@ def add_user(cur_user, user, form):
 def groupadd_user(cur_user, user, form):
     global G_usermgr
     logger.info("handle request: user/groupadd/")
+    G_lockmgr.acquire('__quotafile')
     result = G_usermgr.groupadd(form = form, cur_user = cur_user)
+    G_lockmgr.release('__quotafile')
     return json.dumps(result)
 
 
@@ -259,7 +263,9 @@ def groupadd_user(cur_user, user, form):
 def chdefault(cur_user, user, form):
     global G_usermgr
     logger.info("handle request: user/chdefault/")
+    G_lockmgr.acquire('__quotafile')
     result = G_usermgr.change_default_group(form = form, cur_user = cur_user)
+    G_lockmgr.release('__quotafile')
     return json.dumps(result)
 
 
@@ -268,7 +274,9 @@ def chdefault(cur_user, user, form):
 def quotaadd_user(cur_user, user, form):
     global G_usermgr
     logger.info("handle request: user/quotaadd/")
+    G_lockmgr.acquire('__quotafile')
     result = G_usermgr.quotaadd(form = form, cur_user = cur_user)
+    G_lockmgr.release('__quotafile')
     return json.dumps(result)
 
 
@@ -277,7 +285,9 @@ def quotaadd_user(cur_user, user, form):
 def groupdel_user(cur_user, user, form):
     global G_usermgr
     logger.info("handle request: user/groupdel/")
+    G_lockmgr.acquire('__quotafile')
     result = G_usermgr.groupdel(name = form.get('name', None), cur_user = cur_user)
+    G_lockmgr.release('__quotafile')
     return json.dumps(result)
 
 
@@ -366,7 +376,9 @@ def usageInc_user(cur_user, user, form):
     global G_usermgr
     logger.info("handle request: user/usageInc/")
     setting = form.get('setting')
+    G_lockmgr.acquire('__usage_'+str(user))
     result = G_usermgr.usageInc(cur_user = cur_user, modification = json.loads(setting))
+    G_lockmgr.release('__usage_'+str(user))
     return json.dumps(result)
 
 @app.route("/user/usageRelease/", methods=['POST'])
@@ -374,7 +386,9 @@ def usageInc_user(cur_user, user, form):
 def usageRelease_user(cur_user, user, form):
     global G_usermgr
     logger.info("handle request: user/usageInc/")
+    G_lockmgr.acquire('__usage_'+str(user))
     result = G_usermgr.usageRelease(cur_user = cur_user, cpu = form.get('cpu'), memory = form.get('memory'), disk = form.get('disk'))
+    G_lockmgr.release('__usage_'+str(user))
     return json.dumps(result)
 
 @app.route("/user/usageRecover/", methods=['POST'])
@@ -382,7 +396,9 @@ def usageRelease_user(cur_user, user, form):
 def usageRecover_user(cur_user, user, form):
     global G_usermgr
     logger.info("handle request: user/usageInc/")
+    G_lockmgr.acquire('__usage_'+str(user))
     result = G_usermgr.usageRecover(cur_user = cur_user, modification = json.loads(form.get('setting')))
+    G_lockmgr.release('__usage_'+str(user))
     return json.dumps(result)
 
 @app.route("/user/lxcsettingList/", methods=['POST'])
@@ -398,7 +414,9 @@ def lxcsettingList_user(cur_user, user, form):
 def chlxcsetting_user(cur_user, user, form):
     global G_usermgr
     logger.info("handle request: user/chlxcsetting/")
+    G_lockmgr.acquire('__lxcsetting')
     result = G_usermgr.chlxcsetting(cur_user = cur_user, form = form)
+    G_lockmgr.release('__lxcsetting')
     return json.dumps(result)
 
 @app.route("/settings/list/", methods=['POST'])
@@ -430,7 +448,9 @@ def list_notifications(cur_user, user, form):
 def create_notification(cur_user, user, form):
     global G_notificationmgr
     logger.info("handle request: notification/create/")
+    G_lockmgr.acquire('__notification')
     result = G_notificationmgr.create_notification(cur_user=cur_user, form=form)
+    G_lockmgr.release('__notification')
     return json.dumps(result)
 
 
@@ -439,7 +459,9 @@ def create_notification(cur_user, user, form):
 def modify_notification(cur_user, user, form):
     global G_notificationmgr
     logger.info("handle request: notification/modify/")
+    G_lockmgr.acquire('__notification')
     result = G_notificationmgr.modify_notification(cur_user=cur_user, form=form)
+    G_lockmgr.release('__notification')
     return json.dumps(result)
 
 
@@ -448,7 +470,9 @@ def modify_notification(cur_user, user, form):
 def delete_notification(cur_user, user, form):
     global G_notificationmgr
     logger.info("handle request: notification/delete/")
+    G_lockmgr.acquire('__notification')
     result = G_notificationmgr.delete_notification(cur_user=cur_user, form=form)
+    G_lockmgr.release('__notification')
     return json.dumps(result)
 
 
@@ -487,6 +511,7 @@ def billing_beans():
         billing = int(form.get("billing",None))
         if owner_name is None  or billing is None:
             return json.dumps({'success':'false', 'message':'owner_name and beans fields are required.'})
+        G_lockmgr.acquire('__beans_'+str(owner_name))
         # update users' tables in database
         owner = User.query.filter_by(username=owner_name).first()
         if owner is None:
@@ -507,6 +532,7 @@ def billing_beans():
                 db.session.rollback()
                 logger.warning(traceback.format_exc())
                 logger.warning(err)
+                G_lockmgr.release('__beans_'+str(owner_name))
                 return json.dumps({'success':'false', 'message':'Fail to wirte to databases.'})
             #logger.info("Billing User:"+str(owner))
             if owner.beans <= 0:
@@ -515,6 +541,7 @@ def billing_beans():
                 auth_key = env.getenv('AUTH_KEY')
                 form = {'username':owner.username, 'auth_key':auth_key}
                 request_master("/cluster/stopall/",form)
+        G_lockmgr.release('__beans_'+str(owner_name))
         return json.dumps({'success':'true'})
 
 @app.route("/beans/<issue>/", methods=['POST'])
@@ -526,7 +553,9 @@ def beans_apply(cur_user,user,form,issue):
         reason = form.get("reason",None)
         if number is None or reason is None:
             return json.dumps({'success':'false', 'message':'Number and reason can\'t be null.'})
+        G_lockmgr.acquire('__beansapply_'+str(user))
         [success,message] = G_applicationmgr.apply(user,number,reason)
+        G_lockmgr.release('__beansapply_'+str(user))
         if not success:
             return json.dumps({'success':'false', 'message':message})
         else:
@@ -547,15 +576,22 @@ def beans_admin(cur_user,user,form,issue):
         return json.dumps(result)
     elif issue == 'agree':
         msgid = form.get("msgid",None)
-        if msgid is None:
-            return json.dumps({'success':'false', 'message':'msgid can\'t be null.'})
+        username = form.get("username",None)
+        if msgid is None or username is None:
+            return json.dumps({'success':'false', 'message':'msgid and username can\'t be null.'})
+        G_lockmgr.acquire("__beans_"+str(username))
+        G_lockmgr.acquire("__applymsg_"+str(msgid))
         result = G_applicationmgr.agree(msgid, cur_user = cur_user)
+        G_lockmgr.release("__applymsg_"+str(msgid))
+        G_lockmgr.release("__beans_"+str(username))
         return json.dumps(result)
     elif issue == 'reject':
         msgid = form.get("msgid",None)
         if msgid is None:
             return json.dumps({'success':'false', 'message':'msgid can\'t be null.'})
+        G_lockmgr.acquire("__applymsg_"+str(msgid))
         result = G_applicationmgr.reject(msgid, cur_user = cur_user)
+        G_lockmgr.release("__applymsg_"+str(msgid))
         return json.dumps(result)
     else:
         return json.dumps({'success':'false', 'message':'Unsupported URL!'})
@@ -592,6 +628,7 @@ if __name__  ==  '__main__':
     global G_sysmgr
     global G_historymgr
     global G_applicationmgr
+    global G_lockmgr
 
     fs_path = env.getenv("FS_PREFIX")
     logger.info("using FS_PREFIX %s" % fs_path)
@@ -600,7 +637,7 @@ if __name__  ==  '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == "new":
         mode = 'new'
 
-
+    G_lockmgr = lockmgr.LockMgr()
     G_usermgr = userManager.userManager('root')
     #if mode == "new":
     #    G_usermgr.initUsage()
