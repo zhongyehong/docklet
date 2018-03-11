@@ -10,6 +10,7 @@ import proxytool
 import requests, threading
 import traceback
 from nettools import portcontrol
+from model import db, Container, PortMapping, VCluster
 
 userpoint = "http://" + env.getenv('USER_IP') + ":" + str(env.getenv('USER_PORT'))
 def post_to_user(url = '/', data={}):
@@ -34,14 +35,26 @@ class VclusterMgr(object):
         self.fspath = env.getenv("FS_PREFIX")
         self.clusterid_locks = threading.Lock()
 
+        # check database
+        try:
+            Container.query.all()
+            PortMapping.query.all()
+            VCluster.query.all()
+        except:
+            # create database
+            db.create_all(bind='__all__')
+
         logger.info ("vcluster start on %s" % (self.addr))
         if self.mode == 'new':
             logger.info ("starting in new mode on %s" % (self.addr))
             # check if all clusters data are deleted in httprest.py
             clean = True
             usersdir = self.fspath+"/global/users/"
+            vclusters = VCluster.query.all()
+            if len(vclusters) != 0:
+                clean = False
             for user in os.listdir(usersdir):
-                if len(os.listdir(usersdir+user+"/clusters")) > 0 or len(os.listdir(usersdir+user+"/hosts")) > 0:
+                if len(os.listdir(usersdir+user+"/hosts")) > 0:
                     clean = False
             if not clean:
                 logger.error ("clusters files not clean, start failed")
@@ -173,9 +186,9 @@ class VclusterMgr(object):
         hostfile.write(hosts)
         hostfile.close()
         clusterfile = open(clusterpath, 'w')
-        proxy_url = env.getenv("PORTAL_URL") +"/"+ proxy_public_ip +"/_web/" + username + "/" + clustername
+        #proxy_url = env.getenv("PORTAL_URL") +"/"+ proxy_public_ip +"/_web/" + username + "/" + clustername
         info = {'clusterid':clusterid, 'status':'stopped', 'size':clustersize, 'containers':containers, 'nextcid': clustersize, 'create_time':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'start_time':"------"}
-        info['proxy_url'] = proxy_url
+        #info['proxy_url'] = proxy_url
         info['proxy_server_ip'] = proxy_server_ip
         info['proxy_public_ip'] = proxy_public_ip
         info['port_mapping'] = []
@@ -713,10 +726,8 @@ class VclusterMgr(object):
         return [True, "detach cluster"]
 
     def list_clusters(self, user):
-        if not os.path.exists(self.fspath+"/global/users/"+user+"/clusters"):
-            return [True, []]
-        clusters = os.listdir(self.fspath+"/global/users/"+user+"/clusters")
-        full_clusters = []
+        clusters = VCluster.query.filter_by(ownername = user).all()
+        '''full_clusters = []
         for cluster in clusters:
             single_cluster = {}
             single_cluster['name'] = cluster
@@ -725,7 +736,7 @@ class VclusterMgr(object):
                 single_cluster['status'] = 'running'
             else:
                 single_cluster['status'] = 'stopping'
-            full_clusters.append(single_cluster)
+            full_clusters.append(single_cluster)'''
         return [True, clusters]
 
     def is_cluster(self, clustername, username):
@@ -755,8 +766,8 @@ class VclusterMgr(object):
             logger.error("Fail to get proxy_public_ip %s."%(proxy_server_ip))
             proxy_public_ip = proxy_server_ip
         info['proxy_public_ip'] = proxy_public_ip
-        proxy_url = env.getenv("PORTAL_URL") +"/"+ proxy_public_ip +"/_web/" + username + "/" + clustername
-        info['proxy_url'] = proxy_url
+        #proxy_url = env.getenv("PORTAL_URL") +"/"+ proxy_public_ip +"/_web/" + username + "/" + clustername
+        #info['proxy_url'] = proxy_url
         self.write_clusterinfo(info,clustername,username)
         return proxy_public_ip
 

@@ -42,7 +42,8 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'+fsdir+'/global/sys/UserTable.db'
 app.config['SQLALCHEMY_BINDS'] = {
     'history': 'sqlite:///'+fsdir+'/global/sys/HistoryTable.db',
-    'beansapplication': 'sqlite:///'+fsdir+'/global/sys/BeansApplication.db'
+    'beansapplication': 'sqlite:///'+fsdir+'/global/sys/BeansApplication.db',
+    'system': 'sqlite:///'+fsdir+'/global/sys/System.db'
     }
 try:
     secret_key_file = open(env.getenv('FS_PREFIX') + '/local/token_secret_key.txt')
@@ -268,3 +269,80 @@ class ApplyMsg(db.Model):
 
     def __repr__(self):
         return "{\"id\":\"%d\", \"username\":\"%s\", \"number\": \"%d\", \"reason\":\"%s\", \"status\":\"%s\", \"time\":\"%s\"}" % (self.id, self.username, self.number, self.reason, self.status, self.time.strftime("%Y-%m-%d %H:%M:%S"))
+
+class Container(db.Model):
+    __bind_key__ = 'system'
+    containername = db.Column(db.String(100), primary_key=True)
+    hostname = db.Column(db.String(30))
+    ip = db.Column(db.String(20))
+    host = db.Column(db.String(20))
+    image = db.Column(db.String(50))
+    lastsave = db.Column(db.DateTime)
+    setting_cpu = db.Column(db.Integer)
+    setting_mem = db.Column(db.Integer)
+    setting_disk = db.Column(db.Integer)
+    vclusterid = db.Column(db.Integer, db.ForeignKey('v_cluster.clusterid'))
+
+    def __init__(self, containername, hostname, ip, host, image, lastsave, setting):
+        self.containername = containername
+        self.hostname = hostname
+        self.ip = ip
+        self.host = host
+        self.image = image
+        self.lastsave = lastsave
+        self.setting_cpu = int(setting['cpu'])
+        self.setting_mem = int(setting['memory'])
+        self.setting_disk = int(setting['disk'])
+
+    def __repr__(self):
+        return "{\"containername\":\"%s\", \"hostname\":\"%s\", \"ip\": \"%s\", \"host\":\"%s\", \"image\":\"%s\", \"lastsave\":\"%s\"}" % (self.containername, self.hostname, self.ip, self.host, self.image, self.lastsave.strftime("%Y-%m-%d %H:%M:%S"))
+
+class PortMapping(db.Model):
+    __bind_key__ = 'system'
+    id = db.Column(db.BigInteger, primary_key=True)
+    vnode_name = db.Column(db.String(100))
+    vnode_ip = db.Column(db.String(20))
+    vnode_port = db.Column(db.Integer)
+    host_port= db.Column(db.Integer)
+    vclusterid = db.Column(db.Integer, db.ForeignKey('v_cluster.clusterid'))
+
+    def __init__(self, vnode_name, vnode_ip, vnode_port, host_port):
+        self.vnode_name = vnode_name
+        self.vnode_ip = vnode_ip
+        self.vnode_port = vnode_port
+        self.host_port = host_port
+
+    def __repr__(self):
+        return "{\"id\":\"%d\", \"vnode_name\":\"%s\", \"vnode_ip\": \"%s\", \"vnode_port\":\"%s\", \"host_port\":\"%s\"}" % (self.id, self.vnode_name, self.vnode_ip, self.vnode_port, self.host_port)
+
+class VCluster(db.Model):
+    __bind_key__ = 'system'
+    clusterid = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
+    clustername = db.Column(db.String(50))
+    ownername = db.Column(db.String(20))
+    status = db.Column(db.String(10))
+    size = db.Column(db.Integer)
+    containers = db.relationship('Container', backref='v_cluster', lazy='dynamic')
+    nextcid = db.Column(db.Integer)
+    create_time = db.Column(db.DateTime)
+    start_time = db.Column(db.String(20))
+    proxy_server_ip = db.Column(db.String(20))
+    proxy_public_ip = db.Column(db.String(20))
+    portmappings = db.relationship('PortMapping', backref='v_cluster', lazy='dynamic')
+
+    def __init__(self, clusterid, clustername, ownername, status, size, nextcid, proxy_server_ip, proxy_public_ip):
+        self.clusterid = clusterid
+        self.clustername = clustername
+        self.ownername = ownername
+        self.status = status
+        self.size = size
+        self.nextcid = nextcid
+        self.proxy_server_ip = proxy_server_ip
+        self.proxy_public_ip = proxy_public_ip
+        self.containers = []
+        self.portmappings = []
+        self.create_time = datetime.now()
+        self.start_time = "------"
+
+    def __repr__(self):
+        return "{\"clusterid\":\"%d\", \"clustername\":\"%s\", \"ownername\": \"%s\", \"status\":\"%s\", \"size\":\"%d\", \"proxy_server_ip\":\"%s\", \"create_time\":\"%s\"}" % (self.clusterid, self.clustername, self.ownername, self.status, self.size, self.proxy_server_ip, self.create_time.strftime("%Y-%m-%d %H:%M:%S"))
