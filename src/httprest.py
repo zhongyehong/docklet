@@ -333,17 +333,21 @@ def save_cluster(user, beans, form):
     description = form.get("description", None)
     containername = form.get("containername", None)
     isforce = form.get("isforce", None)
+    G_ulockmgr.acquire(user)
     if not isforce == "true":
         [status,message] = G_vclustermgr.image_check(user,imagename)
         if not status:
+            G_ulockmgr.release(user)
             return json.dumps({'success':'false','reason':'exists', 'message':message})
 
     user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
     [status,message] = G_vclustermgr.create_image(user,clustername,containername,imagename,description,user_info["data"]["groupinfo"]["image"])
     if status:
+        G_ulockmgr.release(user)
         logger.info("image has been saved")
         return json.dumps({'success':'true', 'action':'save'})
     else:
+        G_ulockmgr.release(user)
         logger.debug(message)
         return json.dumps({'success':'false', 'reason':'exceed', 'message':message})
 
@@ -379,7 +383,9 @@ def description_image(user, beans, form):
 def share_image(user, beans, form):
     global G_imagemgr
     image = form.get('image')
+    G_ulockmgr.acquire(user)
     G_imagemgr.shareImage(user,image)
+    G_ulockmgr.release(user)
     return json.dumps({'success':'true', 'action':'share'})
 
 @app.route("/image/unshare/", methods=['POST'])
@@ -387,7 +393,9 @@ def share_image(user, beans, form):
 def unshare_image(user, beans, form):
     global G_imagemgr
     image = form.get('image', None)
+    G_ulockmgr.acquire(user)
     G_imagemgr.unshareImage(user,image)
+    G_ulockmgr.release(user)
     return json.dumps({'success':'true', 'action':'unshare'})
 
 @app.route("/image/delete/", methods=['POST'])
@@ -395,7 +403,9 @@ def unshare_image(user, beans, form):
 def delete_image(user, beans, form):
     global G_imagemgr
     image = form.get('image', None)
+    G_ulockmgr.acquire(user)
     G_imagemgr.removeImage(user,image)
+    G_ulockmgr.release(user)
     return json.dumps({'success':'true', 'action':'delete'})
 
 @app.route("/addproxy/", methods=['POST'])
