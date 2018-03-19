@@ -45,6 +45,7 @@ app.config['SQLALCHEMY_BINDS'] = {
     'beansapplication': 'sqlite:///'+fsdir+'/global/sys/BeansApplication.db',
     'system': 'sqlite:///'+fsdir+'/global/sys/System.db'
     }
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 try:
     secret_key_file = open(env.getenv('FS_PREFIX') + '/local/token_secret_key.txt')
     app.secret_key = secret_key_file.read()
@@ -346,3 +347,11 @@ class VCluster(db.Model):
 
     def __repr__(self):
         return "{\"clusterid\":\"%d\", \"clustername\":\"%s\", \"ownername\": \"%s\", \"status\":\"%s\", \"size\":\"%d\", \"proxy_server_ip\":\"%s\", \"create_time\":\"%s\"}" % (self.clusterid, self.clustername, self.ownername, self.status, self.size, self.proxy_server_ip, self.create_time.strftime("%Y-%m-%d %H:%M:%S"))
+
+class Image(db.Model):
+    __bind_key__ = 'system'
+    imagename = db.Column(db.String(50))
+    id = db.Column(db.BigInteger, primary_key=True)
+    isshared = db.Column(db.Boolean)
+    ownername = db.Column(db.String(20))
+    description = db.Column(db.Text)
