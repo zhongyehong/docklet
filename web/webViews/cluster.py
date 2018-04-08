@@ -298,6 +298,25 @@ class unshareImageView(normalView):
         else:
             self.error()
 
+class copyImageView(normalView):
+    error_path = "error.html"
+
+    @classmethod
+    def post(self):
+        masterip = self.masterip
+        data = {
+                "image": self.image,
+                "target": self.target
+        }
+        result = dockletRequest.post("/image/copy/", data, masterip)
+        if result:
+            if result.get('success') == 'true':
+                return redirect("/config/")
+            else:
+                return self.render(self.error_path,message=result.get('message'))
+        else:
+            self.error()
+
 class deleteImageView(normalView):
     template_path = "dashboard.html"
 
@@ -350,6 +369,7 @@ class deleteproxyView(normalView):
 class configView(normalView):
     @classmethod
     def get(self):
+        masterips = dockletRequest.post_to_all()
         allimages = dockletRequest.post_to_all('/image/list/')
         for master in allimages:
             allimages[master] = allimages[master].get('images')
@@ -398,7 +418,7 @@ class configView(normalView):
                 'memory': defaultmemory,
                 'disk': defaultdisk
                 }
-        return self.render("config.html", allimages = allimages, allclusters = allclusters_info, mysession=dict(session), quota = quota, usage = usage, defaultsetting = defaultsetting)
+        return self.render("config.html", allimages = allimages, allclusters = allclusters_info, mysession=dict(session), quota = quota, usage = usage, defaultsetting = defaultsetting, masterips = masterips)
 
     @classmethod
     def post(self):

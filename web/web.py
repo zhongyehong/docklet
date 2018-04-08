@@ -294,6 +294,15 @@ def deleteImage(image,masterip):
     deleteImageView.masterip = masterip
     return deleteImageView.as_view()
 
+@app.route("/image/<masterip>/copy/<image>/", methods=['POST'])
+@login_required
+def copyImage(image,masterip):
+    copyImageView.image = image
+    copyImageView.masterip = masterip
+    copyImageView.target = request.form['target']
+    return copyImageView.as_view()
+
+
 @app.route("/image/<masterip>/updatebase/<image>/", methods=['GET'])
 @login_required
 def updatebaseImage(image,masterip):

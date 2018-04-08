@@ -257,6 +257,33 @@ class ImageMgr():
         except Exception as e:
             logger.error(e)
 
+    def copyImage(self,user,image,target):
+        path = "/opt/docklet/global/images/private/"+user+"/"
+        image_info_file = open(path+"."+image+".info", 'r')
+        [createtime, isshare] = image_info_file.readlines()
+        recordshare = isshare
+        isshare = "unshared"
+        image_info_file.close()
+        image_info_file = open(path+"."+image+".info", 'w')
+        image_info_file.writelines([createtime, isshare])
+        image_info_file.close()
+        try:
+            sys_run('ssh root@%s "mkdir -p %s"' % (target,path))
+            sys_run('scp %s%s.tz root@%s:%s' % (path,image,target,path))
+            sys_run('scp %s.%s.description root@%s:%s' % (path,image,target,path))
+            sys_run('scp %s.%s.info root@%s:%s' % (path,image,target,path))
+        except Exception as e:
+            logger.error(e)
+            image_info_file = open(path+"."+image+".info", 'w')
+            image_info_file.writelines([createtime, recordshare])
+            image_info_file.close()
+            return {'success':'false', 'message':str(e)}
+        image_info_file = open(path+"."+image+".info", 'w')
+        image_info_file.writelines([createtime, recordshare])
+        image_info_file.close()
+        logger.info("copy image %s of %s to %s success" % (image,user,target))
+        return {'success':'true', 'action':'copy image'}
+
     def update_basefs(self,image):
         imgpath = self.imgpath + "private/root/"
         basefs = self.NFS_PREFIX+"/local/packagefs/"
