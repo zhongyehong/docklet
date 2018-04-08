@@ -300,21 +300,21 @@ class Container(db.Model):
 
 class PortMapping(db.Model):
     __bind_key__ = 'system'
-    id = db.Column(db.BigInteger, primary_key=True)
-    vnode_name = db.Column(db.String(100))
-    vnode_ip = db.Column(db.String(20))
-    vnode_port = db.Column(db.Integer)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    node_name = db.Column(db.String(100))
+    node_ip = db.Column(db.String(20))
+    node_port = db.Column(db.Integer)
     host_port= db.Column(db.Integer)
     vclusterid = db.Column(db.Integer, db.ForeignKey('v_cluster.clusterid'))
 
-    def __init__(self, vnode_name, vnode_ip, vnode_port, host_port):
-        self.vnode_name = vnode_name
-        self.vnode_ip = vnode_ip
-        self.vnode_port = vnode_port
+    def __init__(self, node_name, node_ip, node_port, host_port):
+        self.node_name = node_name
+        self.node_ip = node_ip
+        self.node_port = node_port
         self.host_port = host_port
 
     def __repr__(self):
-        return "{\"id\":\"%d\", \"vnode_name\":\"%s\", \"vnode_ip\": \"%s\", \"vnode_port\":\"%s\", \"host_port\":\"%s\"}" % (self.id, self.vnode_name, self.vnode_ip, self.vnode_port, self.host_port)
+        return "{\"id\":\"%d\", \"node_name\":\"%s\", \"node_ip\": \"%s\", \"node_port\":\"%s\", \"host_port\":\"%s\"}" % (self.id, self.node_name, self.node_ip, self.node_port, self.host_port)
 
 class VCluster(db.Model):
     __bind_key__ = 'system'
@@ -329,7 +329,7 @@ class VCluster(db.Model):
     start_time = db.Column(db.String(20))
     proxy_server_ip = db.Column(db.String(20))
     proxy_public_ip = db.Column(db.String(20))
-    portmappings = db.relationship('PortMapping', backref='v_cluster', lazy='dynamic')
+    port_mapping = db.relationship('PortMapping', backref='v_cluster', lazy='dynamic')
 
     def __init__(self, clusterid, clustername, ownername, status, size, nextcid, proxy_server_ip, proxy_public_ip):
         self.clusterid = clusterid
@@ -341,7 +341,7 @@ class VCluster(db.Model):
         self.proxy_server_ip = proxy_server_ip
         self.proxy_public_ip = proxy_public_ip
         self.containers = []
-        self.portmappings = []
+        self.port_mapping = []
         self.create_time = datetime.now()
         self.start_time = "------"
 
@@ -358,7 +358,7 @@ class VCluster(db.Model):
         info["create_time"] = self.create_time.strftime("%Y-%m-%d %H:%M:%S")
         info["start_time"] = self.start_time
         info["containers"] = [dict(eval(str(con))) for con in self.containers]
-        info["port_mapping"] = [dict(eval(str(pm))) for pm in self.portmappings]
+        info["port_mapping"] = [dict(eval(str(pm))) for pm in self.port_mapping]
         #return "{\"clusterid\":\"%d\", \"clustername\":\"%s\", \"ownername\": \"%s\", \"status\":\"%s\", \"size\":\"%d\", \"proxy_server_ip\":\"%s\", \"create_time\":\"%s\"}" % (self.clusterid, self.clustername, self.ownername, self.status, self.size, self.proxy_server_ip, self.create_time.strftime("%Y-%m-%d %H:%M:%S"))
         return json.dumps(info)
 

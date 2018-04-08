@@ -305,13 +305,13 @@ class VclusterMgr(object):
             [success, host_port] = portcontrol.acquire_port_mapping(node_name, node_ip, port)
         if not success:
             return [False, host_port]
-        if 'port_mapping' not in clusterinfo.keys():
-            clusterinfo['port_mapping'] = []
-        clusterinfo['port_mapping'].append({'node_name':node_name, 'node_ip':node_ip, 'node_port':port, 'host_port':host_port})
-        clusterfile = open(self.fspath + "/global/users/" + username + "/clusters/" + clustername, 'w')
-        clusterfile.write(json.dumps(clusterinfo))
-        clusterfile.close()
-        return [True, clusterinfo]
+        [status,vcluster] = self.get_vcluster(clustername,username)
+        if not status:
+            return [False,"VCluster not found."]
+        vcluster.port_mapping.append(PortMapping(node_name,node_ip,port,host_port))
+        db.session.add(vcluster)
+        db.session.commit()
+        return [True, json.loads(str(vcluster))]
 
     def recover_port_mapping(self,username,clustername):
         [status, clusterinfo] = self.get_clusterinfo(clustername, username)
@@ -326,28 +326,28 @@ class VclusterMgr(object):
         return [True, clusterinfo]
 
     def delete_all_port_mapping(self, username, clustername, node_name):
-        [status, clusterinfo] = self.get_clusterinfo(clustername, username)
+        [status, vcluster] = self.get_vcluster(clustername, username)
+        if not status:
+            return [False,"VCluster not found."]
         error_msg = None
         delete_list = []
-        for item in clusterinfo['port_mapping']:
-            if item['node_name'] == node_name:
-                node_ip = item['node_ip']
-                node_port = item['node_port']
+        for item in vcluster.port_mapping:
+            if item.node_name == node_name:
+                node_ip = item.node_ip
+                node_port = item.node_port
                 if self.distributedgw == 'True':
-                    worker = self.nodemgr.ip_to_rpc(clusterinfo['proxy_server_ip'])
-                    [success,msg] = worker.release_port_mapping(node_name, node_ip, node_port)
+                    worker = self.nodemgr.ip_to_rpc(vcluster.proxy_server_ip)
+                    [success,msg] = worker.release_port_mapping(node_name, node_ip, str(node_port))
                 else:
-                    [success,msg] = portcontrol.release_port_mapping(node_name, node_ip, node_port)
+                    [success,msg] = portcontrol.release_port_mapping(node_name, node_ip, str(node_port))
                 if not success:
                     error_msg = msg
                 else:
                     delete_list.append(item)
         if len(delete_list) > 0:
             for item in delete_list:
-                clusterinfo['port_mapping'].remove(item)
-            clusterfile = open(self.fspath + "/global/users/" + username + "/clusters/" + clustername, 'w')
-            clusterfile.write(json.dumps(clusterinfo))
-            clusterfile.close()
+                db.session.delete(item)
+            db.session.commit()
         else:
             return [True,"No port mapping."]
         if error_msg is not None:
@@ -356,28 +356,27 @@ class VclusterMgr(object):
             return [True,"Success"]
 
     def delete_port_mapping(self, username, clustername, node_name, node_port):
-        [status, clusterinfo] = self.get_clusterinfo(clustername, username)
-        idx = 0
-        for item in clusterinfo['port_mapping']:
-            if item['node_name'] == node_name and item['node_port'] == node_port:
+        [status, vcluster] = self.get_vcluster(clustername, username)
+        if not status:
+            return [False,"VCluster not found."]
+        for item in vcluster.port_mapping:
+            if item.node_name == node_name and str(item.node_port) == str(node_port):
+                node_ip = item.node_ip
+                node_port = item.node_port
+                if self.distributedgw == 'True':
+                    worker = self.nodemgr.ip_to_rpc(self.vcluster.proxy_server_ip)
+                    [success,msg] = worker.release_port_mapping(node_name, node_ip, str(node_port))
+                else:
+                    [success,msg] = portcontrol.release_port_mapping(node_name, node_ip, str(node_port))
+                if not success:
+                    return [False,msg]
+                db.session.delete(item)
+                print("HHH")
                 break
-            idx += 1
-        if idx == len(clusterinfo['port_mapping']):
-            return [False,"No port mapping."]
-        node_ip = clusterinfo['port_mapping'][idx]['node_ip']
-        node_port = clusterinfo['port_mapping'][idx]['node_port']
-        if self.distributedgw == 'True':
-            worker = self.nodemgr.ip_to_rpc(clusterinfo['proxy_server_ip'])
-            [success,msg] = worker.release_port_mapping(node_name, node_ip, node_port)
         else:
-            [success,msg] = portcontrol.release_port_mapping(node_name, node_ip, node_port)
-        if not success:
-            return [False,msg]
-        clusterinfo['port_mapping'].pop(idx)
-        clusterfile = open(self.fspath + "/global/users/" + username + "/clusters/" + clustername, 'w')
-        clusterfile.write(json.dumps(clusterinfo))
-        clusterfile.close()
-        return [True, clusterinfo]
+            return [False,"No port mapping."]
+        db.session.commit()
+        return [True, json.loads(str(vcluster))]
 
     def flush_cluster(self,username,clustername,containername):
         begintime = datetime.datetime.now()
@@ -772,15 +771,6 @@ class VclusterMgr(object):
             return [False, None]
         else:
             return [True, vcluster]
-
-    def write_clusterinfo(self, info, clustername, username):
-        clusterpath = self.fspath + "/global/users/" + username + "/clusters/" + clustername
-        if not os.path.isfile(clusterpath):
-            return [False, "cluster not found"]
-        infofile = open(clusterpath, 'w')
-        infofile.write(json.dumps(info))
-        infofile.close()
-        return [True, info]
 
     # acquire cluster id from etcd
     def _acquire_id(self):
