@@ -28,7 +28,7 @@ from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 from datetime import datetime
 from base64 import b64encode, b64decode
-import os
+import os, json
 
 #this class from itsdangerous implements token<->user
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
@@ -296,7 +296,7 @@ class Container(db.Model):
         self.setting_disk = int(setting['disk'])
 
     def __repr__(self):
-        return "{\"containername\":\"%s\", \"hostname\":\"%s\", \"ip\": \"%s\", \"host\":\"%s\", \"image\":\"%s\", \"lastsave\":\"%s\"}" % (self.containername, self.hostname, self.ip, self.host, self.image, self.lastsave.strftime("%Y-%m-%d %H:%M:%S"))
+        return "{\"containername\":\"%s\", \"hostname\":\"%s\", \"ip\": \"%s\", \"host\":\"%s\", \"image\":\"%s\", \"lastsave\":\"%s\", \"setting\":{\"cpu\":\"%d\",\"memory\":\"%d\",\"disk\":\"%d\"}}" % (self.containername, self.hostname, self.ip, self.host, self.image, self.lastsave.strftime("%Y-%m-%d %H:%M:%S"), self.setting_cpu, self.setting_mem, self.setting_disk)
 
 class PortMapping(db.Model):
     __bind_key__ = 'system'
@@ -346,7 +346,21 @@ class VCluster(db.Model):
         self.start_time = "------"
 
     def __repr__(self):
-        return "{\"clusterid\":\"%d\", \"clustername\":\"%s\", \"ownername\": \"%s\", \"status\":\"%s\", \"size\":\"%d\", \"proxy_server_ip\":\"%s\", \"create_time\":\"%s\"}" % (self.clusterid, self.clustername, self.ownername, self.status, self.size, self.proxy_server_ip, self.create_time.strftime("%Y-%m-%d %H:%M:%S"))
+        info = {}
+        info["clusterid"] = self.clusterid
+        info["clustername"] = self.clustername
+        info["ownername"] = self.ownername
+        info["status"] = self.status
+        info["size"] = self.size
+        info["proxy_server_ip"] = self.proxy_server_ip
+        info["proxy_public_ip"] = self.proxy_public_ip
+        info["nextcid"] = self.nextcid
+        info["create_time"] = self.create_time.strftime("%Y-%m-%d %H:%M:%S")
+        info["start_time"] = self.start_time
+        info["containers"] = [dict(eval(str(con))) for con in self.containers]
+        info["port_mapping"] = [dict(eval(str(pm))) for pm in self.portmappings]
+        #return "{\"clusterid\":\"%d\", \"clustername\":\"%s\", \"ownername\": \"%s\", \"status\":\"%s\", \"size\":\"%d\", \"proxy_server_ip\":\"%s\", \"create_time\":\"%s\"}" % (self.clusterid, self.clustername, self.ownername, self.status, self.size, self.proxy_server_ip, self.create_time.strftime("%Y-%m-%d %H:%M:%S"))
+        return json.dumps(info)
 
 class Image(db.Model):
     __bind_key__ = 'system'
