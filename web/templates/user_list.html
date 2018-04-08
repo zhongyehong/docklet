@@ -246,8 +246,8 @@
                       <td>{{ application.number }} beans</td>
                       <td>{{ application.time }}</td>
                       <td>{{ application.reason }}</td>
-                      <td><a class="btn btn-xs btn-info" href="/beans/admin/{{ application.id }}/agree/">Agree</a>&nbsp;&nbsp;&nbsp;&nbsp;
-                          <a class="btn btn-xs btn-danger" href="/beans/admin/{{ application.id }}/reject/">Reject</a></td>
+                      <td><a class="btn btn-xs btn-info" href="/beans/admin/{{ application.username }}/{{ application.id }}/agree/">Agree</a>&nbsp;&nbsp;&nbsp;&nbsp;
+                          <a class="btn btn-xs btn-danger" href="/beans/admin/{{ application.username }}/{{ application.id }}/reject/">Reject</a></td>
                       </tr>
                       {% endfor %}
                     </tbody>
