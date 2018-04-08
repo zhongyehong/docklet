@@ -611,9 +611,10 @@ class VclusterMgr(object):
             namesplit = container['containername'].split('-')
             portname = namesplit[1] + '-' + namesplit[2]
             worker.recover_usernet(portname, uid, info['proxy_server_ip'], container['host']==info['proxy_server_ip'])
-        info['status']='running'
-        info['start_time']=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.write_clusterinfo(info,clustername,username)
+        [status,vcluster] = self.get_vcluster(clustername,username)
+        vcluster.status ='running'
+        vcluster.start_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        db.session.commit()
         return [True, "start cluster"]
 
     def mount_cluster(self, clustername, username):
@@ -692,12 +693,10 @@ class VclusterMgr(object):
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.stop_container(container['containername'])
-        [status, info] = self.get_clusterinfo(clustername, username)
-        info['status']='stopped'
-        info['start_time']="------"
-        infofile = open(self.fspath+"/global/users/"+username+"/clusters/"+clustername, 'w')
-        infofile.write(json.dumps(info))
-        infofile.close()
+        [status, vcluster] = self.get_vcluster(clustername, username)
+        vcluster.status = 'stopped'
+        vcluster.start_time ="------"
+        db.session.commit()
         return [True, "stop cluster"]
 
     def detach_cluster(self, clustername, username):
