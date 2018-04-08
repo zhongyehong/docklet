@@ -373,6 +373,8 @@ class ImageMgr():
                 try:
                     Ret = sys_run("ls %s" % imgpath, True)
                     public_images = str(Ret.stdout,"utf-8").split()
+                    if len(public_images)==0:
+                        continue
                     images["public"][public_user] = []
                     for image in public_images:
                         if not image[-3:] == '.tz':
