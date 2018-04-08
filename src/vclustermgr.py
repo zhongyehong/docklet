@@ -744,18 +744,18 @@ class VclusterMgr(object):
         return -1
 
     def update_proxy_ipAndurl(self, clustername, username, proxy_server_ip):
-        [status, info] = self.get_clusterinfo(clustername, username)
+        [status, vcluster] = self.get_vcluster(clustername, username)
         if not status:
             return [False, "cluster not found"]
-        info['proxy_server_ip'] = proxy_server_ip
+        vcluster.proxy_server_ip = proxy_server_ip
         [status, proxy_public_ip] = self.etcd.getkey("machines/publicIP/"+proxy_server_ip)
         if not status:
             logger.error("Fail to get proxy_public_ip %s."%(proxy_server_ip))
             proxy_public_ip = proxy_server_ip
-        info['proxy_public_ip'] = proxy_public_ip
+        vcluster.proxy_public_ip = proxy_public_ip
         #proxy_url = env.getenv("PORTAL_URL") +"/"+ proxy_public_ip +"/_web/" + username + "/" + clustername
         #info['proxy_url'] = proxy_url
-        self.write_clusterinfo(info,clustername,username)
+        db.session.commit()
         return proxy_public_ip
 
     def get_clusterinfo(self, clustername, username):
