@@ -57,8 +57,7 @@ class ImageMgr():
         image_description_file.close()'''
         image = Image.query.filter_by(ownername=user,imagename=imagename).first()
         if image is None:
-            #print(imagename)
-            newimage = Image(imagename,False,user,description)
+            newimage = Image(imagename,True,False,user,description)
             db.session.add(newimage)
             db.session.commit()
 
@@ -220,7 +219,9 @@ class ImageMgr():
         imgpath = self.imgpath + "private/" + user + "/"
         try:
             image = Image.query.filter_by(imagename=imagename,ownername=user).first()
-            db.session.delete(image)
+            image.hasPrivate = False
+            if image.hasPublic == False:
+                db.session.delete(image)
             db.session.commit()
             sys_run("rm -rf %s/" % imgpath+imagename+".tz", True)
             #sys_run("rm -f %s" % imgpath+"."+image+".info", True)
@@ -240,7 +241,9 @@ class ImageMgr():
         image_info_file.close()'''
         try:
             image = Image.query.filter_by(imagename=imagename,ownername=user).first()
-            image.isshared = True
+            if image.hasPublic == True:
+                return
+            image.hasPublic = True
             db.session.commit()
             sys_run("mkdir -p %s" % share_imgpath, True)
             sys_run("cp %s %s" % (imgpath+imagename+".tz", share_imgpath+imagename+".tz"), True)
@@ -266,7 +269,9 @@ class ImageMgr():
         try:
             #sys_run("rm -rf %s/" % public_imgpath+image, True)
             image = Image.query.filter_by(imagename=imagename,ownername=user).first()
-            image.isshared = False
+            image.hasPublic = False
+            if image.hasPrivate == False:
+                db.session.delete(image)
             db.session.commit()
             sys_run("rm -f %s" % public_imgpath+imagename+".tz", True)
             #sys_run("rm -f %s" % public_imgpath+"."+image+".info", True)
@@ -327,7 +332,7 @@ class ImageMgr():
             description = description[:15] + "......"
         return [time, description]
 
-    def get_image_description(self, user, imagename):
+    def get_image_description(self, user, image):
         '''if image['type'] == "private":
             imgpath = self.imgpath + "private/" + user + "/"
         else:
@@ -335,7 +340,7 @@ class ImageMgr():
         image_description_file = open(imgpath+"."+image['name']+".description", 'r')
         description = image_description_file.read()
         image_description_file.close()'''
-        image = Image.query.filter_by(imagename=imagename,ownername=user).first()
+        image = Image.query.filter_by(imagename=image['name'],ownername=image['owner']).first()
         if image is None:
             return ""
         return image.description
@@ -397,7 +402,7 @@ class ImageMgr():
         image = Image.query.filter_by(imagename=imagename,ownername=user).first()
         if image is None:
             return ""
-        if image.isshared == True:
+        if image.hasPublic == True:
             return "true"
         else:
             return "false"

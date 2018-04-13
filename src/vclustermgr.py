@@ -42,7 +42,7 @@ class VclusterMgr(object):
             VCluster.query.all()
         except:
             # create database
-            db.create_all(bind='__all__')
+            db.create_all()
 
         logger.info ("vcluster start on %s" % (self.addr))
         if self.mode == 'new':

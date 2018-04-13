@@ -366,17 +366,19 @@ class Image(db.Model):
     __bind_key__ = 'system'
     imagename = db.Column(db.String(50))
     id = db.Column(db.Integer, primary_key=True)
-    isshared = db.Column(db.Boolean)
+    hasPrivate = db.Column(db.Boolean)
+    hasPublic = db.Column(db.Boolean)
     ownername = db.Column(db.String(20))
     create_time = db.Column(db.DateTime)
     description = db.Column(db.Text)
 
-    def __init__(self,imagename,isshared,ownername,description):
+    def __init__(self,imagename,hasPrivate,hasPublic,ownername,description):
         self.imagename = imagename
-        self.isshared = isshared
+        self.hasPrivate = hasPrivate
+        self.hasPublic = hasPublic
         self.ownername = ownername
         self.description = description
         self.create_time = datetime.now()
 
     def __repr__(self):
-        return "{\"id\":\"%d\",\"imagename\":\"%s\",\"isshared\":\"%s\",\"ownername\":\"%s\",\"updatetime\":\"%s\",\"description\":\"%s\"}" % (self.id,self.imagename,str(self.isshared),self.create_time.strftime("%Y-%m-%d %H:%M:%S"),self.ownername,self.description)
+        return "{\"id\":\"%d\",\"imagename\":\"%s\",\"hasPrivate\":\"%s\",\"hasPublic\":\"%s\",\"ownername\":\"%s\",\"updatetime\":\"%s\",\"description\":\"%s\"}" % (self.id,self.imagename,str(self.hasPrivate),str(self.hasPublic),self.create_time.strftime("%Y-%m-%d %H:%M:%S"),self.ownername,self.description)
