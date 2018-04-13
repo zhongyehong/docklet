@@ -365,7 +365,18 @@ class VCluster(db.Model):
 class Image(db.Model):
     __bind_key__ = 'system'
     imagename = db.Column(db.String(50))
-    id = db.Column(db.BigInteger, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     isshared = db.Column(db.Boolean)
     ownername = db.Column(db.String(20))
+    create_time = db.Colum(db.DateTime)
     description = db.Column(db.Text)
+
+    def __init__(self,imagename,isshared,ownername,description):
+        self.imagename = imagename
+        self.isshared = isshared
+        self.ownername = ownername
+        self.description = description
+        self.create_time = datetime.now()
+
+    def __repr__(self):
+        return "{\"id\":\"%d\",\"imagename\":\"%s\",\"isshared\":\"%s\",\"ownername\":\"%s\",\"updatetime\":\"%s\",\"description\":\"%s\"}" % (self.id,self.imagename,str(self.isshared),self.create_time.strftime("%Y-%m-%d %H:%M:%S"),self.ownername,self.description)

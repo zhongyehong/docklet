@@ -424,27 +424,24 @@ class VclusterMgr(object):
             return [True, "image not exists"]
 
     def create_image(self,username,clustername,containername,imagename,description,imagenum=10):
-        [status, info] = self.get_clusterinfo(clustername,username)
+        [status, vcluster] = self.get_vcluster(clustername,username)
         if not status:
             return [False, "cluster not found"]
-        containers = info['containers']
+        containers = vcluster.containers
         for container in containers:
-            if container['containername'] == containername:
+            if container.containername == containername:
                 logger.info("container: %s found" % containername)
-                worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
+                worker = xmlrpc.client.ServerProxy("http://%s:%s" % (containe.host, env.getenv("WORKER_PORT")))
                 if worker is None:
                     return [False, "The worker can't be found or has been stopped."]
                 res = worker.create_image(username,imagename,containername,description,imagenum)
-                container['lastsave'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                container['image'] = imagename
+                container.lastsave = datetime.datetime.now()
+                container.image = imagename
                 break
         else:
             res = [False, "container not found"]
             logger.error("container: %s not found" % containername)
-        clusterpath = self.fspath + "/global/users/" + username + "/clusters/" + clustername
-        infofile = open(clusterpath, 'w')
-        infofile.write(json.dumps(info))
-        infofile.close()
+        db.session.commit()
         return res
 
     def delete_cluster(self, clustername, username, user_info):
