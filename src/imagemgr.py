@@ -48,17 +48,18 @@ class ImageMgr():
     def string_toDatetime(self,string):
         return datetime.datetime.strptime(string, "%Y-%m-%d %H:%M:%S")
 
-    def updateinfo(self,user,image,description):
+    def updateinfo(self,user,imagename,description):
         '''image_info_file = open(imgpath+"."+image+".info",'w')
         image_info_file.writelines([self.datetime_toString(datetime.datetime.now()) + "\n", "unshare"])
         image_info_file.close()
         image_description_file = open(imgpath+"."+image+".description", 'w')
         image_description_file.write(description)
         image_description_file.close()'''
-        image = Image.query.filter_by(ownername=user,imagename=image).first()
+        image = Image.query.filter_by(ownername=user,imagename=imagename).first()
         if image is None:
-            image = Image(image,False,user,description)
-            db.session.add(image)
+            #print(imagename)
+            newimage = Image(imagename,False,user,description)
+            db.session.add(newimage)
             db.session.commit()
 
 
@@ -215,19 +216,19 @@ class ImageMgr():
         return True
 
 
-    def removeImage(self,user,image):
+    def removeImage(self,user,imagename):
         imgpath = self.imgpath + "private/" + user + "/"
         try:
-            image = Image.query.filter_by(imagename=image,ownername=user).first()
+            image = Image.query.filter_by(imagename=imagename,ownername=user).first()
             db.session.delete(image)
             db.session.commit()
-            sys_run("rm -rf %s/" % imgpath+image+".tz", True)
+            sys_run("rm -rf %s/" % imgpath+imagename+".tz", True)
             #sys_run("rm -f %s" % imgpath+"."+image+".info", True)
             #sys_run("rm -f %s" % (imgpath+"."+image+".description"), True)
         except Exception as e:
             logger.error(e)
 
-    def shareImage(self,user,image):
+    def shareImage(self,user,imagename):
         imgpath = self.imgpath + "private/" + user + "/"
         share_imgpath = self.imgpath + "public/" + user + "/"
         '''image_info_file = open(imgpath+"."+image+".info", 'r')
@@ -238,11 +239,11 @@ class ImageMgr():
         image_info_file.writelines([createtime, isshare])
         image_info_file.close()'''
         try:
-            image = Image.query.filter_by(imagename=image,ownername=user).first()
+            image = Image.query.filter_by(imagename=imagename,ownername=user).first()
             image.isshared = True
             db.session.commit()
             sys_run("mkdir -p %s" % share_imgpath, True)
-            sys_run("cp %s %s" % (imgpath+image+".tz", share_imgpath+image+".tz"), True)
+            sys_run("cp %s %s" % (imgpath+imagename+".tz", share_imgpath+imagename+".tz"), True)
             #sys_run("rsync -a --delete %s/ %s/" % (imgpath+image,share_imgpath+image), True)
         except Exception as e:
             logger.error(e)
@@ -251,7 +252,7 @@ class ImageMgr():
 
 
 
-    def unshareImage(self,user,image):
+    def unshareImage(self,user,imagename):
         public_imgpath = self.imgpath + "public/" + user + "/"
         imgpath = self.imgpath + "private/" + user + "/"
         '''if os.path.isfile(imgpath + image + ".tz"):
@@ -264,23 +265,23 @@ class ImageMgr():
             image_info_file.close()'''
         try:
             #sys_run("rm -rf %s/" % public_imgpath+image, True)
-            image = Image.query.filter_by(imagename=image,ownername=user).first()
+            image = Image.query.filter_by(imagename=imagename,ownername=user).first()
             image.isshared = False
             db.session.commit()
-            sys_run("rm -f %s" % public_imgpath+image+".tz", True)
+            sys_run("rm -f %s" % public_imgpath+imagename+".tz", True)
             #sys_run("rm -f %s" % public_imgpath+"."+image+".info", True)
             #sys_run("rm -f %s" % public_imgpath+"."+image+".description", True)
         except Exception as e:
             logger.error(e)
 
-    def update_basefs(self,image):
+    def update_basefs(self,imagename):
         imgpath = self.imgpath + "private/root/"
         basefs = self.NFS_PREFIX+"/local/packagefs/"
         tmppath = self.NFS_PREFIX + "/local/tmpimg/"
         tmpimage = str(random.randint(0,10000000))
         try:
             sys_run("mkdir -p %s" % tmppath+tmpimage)
-            sys_run("tar -C %s -xvf %s" % (tmppath+tmpimage,imgpath+image+".tz"),True)
+            sys_run("tar -C %s -xvf %s" % (tmppath+tmpimage,imgpath+imagename+".tz"),True)
             logger.info("start updating base image")
             updatebase.aufs_update_base(tmppath+tmpimage, basefs)
             logger.info("update base image success")
@@ -306,7 +307,7 @@ class ImageMgr():
         #logger.info("recover all cluster success")
         return [True, "update base image"]
 
-    def get_image_info(self, user, image, imagetype):
+    def get_image_info(self, user, imagename, imagetype):
         '''if imagetype == "private":
             imgpath = self.imgpath + "private/" + user + "/"
         else:
@@ -317,7 +318,7 @@ class ImageMgr():
         image_description_file = open(imgpath+"."+image+".description",'r')
         description = image_description_file.read()
         image_description_file.close()'''
-        image = Image.query.filter_by(imagename=image,ownername=user).first()
+        image = Image.query.filter_by(imagename=imagename,ownername=user).first()
         if image is None:
             return ["", ""]
         time = image.create_time.strftime("%Y-%m-%d %H:%M:%S")
@@ -326,7 +327,7 @@ class ImageMgr():
             description = description[:15] + "......"
         return [time, description]
 
-    def get_image_description(self, user, image):
+    def get_image_description(self, user, imagename):
         '''if image['type'] == "private":
             imgpath = self.imgpath + "private/" + user + "/"
         else:
@@ -334,7 +335,7 @@ class ImageMgr():
         image_description_file = open(imgpath+"."+image['name']+".description", 'r')
         description = image_description_file.read()
         image_description_file.close()'''
-        image = Image.query.filter_by(imagename=image,ownername=user).first()
+        image = Image.query.filter_by(imagename=imagename,ownername=user).first()
         if image is None:
             return ""
         return image.description
@@ -388,12 +389,12 @@ class ImageMgr():
 
         return images
 
-    def isshared(self,user,image):
+    def isshared(self,user,imagename):
         '''imgpath = self.imgpath + "private/" + user + "/"
         image_info_file = open(imgpath+"."+image+".info",'r')
         [time, isshare] = image_info_file.readlines()
         image_info_file.close()'''
-        image = Image.query.filter_by(imagename=image,ownername=user).first()
+        image = Image.query.filter_by(imagename=imagename,ownername=user).first()
         if image is None:
             return ""
         if image.isshared == True:

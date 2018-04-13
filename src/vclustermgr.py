@@ -364,7 +364,7 @@ class VclusterMgr(object):
                 node_ip = item.node_ip
                 node_port = item.node_port
                 if self.distributedgw == 'True':
-                    worker = self.nodemgr.ip_to_rpc(self.vcluster.proxy_server_ip)
+                    worker = self.nodemgr.ip_to_rpc(vcluster.proxy_server_ip)
                     [success,msg] = worker.release_port_mapping(node_name, node_ip, str(node_port))
                 else:
                     [success,msg] = portcontrol.release_port_mapping(node_name, node_ip, str(node_port))
@@ -431,7 +431,7 @@ class VclusterMgr(object):
         for container in containers:
             if container.containername == containername:
                 logger.info("container: %s found" % containername)
-                worker = xmlrpc.client.ServerProxy("http://%s:%s" % (containe.host, env.getenv("WORKER_PORT")))
+                worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container.host, env.getenv("WORKER_PORT")))
                 if worker is None:
                     return [False, "The worker can't be found or has been stopped."]
                 res = worker.create_image(username,imagename,containername,description,imagenum)
