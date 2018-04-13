@@ -368,7 +368,7 @@ class Image(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     isshared = db.Column(db.Boolean)
     ownername = db.Column(db.String(20))
-    create_time = db.Colum(db.DateTime)
+    create_time = db.Column(db.DateTime)
     description = db.Column(db.Text)
 
     def __init__(self,imagename,isshared,ownername,description):
