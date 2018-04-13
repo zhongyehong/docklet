@@ -408,6 +408,16 @@ def delete_image(user, beans, form):
     G_ulockmgr.release(user)
     return json.dumps({'success':'true', 'action':'delete'})
 
+@app.route("/image/copy/", methods=['POST'])
+@login_required
+def copy_image(user, beans, form):
+    global G_imagemgr
+    image = form.get('image', None)
+    target = form.get('target',None)
+    res = G_imagemgr.copyImage(user,image,target)
+    return json.dumps(res)
+
+
 @app.route("/addproxy/", methods=['POST'])
 @login_required
 def addproxy(user, beans, form):

@@ -97,8 +97,11 @@ class dockletRequest():
             except Exception as e:
                 logger.debug(e)
                 continue
-            result[masterip] = res
-            logger.debug("get result from " + getip(masterip))
+            if 'success' in res and res['success'] == 'true':
+                result[masterip] = res
+                logger.info("get result from %s success" % getip(masterip))
+            else:
+                logger.error("get result from %s failed" % getip(masterip))
 
         return result
 
