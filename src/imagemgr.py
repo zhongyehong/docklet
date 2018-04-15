@@ -26,6 +26,9 @@ from log import logger
 import env
 from lvmtool import *
 import updatebase
+import requests
+
+master_port = str(env.getenv('MASTER_PORT'))
 
 class ImageMgr():
     #def sys_call(self,command):
@@ -279,30 +282,36 @@ class ImageMgr():
         except Exception as e:
             logger.error(e)
 
-    def copyImage(self,user,image,target):
+    def copyImage(self,user,image,token,target):
         path = "/opt/docklet/global/images/private/"+user+"/"
-        image_info_file = open(path+"."+image+".info", 'r')
+        '''image_info_file = open(path+"."+image+".info", 'r')
         [createtime, isshare] = image_info_file.readlines()
         recordshare = isshare
         isshare = "unshared"
         image_info_file.close()
         image_info_file = open(path+"."+image+".info", 'w')
         image_info_file.writelines([createtime, isshare])
-        image_info_file.close()
+        image_info_file.close()'''
         try:
             sys_run('ssh root@%s "mkdir -p %s"' % (target,path))
             sys_run('scp %s%s.tz root@%s:%s' % (path,image,target,path))
-            sys_run('scp %s.%s.description root@%s:%s' % (path,image,target,path))
-            sys_run('scp %s.%s.info root@%s:%s' % (path,image,target,path))
+            #sys_run('scp %s.%s.description root@%s:%s' % (path,image,target,path))
+            #sys_run('scp %s.%s.info root@%s:%s' % (path,image,target,path))
+            resimage = Image.query.filter_by(ownername=user,imagename=image).first()
+            auth_key = env.getenv('AUTH_KEY')
+            url = "http://" + target + ":" + master_port + "/image/copytarget/"
+            data = {"token":token,"auth_key":auth_key,"user":user,"imagename":image,"description":resimage.description}
+            result = requests.post(url, data=data).json()
+            logger.info("Response from target master: " + str(result))
         except Exception as e:
             logger.error(e)
-            image_info_file = open(path+"."+image+".info", 'w')
+            '''image_info_file = open(path+"."+image+".info", 'w')
             image_info_file.writelines([createtime, recordshare])
-            image_info_file.close()
+            image_info_file.close()'''
             return {'success':'false', 'message':str(e)}
-        image_info_file = open(path+"."+image+".info", 'w')
+        '''image_info_file = open(path+"."+image+".info", 'w')
         image_info_file.writelines([createtime, recordshare])
-        image_info_file.close()
+        image_info_file.close()'''
         logger.info("copy image %s of %s to %s success" % (image,user,target))
         return {'success':'true', 'action':'copy image'}
 
