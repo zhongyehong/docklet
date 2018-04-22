@@ -9,6 +9,7 @@ import proxytool
 import requests, threading
 import traceback
 from nettools import portcontrol
+from model import db, Container, PortMapping, VCluster
 
 userpoint = "http://" + env.getenv('USER_IP') + ":" + str(env.getenv('USER_PORT'))
 def post_to_user(url = '/', data={}):
@@ -33,14 +34,26 @@ class VclusterMgr(object):
         self.fspath = env.getenv("FS_PREFIX")
         self.clusterid_locks = threading.Lock()
 
+        # check database
+        try:
+            Container.query.all()
+            PortMapping.query.all()
+            VCluster.query.all()
+        except:
+            # create database
+            db.create_all()
+
         logger.info ("vcluster start on %s" % (self.addr))
         if self.mode == 'new':
             logger.info ("starting in new mode on %s" % (self.addr))
             # check if all clusters data are deleted in httprest.py
             clean = True
             usersdir = self.fspath+"/global/users/"
+            vclusters = VCluster.query.all()
+            if len(vclusters) != 0:
+                clean = False
             for user in os.listdir(usersdir):
-                if len(os.listdir(usersdir+user+"/clusters")) > 0 or len(os.listdir(usersdir+user+"/hosts")) > 0:
+                if len(os.listdir(usersdir+user+"/hosts")) > 0:
                     clean = False
             if not clean:
                 logger.error ("clusters files not clean, start failed")
@@ -167,20 +180,26 @@ class VclusterMgr(object):
                 return [False, message]
             logger.info("container create success")
             hosts = hosts + ips[i].split("/")[0] + "\t" + hostname + "\t" + hostname + "."+clustername + "\n"
-            containers.append({ 'containername':lxc_name, 'hostname':hostname, 'ip':ips[i], 'host':workerip, 'image':image['name'], 'lastsave':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'setting': setting })
+            containers.append(Container(lxc_name,hostname,ips[i],workerip,image['name'],datetime.datetime.now(),setting))
+            #containers.append({ 'containername':lxc_name, 'hostname':hostname, 'ip':ips[i], 'host':workerip, 'image':image['name'], 'lastsave':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'setting': setting })
         hostfile = open(hostpath, 'w')
         hostfile.write(hosts)
         hostfile.close()
-        clusterfile = open(clusterpath, 'w')
-        proxy_url = env.getenv("PORTAL_URL") +"/"+ proxy_public_ip +"/_web/" + username + "/" + clustername
-        info = {'clusterid':clusterid, 'status':'stopped', 'size':clustersize, 'containers':containers, 'nextcid': clustersize, 'create_time':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'start_time':"------"}
-        info['proxy_url'] = proxy_url
-        info['proxy_server_ip'] = proxy_server_ip
-        info['proxy_public_ip'] = proxy_public_ip
-        info['port_mapping'] = []
-        clusterfile.write(json.dumps(info))
-        clusterfile.close()
-        return [True, info]
+        #clusterfile = open(clusterpath, 'w')
+        vcluster = VCluster(clusterid,clustername,username,'stopped',clustersize,clustersize,proxy_server_ip,proxy_public_ip)
+        for con in containers:
+            vcluster.containers.append(con)
+        db.session.add(vcluster)
+        db.session.commit()
+        #proxy_url = env.getenv("PORTAL_URL") +"/"+ proxy_public_ip +"/_web/" + username + "/" + clustername
+        #info = {'clusterid':clusterid, 'status':'stopped', 'size':clustersize, 'containers':containers, 'nextcid': clustersize, 'create_time':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'start_time':"------"}
+        #info['proxy_url'] = proxy_url
+        #info['proxy_server_ip'] = proxy_server_ip
+        #info['proxy_public_ip'] = proxy_public_ip
+        #info['port_mapping'] = []
+        #clusterfile.write(json.dumps(info))
+        #clusterfile.close()
+        return [True, str(vcluster)]
 
     def scale_out_cluster(self,clustername,username, image,user_info, setting):
         if not self.is_cluster(clustername,username):
@@ -225,12 +244,15 @@ class VclusterMgr(object):
         hostfile = open(hostpath, 'a')
         hostfile.write(ip.split("/")[0] + "\t" + hostname + "\t" + hostname + "." + clustername + "\n")
         hostfile.close()
-        clusterinfo['nextcid'] = int(clusterinfo['nextcid']) + 1
-        clusterinfo['size'] = int(clusterinfo['size']) + 1
-        clusterinfo['containers'].append({'containername':lxc_name, 'hostname':hostname, 'ip':ip, 'host':workerip, 'image':image['name'], 'lastsave':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'setting': setting})
-        clusterfile = open(clusterpath, 'w')
-        clusterfile.write(json.dumps(clusterinfo))
-        clusterfile.close()
+        [success,vcluster] = self.get_vcluster(clustername,username)
+        if not success:
+            return [False, "Fail to write info."]
+        vcluster.nextcid = int(clusterinfo['nextcid']) + 1
+        vcluster.size = int(clusterinfo['size']) + 1
+        vcluster.containers.append(Container(lxc_name,hostname,ip,workerip,image['name'],datetime.datetime.now(),setting))
+        #{'containername':lxc_name, 'hostname':hostname, 'ip':ip, 'host':workerip, 'image':image['name'], 'lastsave':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'setting': setting})
+        db.session.add(vcluster)
+        db.session.commit()
         return [True, clusterinfo]
 
     def addproxy(self,username,clustername,ip,port):
@@ -282,13 +304,13 @@ class VclusterMgr(object):
             [success, host_port] = portcontrol.acquire_port_mapping(node_name, node_ip, port)
         if not success:
             return [False, host_port]
-        if 'port_mapping' not in clusterinfo.keys():
-            clusterinfo['port_mapping'] = []
-        clusterinfo['port_mapping'].append({'node_name':node_name, 'node_ip':node_ip, 'node_port':port, 'host_port':host_port})
-        clusterfile = open(self.fspath + "/global/users/" + username + "/clusters/" + clustername, 'w')
-        clusterfile.write(json.dumps(clusterinfo))
-        clusterfile.close()
-        return [True, clusterinfo]
+        [status,vcluster] = self.get_vcluster(clustername,username)
+        if not status:
+            return [False,"VCluster not found."]
+        vcluster.port_mapping.append(PortMapping(node_name,node_ip,port,host_port))
+        db.session.add(vcluster)
+        db.session.commit()
+        return [True, json.loads(str(vcluster))]
 
     def recover_port_mapping(self,username,clustername):
         [status, clusterinfo] = self.get_clusterinfo(clustername, username)
@@ -303,28 +325,28 @@ class VclusterMgr(object):
         return [True, clusterinfo]
 
     def delete_all_port_mapping(self, username, clustername, node_name):
-        [status, clusterinfo] = self.get_clusterinfo(clustername, username)
+        [status, vcluster] = self.get_vcluster(clustername, username)
+        if not status:
+            return [False,"VCluster not found."]
         error_msg = None
         delete_list = []
-        for item in clusterinfo['port_mapping']:
-            if item['node_name'] == node_name:
-                node_ip = item['node_ip']
-                node_port = item['node_port']
+        for item in vcluster.port_mapping:
+            if item.node_name == node_name:
+                node_ip = item.node_ip
+                node_port = item.node_port
                 if self.distributedgw == 'True':
-                    worker = self.nodemgr.ip_to_rpc(clusterinfo['proxy_server_ip'])
-                    [success,msg] = worker.release_port_mapping(node_name, node_ip, node_port)
+                    worker = self.nodemgr.ip_to_rpc(vcluster.proxy_server_ip)
+                    [success,msg] = worker.release_port_mapping(node_name, node_ip, str(node_port))
                 else:
-                    [success,msg] = portcontrol.release_port_mapping(node_name, node_ip, node_port)
+                    [success,msg] = portcontrol.release_port_mapping(node_name, node_ip, str(node_port))
                 if not success:
                     error_msg = msg
                 else:
                     delete_list.append(item)
         if len(delete_list) > 0:
             for item in delete_list:
-                clusterinfo['port_mapping'].remove(item)
-            clusterfile = open(self.fspath + "/global/users/" + username + "/clusters/" + clustername, 'w')
-            clusterfile.write(json.dumps(clusterinfo))
-            clusterfile.close()
+                db.session.delete(item)
+            db.session.commit()
         else:
             return [True,"No port mapping."]
         if error_msg is not None:
@@ -333,28 +355,27 @@ class VclusterMgr(object):
             return [True,"Success"]
 
     def delete_port_mapping(self, username, clustername, node_name, node_port):
-        [status, clusterinfo] = self.get_clusterinfo(clustername, username)
-        idx = 0
-        for item in clusterinfo['port_mapping']:
-            if item['node_name'] == node_name and item['node_port'] == node_port:
+        [status, vcluster] = self.get_vcluster(clustername, username)
+        if not status:
+            return [False,"VCluster not found."]
+        for item in vcluster.port_mapping:
+            if item.node_name == node_name and str(item.node_port) == str(node_port):
+                node_ip = item.node_ip
+                node_port = item.node_port
+                if self.distributedgw == 'True':
+                    worker = self.nodemgr.ip_to_rpc(vcluster.proxy_server_ip)
+                    [success,msg] = worker.release_port_mapping(node_name, node_ip, str(node_port))
+                else:
+                    [success,msg] = portcontrol.release_port_mapping(node_name, node_ip, str(node_port))
+                if not success:
+                    return [False,msg]
+                db.session.delete(item)
+                print("HHH")
                 break
-            idx += 1
-        if idx == len(clusterinfo['port_mapping']):
-            return [False,"No port mapping."]
-        node_ip = clusterinfo['port_mapping'][idx]['node_ip']
-        node_port = clusterinfo['port_mapping'][idx]['node_port']
-        if self.distributedgw == 'True':
-            worker = self.nodemgr.ip_to_rpc(clusterinfo['proxy_server_ip'])
-            [success,msg] = worker.release_port_mapping(node_name, node_ip, node_port)
         else:
-            [success,msg] = portcontrol.release_port_mapping(node_name, node_ip, node_port)
-        if not success:
-            return [False,msg]
-        clusterinfo['port_mapping'].pop(idx)
-        clusterfile = open(self.fspath + "/global/users/" + username + "/clusters/" + clustername, 'w')
-        clusterfile.write(json.dumps(clusterinfo))
-        clusterfile.close()
-        return [True, clusterinfo]
+            return [False,"No port mapping."]
+        db.session.commit()
+        return [True, json.loads(str(vcluster))]
 
     def flush_cluster(self,username,clustername,containername):
         begintime = datetime.datetime.now()
@@ -402,47 +423,47 @@ class VclusterMgr(object):
             return [True, "image not exists"]
 
     def create_image(self,username,clustername,containername,imagename,description,imagenum=10):
-        [status, info] = self.get_clusterinfo(clustername,username)
+        [status, vcluster] = self.get_vcluster(clustername,username)
         if not status:
             return [False, "cluster not found"]
-        containers = info['containers']
+        containers = vcluster.containers
         for container in containers:
-            if container['containername'] == containername:
+            if container.containername == containername:
                 logger.info("container: %s found" % containername)
-                worker = self.nodemgr.ip_to_rpc(container['host'])
+                worker = self.nodemgr.ip_to_rpc(container.host)
                 if worker is None:
                     return [False, "The worker can't be found or has been stopped."]
                 res = worker.create_image(username,imagename,containername,description,imagenum)
-                container['lastsave'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                container['image'] = imagename
+                container.lastsave = datetime.datetime.now()
+                container.image = imagename
                 break
         else:
             res = [False, "container not found"]
             logger.error("container: %s not found" % containername)
-        clusterpath = self.fspath + "/global/users/" + username + "/clusters/" + clustername
-        infofile = open(clusterpath, 'w')
-        infofile.write(json.dumps(info))
-        infofile.close()
+        db.session.commit()
         return res
 
     def delete_cluster(self, clustername, username, user_info):
-        [status, info] = self.get_clusterinfo(clustername, username)
+        [status, vcluster] = self.get_vcluster(clustername, username)
         if not status:
             return [False, "cluster not found"]
-        if info['status']=='running':
+        if vcluster.status =='running':
             return [False, "cluster is still running, you need to stop it and then delete"]
         ips = []
         for container in info['containers']:
-            worker = self.nodemgr.ip_to_rpc(container['host'])
+            worker = self.nodemgr.ip_to_rpc(container.host)
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
-            worker.delete_container(container['containername'])
-            ips.append(container['ip'])
+            worker.delete_container(container.containername)
+            db.session.delete(container)
+            ips.append(container.ip)
         logger.info("delete vcluster and release vcluster ips")
         self.networkmgr.release_userips(username, ips)
         self.networkmgr.printpools()
-        os.remove(self.fspath+"/global/users/"+username+"/clusters/"+clustername)
-        os.remove(self.fspath+"/global/users/"+username+"/hosts/"+str(info['clusterid'])+".hosts")
+        #os.remove(self.fspath+"/global/users/"+username+"/clusters/"+clustername)
+        db.session.delete(vcluster)
+        db.session.commit()
+        os.remove(self.fspath+"/global/users/"+username+"/hosts/"+str(vcluster.clusterid)+".hosts")
 
         groupname = json.loads(user_info)["data"]["group"]
         uid = json.loads(user_info)["data"]["id"]
@@ -455,29 +476,24 @@ class VclusterMgr(object):
         return [True, "cluster delete"]
 
     def scale_in_cluster(self, clustername, username, containername):
-        [status, info] = self.get_clusterinfo(clustername, username)
+        [status, vcluster] = self.get_vcluster(clustername, username)
         if not status:
             return [False, "cluster not found"]
         new_containers = []
         for container in info['containers']:
             if container['containername'] == containername:
-                worker = self.nodemgr.ip_to_rpc(container['host'])
+                worker = self.nodemgr.ip_to_rpc(container.host)
                 if worker is None:
                     return [False, "The worker can't be found or has been stopped."]
                 worker.delete_container(containername)
-                self.networkmgr.release_userips(username, container['ip'])
+                db.session.delete(container)
+                self.networkmgr.release_userips(username, container.ip)
                 self.networkmgr.printpools()
-            else:
-                new_containers.append(container)
-        info['containers'] = new_containers
-        info['size'] -= 1
+        vcluster.size -= 1
         cid = containername[containername.rindex("-")+1:]
-        clusterid = info['clusterid']
-        clusterpath = self.fspath + "/global/users/" + username + "/clusters/" + clustername
+        clusterid = vcluster.clusterid
         hostpath = self.fspath + "/global/users/" + username + "/hosts/" + str(clusterid) + ".hosts"
-        clusterfile = open(clusterpath, 'w')
-        clusterfile.write(json.dumps(info))
-        clusterfile.close()
+        db.session.commit()
         hostfile = open(hostpath, 'r')
         hostinfo = hostfile.readlines()
         hostfile.close()
@@ -499,29 +515,24 @@ class VclusterMgr(object):
         return [True, info]
 
     def get_clustersetting(self, clustername, username, containername, allcontainer):
-        clusterpath = self.fspath + "/global/users/" + username + "/clusters/" + clustername
-        if not os.path.isfile(clusterpath):
+        [status,vcluster] = self.get_vcluster(clustername,username)
+        if vcluster is None:
             logger.error("cluster file: %s not found" % clustername)
             return [False, "cluster file not found"]
-        infofile = open(clusterpath, 'r')
-        info = json.loads(infofile.read())
-        infofile.close()
         cpu = 0
         memory = 0
         disk = 0
         if allcontainer:
-            for container in info['containers']:
-                if 'setting' in container:
-                    cpu += int(container['setting']['cpu'])
-                    memory += int(container['setting']['memory'])
-                    disk += int(container['setting']['disk'])
+            for container in vcluster.containers:
+                cpu += int(container.setting_cpu)
+                memory += int(container.setting_mem)
+                disk += int(container.setting_disk)
         else:
-            for container in info['containers']:
-                if container['containername'] == containername:
-                    if 'setting' in container:
-                        cpu += int(container['setting']['cpu'])
-                        memory += int(container['setting']['memory'])
-                        disk += int(container['setting']['disk'])
+            for container in vcluster.containers:
+                if container.containername == containername:
+                    cpu += int(container.setting_cpu)
+                    memory += int(container.setting_mem)
+                    disk += int(container.setting_disk)
         return [True, {'cpu':cpu, 'memory':memory, 'disk':disk}]
 
     def update_cluster_baseurl(self, clustername, username, oldip, newip):
@@ -558,8 +569,6 @@ class VclusterMgr(object):
         if info['status'] == 'running':
             return [False, "cluster is already running"]
         # set proxy
-        if not "proxy_server_ip" in info.keys():
-            info['proxy_server_ip'] = self.addr
         try:
             target = 'http://'+info['containers'][0]['ip'].split('/')[0]+":10000"
             if self.distributedgw == 'True':
@@ -598,9 +607,10 @@ class VclusterMgr(object):
             namesplit = container['containername'].split('-')
             portname = namesplit[1] + '-' + namesplit[2]
             worker.recover_usernet(portname, uid, info['proxy_server_ip'], container['host']==info['proxy_server_ip'])
-        info['status']='running'
-        info['start_time']=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.write_clusterinfo(info,clustername,username)
+        [status,vcluster] = self.get_vcluster(clustername,username)
+        vcluster.status ='running'
+        vcluster.start_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        db.session.commit()
         return [True, "start cluster"]
 
     def mount_cluster(self, clustername, username):
@@ -618,17 +628,6 @@ class VclusterMgr(object):
         [status, info] = self.get_clusterinfo(clustername, username)
         if not status:
             return [False, "cluster not found"]
-        if not "proxy_server_ip" in info.keys():
-            info['proxy_server_ip'] = self.addr
-            self.write_clusterinfo(info,clustername,username)
-            [status, info] = self.get_clusterinfo(clustername, username)
-        if not "proxy_public_ip" in info.keys():
-            self.update_proxy_ipAndurl(clustername,username,info['proxy_server_ip'])
-            [status, info] = self.get_clusterinfo(clustername, username)
-            self.update_cluster_baseurl(clustername,username,info['proxy_server_ip'],info['proxy_public_ip'])
-        if not 'port_mapping' in info.keys():
-            info['port_mapping'] = []
-            self.write_clusterinfo(info,clustername,username)
         if info['status'] == 'stopped':
             return [True, "cluster no need to start"]
         # recover proxy of cluster
@@ -690,12 +689,10 @@ class VclusterMgr(object):
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.stop_container(container['containername'])
-        [status, info] = self.get_clusterinfo(clustername, username)
-        info['status']='stopped'
-        info['start_time']="------"
-        infofile = open(self.fspath+"/global/users/"+username+"/clusters/"+clustername, 'w')
-        infofile.write(json.dumps(info))
-        infofile.close()
+        [status, vcluster] = self.get_vcluster(clustername, username)
+        vcluster.status = 'stopped'
+        vcluster.start_time ="------"
+        db.session.commit()
         return [True, "stop cluster"]
 
     def detach_cluster(self, clustername, username):
@@ -712,10 +709,9 @@ class VclusterMgr(object):
         return [True, "detach cluster"]
 
     def list_clusters(self, user):
-        if not os.path.exists(self.fspath+"/global/users/"+user+"/clusters"):
-            return [True, []]
-        clusters = os.listdir(self.fspath+"/global/users/"+user+"/clusters")
-        full_clusters = []
+        clusters = VCluster.query.filter_by(ownername = user).all()
+        clusters = [clu.clustername for clu in clusters]
+        '''full_clusters = []
         for cluster in clusters:
             single_cluster = {}
             single_cluster['name'] = cluster
@@ -724,7 +720,7 @@ class VclusterMgr(object):
                 single_cluster['status'] = 'running'
             else:
                 single_cluster['status'] = 'stopping'
-            full_clusters.append(single_cluster)
+            full_clusters.append(single_cluster)'''
         return [True, clusters]
 
     def is_cluster(self, clustername, username):
@@ -745,36 +741,33 @@ class VclusterMgr(object):
         return -1
 
     def update_proxy_ipAndurl(self, clustername, username, proxy_server_ip):
-        [status, info] = self.get_clusterinfo(clustername, username)
+        [status, vcluster] = self.get_vcluster(clustername, username)
         if not status:
             return [False, "cluster not found"]
-        info['proxy_server_ip'] = proxy_server_ip
+        vcluster.proxy_server_ip = proxy_server_ip
         [status, proxy_public_ip] = self.etcd.getkey("machines/publicIP/"+proxy_server_ip)
         if not status:
             logger.error("Fail to get proxy_public_ip %s."%(proxy_server_ip))
             proxy_public_ip = proxy_server_ip
-        info['proxy_public_ip'] = proxy_public_ip
-        proxy_url = env.getenv("PORTAL_URL") +"/"+ proxy_public_ip +"/_web/" + username + "/" + clustername
-        info['proxy_url'] = proxy_url
-        self.write_clusterinfo(info,clustername,username)
+        vcluster.proxy_public_ip = proxy_public_ip
+        #proxy_url = env.getenv("PORTAL_URL") +"/"+ proxy_public_ip +"/_web/" + username + "/" + clustername
+        #info['proxy_url'] = proxy_url
+        db.session.commit()
         return proxy_public_ip
 
     def get_clusterinfo(self, clustername, username):
-        clusterpath = self.fspath + "/global/users/" + username + "/clusters/" + clustername
-        if not os.path.isfile(clusterpath):
+        [success,vcluster] = self.get_vcluster(clustername,username)
+        if vcluster is None:
             return [False, "cluster not found"]
-        infofile = open(clusterpath, 'r')
-        info = json.loads(infofile.read())
-        return [True, info]
+        vcluster = json.loads(str(vcluster))
+        return [True, vcluster]
 
-    def write_clusterinfo(self, info, clustername, username):
-        clusterpath = self.fspath + "/global/users/" + username + "/clusters/" + clustername
-        if not os.path.isfile(clusterpath):
-            return [False, "cluster not found"]
-        infofile = open(clusterpath, 'w')
-        infofile.write(json.dumps(info))
-        infofile.close()
-        return [True, info]
+    def get_vcluster(self, clustername, username):
+        vcluster = VCluster.query.filter_by(ownername=username,clustername=clustername).first()
+        if vcluster is None:
+            return [False, None]
+        else:
+            return [True, vcluster]
 
     # acquire cluster id from etcd
     def _acquire_id(self):

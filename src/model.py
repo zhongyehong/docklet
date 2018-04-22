@@ -28,7 +28,7 @@ from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 from datetime import datetime
 from base64 import b64encode, b64decode
-import os
+import os, json
 
 #this class from itsdangerous implements token<->user
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
@@ -42,8 +42,10 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'+fsdir+'/global/sys/UserTable.db'
 app.config['SQLALCHEMY_BINDS'] = {
     'history': 'sqlite:///'+fsdir+'/global/sys/HistoryTable.db',
-    'beansapplication': 'sqlite:///'+fsdir+'/global/sys/BeansApplication.db'
+    'beansapplication': 'sqlite:///'+fsdir+'/global/sys/BeansApplication.db',
+    'system': 'sqlite:///'+fsdir+'/global/sys/System.db'
     }
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 try:
     secret_key_file = open(env.getenv('FS_PREFIX') + '/local/token_secret_key.txt')
     app.secret_key = secret_key_file.read()
@@ -268,3 +270,115 @@ class ApplyMsg(db.Model):
 
     def __repr__(self):
         return "{\"id\":\"%d\", \"username\":\"%s\", \"number\": \"%d\", \"reason\":\"%s\", \"status\":\"%s\", \"time\":\"%s\"}" % (self.id, self.username, self.number, self.reason, self.status, self.time.strftime("%Y-%m-%d %H:%M:%S"))
+
+class Container(db.Model):
+    __bind_key__ = 'system'
+    containername = db.Column(db.String(100), primary_key=True)
+    hostname = db.Column(db.String(30))
+    ip = db.Column(db.String(20))
+    host = db.Column(db.String(20))
+    image = db.Column(db.String(50))
+    lastsave = db.Column(db.DateTime)
+    setting_cpu = db.Column(db.Integer)
+    setting_mem = db.Column(db.Integer)
+    setting_disk = db.Column(db.Integer)
+    vclusterid = db.Column(db.Integer, db.ForeignKey('v_cluster.clusterid'))
+
+    def __init__(self, containername, hostname, ip, host, image, lastsave, setting):
+        self.containername = containername
+        self.hostname = hostname
+        self.ip = ip
+        self.host = host
+        self.image = image
+        self.lastsave = lastsave
+        self.setting_cpu = int(setting['cpu'])
+        self.setting_mem = int(setting['memory'])
+        self.setting_disk = int(setting['disk'])
+
+    def __repr__(self):
+        return "{\"containername\":\"%s\", \"hostname\":\"%s\", \"ip\": \"%s\", \"host\":\"%s\", \"image\":\"%s\", \"lastsave\":\"%s\", \"setting\":{\"cpu\":\"%d\",\"memory\":\"%d\",\"disk\":\"%d\"}}" % (self.containername, self.hostname, self.ip, self.host, self.image, self.lastsave.strftime("%Y-%m-%d %H:%M:%S"), self.setting_cpu, self.setting_mem, self.setting_disk)
+
+class PortMapping(db.Model):
+    __bind_key__ = 'system'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    node_name = db.Column(db.String(100))
+    node_ip = db.Column(db.String(20))
+    node_port = db.Column(db.Integer)
+    host_port= db.Column(db.Integer)
+    vclusterid = db.Column(db.Integer, db.ForeignKey('v_cluster.clusterid'))
+
+    def __init__(self, node_name, node_ip, node_port, host_port):
+        self.node_name = node_name
+        self.node_ip = node_ip
+        self.node_port = node_port
+        self.host_port = host_port
+
+    def __repr__(self):
+        return "{\"id\":\"%d\", \"node_name\":\"%s\", \"node_ip\": \"%s\", \"node_port\":\"%s\", \"host_port\":\"%s\"}" % (self.id, self.node_name, self.node_ip, self.node_port, self.host_port)
+
+class VCluster(db.Model):
+    __bind_key__ = 'system'
+    clusterid = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
+    clustername = db.Column(db.String(50))
+    ownername = db.Column(db.String(20))
+    status = db.Column(db.String(10))
+    size = db.Column(db.Integer)
+    containers = db.relationship('Container', backref='v_cluster', lazy='dynamic')
+    nextcid = db.Column(db.Integer)
+    create_time = db.Column(db.DateTime)
+    start_time = db.Column(db.String(20))
+    proxy_server_ip = db.Column(db.String(20))
+    proxy_public_ip = db.Column(db.String(20))
+    port_mapping = db.relationship('PortMapping', backref='v_cluster', lazy='dynamic')
+
+    def __init__(self, clusterid, clustername, ownername, status, size, nextcid, proxy_server_ip, proxy_public_ip):
+        self.clusterid = clusterid
+        self.clustername = clustername
+        self.ownername = ownername
+        self.status = status
+        self.size = size
+        self.nextcid = nextcid
+        self.proxy_server_ip = proxy_server_ip
+        self.proxy_public_ip = proxy_public_ip
+        self.containers = []
+        self.port_mapping = []
+        self.create_time = datetime.now()
+        self.start_time = "------"
+
+    def __repr__(self):
+        info = {}
+        info["clusterid"] = self.clusterid
+        info["clustername"] = self.clustername
+        info["ownername"] = self.ownername
+        info["status"] = self.status
+        info["size"] = self.size
+        info["proxy_server_ip"] = self.proxy_server_ip
+        info["proxy_public_ip"] = self.proxy_public_ip
+        info["nextcid"] = self.nextcid
+        info["create_time"] = self.create_time.strftime("%Y-%m-%d %H:%M:%S")
+        info["start_time"] = self.start_time
+        info["containers"] = [dict(eval(str(con))) for con in self.containers]
+        info["port_mapping"] = [dict(eval(str(pm))) for pm in self.port_mapping]
+        #return "{\"clusterid\":\"%d\", \"clustername\":\"%s\", \"ownername\": \"%s\", \"status\":\"%s\", \"size\":\"%d\", \"proxy_server_ip\":\"%s\", \"create_time\":\"%s\"}" % (self.clusterid, self.clustername, self.ownername, self.status, self.size, self.proxy_server_ip, self.create_time.strftime("%Y-%m-%d %H:%M:%S"))
+        return json.dumps(info)
+
+class Image(db.Model):
+    __bind_key__ = 'system'
+    imagename = db.Column(db.String(50))
+    id = db.Column(db.Integer, primary_key=True)
+    hasPrivate = db.Column(db.Boolean)
+    hasPublic = db.Column(db.Boolean)
+    ownername = db.Column(db.String(20))
+    create_time = db.Column(db.DateTime)
+    description = db.Column(db.Text)
+
+    def __init__(self,imagename,hasPrivate,hasPublic,ownername,description):
+        self.imagename = imagename
+        self.hasPrivate = hasPrivate
+        self.hasPublic = hasPublic
+        self.ownername = ownername
+        self.description = description
+        self.create_time = datetime.now()
+
+    def __repr__(self):
+        return "{\"id\":\"%d\",\"imagename\":\"%s\",\"hasPrivate\":\"%s\",\"hasPublic\":\"%s\",\"ownername\":\"%s\",\"updatetime\":\"%s\",\"description\":\"%s\"}" % (self.id,self.imagename,str(self.hasPrivate),str(self.hasPublic),self.create_time.strftime("%Y-%m-%d %H:%M:%S"),self.ownername,self.description)

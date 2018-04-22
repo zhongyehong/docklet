@@ -16,7 +16,7 @@ fi
 # some packages' name maybe different in debian
 apt-get install -y cgmanager lxc lxcfs lxc-templates lvm2 bridge-utils curl exim4 openssh-server openvswitch-switch
 apt-get install -y python3 python3-netifaces python3-flask python3-flask-sqlalchemy python3-pampy python3-httplib2
-apt-get install -y python3-psutil
+apt-get install -y python3-psutil python3-flask-migrate
 apt-get install -y python3-lxc
 apt-get install -y python3-requests python3-suds
 apt-get install -y nodejs nodejs-legacy npm
@@ -60,7 +60,7 @@ if [ ! -d /opt/docklet/local/basefs ]; then
 	echo "Generating basefs"
 	wget -P /opt/docklet/local http://iwork.pku.edu.cn:1616/basefs-0.11.tar.bz2 && tar xvf /opt/docklet/local/basefs-0.11.tar.bz2 -C /opt/docklet/local/ > /dev/null
 	[ $? != "0" ] && echo "Generate basefs failed, please download it from http://unias.github.io/docklet/download to FS_PREFIX/local and then extract it using root. (defalut FS_PRERIX is /opt/docklet)"
-fi 
+fi
 
 echo "Some packagefs can be downloaded from http://unias.github.io/docklet.download"
 echo "you can download the packagefs and extract it to FS_PREFIX/local using root. (default FS_PREFIX is /opt/docklet"
