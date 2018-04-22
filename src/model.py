@@ -310,8 +310,8 @@ class PortMapping(db.Model):
     def __init__(self, node_name, node_ip, node_port, host_port):
         self.node_name = node_name
         self.node_ip = node_ip
-        self.node_port = node_port
-        self.host_port = host_port
+        self.node_port = int(node_port)
+        self.host_port = int(host_port)
 
     def __repr__(self):
         return "{\"id\":\"%d\", \"node_name\":\"%s\", \"node_ip\": \"%s\", \"node_port\":\"%s\", \"host_port\":\"%s\"}" % (self.id, self.node_name, self.node_ip, self.node_port, self.host_port)
