@@ -23,6 +23,7 @@ class NodeMgr(object):
         self.etcd = etcdclient
         self.mode = mode
         self.workerport = env.getenv('WORKER_PORT')
+        self.tasks = {}
 
         # delete the existing network
         logger.info ("delete the existing network")
@@ -62,7 +63,7 @@ class NodeMgr(object):
         self.thread_watchnewnode.start()
         # wait for all nodes joins
         # while(True):
-        for i in range(60):
+        for i in range(10):
             allin = True
             for node in self.allnodes:
                 if node not in self.runnodes:
@@ -121,6 +122,11 @@ class NodeMgr(object):
                         if nodeip not in self.allnodes:
                             self.allnodes.append(nodeip)
                             self.etcd.setkey("machines/allnodes/"+nodeip, "ok")
+                        else:
+                            if nodeip in self.tasks:
+                                recover_task = threading.Thread(target = self.recover_node, args=(nodeip,self.tasks[nodeip]))
+                                recover_task.start()
+                                del self.tasks[nodeip]
                         logger.debug ("all nodes are: %s" % self.allnodes)
                         logger.debug ("run nodes are: %s" % self.runnodes)
                 elif node['value'] == 'ok':
@@ -135,6 +141,15 @@ class NodeMgr(object):
                     #print(self.rpcs)
             self.runnodes = etcd_runip
 
+    def recover_node(self,ip,tasks):
+        logger.info("now recover for worker:%s" % ip)
+        worker = self.ip_to_rpc(ip)
+        for task in tasks:
+            taskname = task['taskname']
+            taskargs = task['args']
+            logger.info("recover task:%s in worker:%s" % (taskname, ip))
+            eval('worker.'+taskname)(*taskargs)
+    
     # get all run nodes' IP addr
     def get_nodeips(self):
         return self.runnodes
@@ -144,4 +159,17 @@ class NodeMgr(object):
         return self.allnodes
 
     def ip_to_rpc(self,ip):
-        return xmlrpc.client.ServerProxy("http://%s:%s" % (ip, env.getenv("WORKER_PORT")))
+        if ip in self.runnodes:
+            return xmlrpc.client.ServerProxy("http://%s:%s" % (ip, env.getenv("WORKER_PORT")))
+        else:
+            logger.info('Worker %s is not connected, create rpc client failed, push task into queue')
+            if not ip in self.tasks:
+                self.tasks[ip] = []
+            return self.tasks[ip]
+
+    def call_rpc_function(self, worker, function, args):
+        if type(worker) is list:
+            worker.append({'taskname':function,'args':args})
+            return [True, 'append task success']
+        else:
+            return eval('worker.'+function)(*args)

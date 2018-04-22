@@ -2,7 +2,6 @@
 
 import os, random, json, sys, imagemgr
 import datetime, math
-import xmlrpc.client
 
 from log import logger
 import env
@@ -159,7 +158,7 @@ class VclusterMgr(object):
         containers = []
         for i in range(0, clustersize):
             workerip = workers[random.randint(0, len(workers)-1)]
-            oneworker = xmlrpc.client.ServerProxy("http://%s:%s" % (workerip, env.getenv("WORKER_PORT")))
+            oneworker = self.nodemgr.ip_to_rpc(workerip)
             if self.distributedgw == "True" and i == 0 and not self.networkmgr.has_usrgw(username):
                 [success,message] = self.networkmgr.setup_usrgw(groupquota['input_rate_limit'], groupquota['output_rate_limit'], username, uid, self.nodemgr, workerip)
                 if not success:
@@ -223,7 +222,7 @@ class VclusterMgr(object):
         hostpath = self.fspath + "/global/users/" + username + "/hosts/" + str(clusterid) + ".hosts"
         cid = clusterinfo['nextcid']
         workerip = workers[random.randint(0, len(workers)-1)]
-        oneworker = xmlrpc.client.ServerProxy("http://%s:%s" % (workerip, env.getenv("WORKER_PORT")))
+        oneworker = self.nodemgr.ip_to_rpc(workerip)
         lxc_name = username + "-" + str(clusterid) + "-" + str(cid)
         hostname = "host-" + str(cid)
         proxy_server_ip = clusterinfo['proxy_server_ip']
@@ -388,7 +387,7 @@ class VclusterMgr(object):
         for container in containers:
             if container['containername'] == containername:
                 logger.info("container: %s found" % containername)
-                worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
+                worker = self.nodemgr.ip_to_rpc(container['host'])
                 worker.create_image(username,imagetmp,containername)
                 fimage = container['image']
                 logger.info("image: %s created" % imagetmp)
@@ -398,7 +397,7 @@ class VclusterMgr(object):
         for container in containers:
             if container['containername'] != containername:
                 logger.info("container: %s now flush" % container['containername'])
-                worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
+                worker = self.nodemgr.ip_to_rpc(container['host'])
                 #t = threading.Thread(target=onework.flush_container,args=(username,imagetmp,container['containername']))
                 #threads.append(t)
                 worker.flush_container(username,imagetmp,container['containername'])
@@ -431,7 +430,7 @@ class VclusterMgr(object):
         for container in containers:
             if container.containername == containername:
                 logger.info("container: %s found" % containername)
-                worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container.host, env.getenv("WORKER_PORT")))
+                worker = self.nodemgr.ip_to_rpc(container.host)
                 if worker is None:
                     return [False, "The worker can't be found or has been stopped."]
                 res = worker.create_image(username,imagename,containername,description,imagenum)
@@ -452,7 +451,7 @@ class VclusterMgr(object):
             return [False, "cluster is still running, you need to stop it and then delete"]
         ips = []
         for container in vcluster.containers:
-            worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container.host, env.getenv("WORKER_PORT")))
+            worker = self.nodemgr.ip_to_rpc(container.host)
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.delete_container(container.containername)
@@ -480,9 +479,10 @@ class VclusterMgr(object):
         [status, vcluster] = self.get_vcluster(clustername, username)
         if not status:
             return [False, "cluster not found"]
+        new_containers = []
         for container in vcluster.containers:
             if container.containername == containername:
-                worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container.host, env.getenv("WORKER_PORT")))
+                worker = self.nodemgr.ip_to_rpc(container.host)
                 if worker is None:
                     return [False, "The worker can't be found or has been stopped."]
                 worker.delete_container(containername)
@@ -541,11 +541,11 @@ class VclusterMgr(object):
             return [False, "cluster not found"]
         logger.info("%s %s:base_url need to be modified(%s %s)."%(username,clustername,oldip,newip))
         for container in info['containers']:
-            worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
-            if worker is None:
-                return [False, "The worker can't be found or has been stopped."]
-            worker.update_baseurl(container['containername'],oldip,newip)
-            worker.stop_container(container['containername'])
+            worker = self.nodemgr.ip_to_rpc(container['host'])
+            #if worker is None:
+            #    return [False, "The worker can't be found or has been stopped."]
+            self.nodemgr.call_rpc_function(worker,'update_baseurl',[container['containername'],oldip,newip])
+            self.nodemgr.call_rpc_function(worker,'stop_container',[container['containername']])
 
     def check_public_ip(self, clustername, username):
         [status, info] = self.get_clusterinfo(clustername, username)
@@ -599,7 +599,7 @@ class VclusterMgr(object):
         for container in info['containers']:
             # set up gre from user's gateway host to container's host.
             self.networkmgr.check_usergre(username, uid, container['host'], self.nodemgr, self.distributedgw=='True')
-            worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
+            worker = self.nodemgr.ip_to_rpc(container['host'])
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.start_container(container['containername'])
@@ -618,7 +618,7 @@ class VclusterMgr(object):
         if not status:
             return [False, "cluster not found"]
         for container in info['containers']:
-            worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
+            worker = self.nodemgr.ip_to_rpc(container['host'])
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.mount_container(container['containername'])
@@ -638,7 +638,7 @@ class VclusterMgr(object):
                 # check public ip
                 if not self.check_public_ip(clustername,username):
                     [status, info] = self.get_clusterinfo(clustername, username)
-                worker.set_route("/" + info['proxy_public_ip'] + '/go/'+username+'/'+clustername, target)
+                self.nodemgr.call_rpc_function(worker,'set_route',["/" + info['proxy_public_ip'] + '/go/'+username+'/'+clustername, target])
             else:
                 if not info['proxy_server_ip'] == self.addr:
                     logger.info("%s %s proxy_server_ip has been changed, base_url need to be modified."%(username,clustername))
@@ -658,13 +658,13 @@ class VclusterMgr(object):
         for container in info['containers']:
             # set up gre from user's gateway host to container's host.
             self.networkmgr.check_usergre(username, uid, container['host'], self.nodemgr, self.distributedgw=='True')
-            worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
+            worker = self.nodemgr.ip_to_rpc(container['host'])
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
-            worker.recover_container(container['containername'])
+            self.nodemgr.call_rpc_function(worker,'recover_container',[container['containername']])
             namesplit = container['containername'].split('-')
             portname = namesplit[1] + '-' + namesplit[2]
-            worker.recover_usernet(portname, uid, info['proxy_server_ip'], container['host']==info['proxy_server_ip'])
+            self.nodemgr.call_rpc_function(worker,'recover_usernet',[portname, uid, info['proxy_server_ip'], container['host']==info['proxy_server_ip']])
         # recover ports mapping
         [success, msg] = self.recover_port_mapping(username,clustername)
         if not success:
@@ -685,7 +685,7 @@ class VclusterMgr(object):
             proxytool.delete_route("/" + info['proxy_public_ip'] + '/go/'+username+'/'+clustername)
         for container in info['containers']:
             self.delete_all_port_mapping(username,clustername,container['containername'])
-            worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
+            worker = self.nodemgr.ip_to_rpc(container['host'])
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.stop_container(container['containername'])
@@ -702,7 +702,7 @@ class VclusterMgr(object):
         if info['status'] == 'running':
             return [False, 'cluster is running, please stop it first']
         for container in info['containers']:
-            worker = xmlrpc.client.ServerProxy("http://%s:%s" % (container['host'], env.getenv("WORKER_PORT")))
+            worker = self.nodemgr.ip_to_rpc(container['host'])
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
             worker.detach_container(container['containername'])
