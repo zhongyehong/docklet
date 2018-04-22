@@ -553,9 +553,10 @@ class NetworkMgr(object):
                 self.usrgws[username] = self.masterip
                 self.dump_usrgw(username)
             netcontrol.check_gw('docklet-br-'+str(uid), username, uid, self.users[username].get_gateway_cidr(), input_rate_limit, output_rate_limit)
+            logger.info("recover gw success")
         else:
             worker = nodemgr.ip_to_rpc(ip)
-            worker.check_gw('docklet-br-'+str(uid), username, uid, self.users[username].get_gateway_cidr(), input_rate_limit, output_rate_limit)
+            nodemgr.call_rpc_function(worker,'check_gw',['docklet-br-'+str(uid), username, uid, self.users[username].get_gateway_cidr(), input_rate_limit, output_rate_limit])
         del self.users[username]
         return [True, 'check gw ok']
 
@@ -571,7 +572,7 @@ class NetworkMgr(object):
         else:
             if not remote == ip:
                 worker = nodemgr.ip_to_rpc(ip)
-                worker.add_port_gre_withkey('docklet-br-'+str(uid), 'gre-'+str(uid)+'-'+remote, remote, uid)
+                nodemgr.call_rpc_function(worker,'add_port_gre_withkey',['docklet-br-'+str(uid), 'gre-'+str(uid)+'-'+remote, remote, uid])
         return [True, 'check gre ok']
 
     def has_user(self, username):
