@@ -667,7 +667,7 @@ class Master_Collector(threading.Thread):
             for worker in workers:
                 try:
                     ip = worker
-                    workerrpc = xmlrpc.client.ServerProxy("http://%s:%s" % (worker, env.getenv("WORKER_PORT")))
+                    workerrpc = self.nodemgr.ip_to_rpc(worker)
                     # fetch data
                     info = list(eval(workerrpc.workerFetchInfo(self.master_ip)))
                     #logger.info(info[0])
