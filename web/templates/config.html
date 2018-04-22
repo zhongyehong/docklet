@@ -358,7 +358,7 @@
 					<td>
 						<a href="/image/{{master.split("@")[0]}}/share/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-success">share</button></a>
 						<a href="/image/{{master.split("@")[0]}}/delete/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
-    						<button type="button" class="btn btn-primary btn-xs" data-toggle="modal" data-target="#Copyimage_{{ image['name'] }}_{{master.split("@")[1]}}">copy</button>
+    						<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#Copyimage_{{ image['name'] }}_{{master.split("@")[1]}}">copy</button>
     					<div class="modal inmodal" id="Copyimage_{{ image['name'] }}_{{master.split("@")[1]}}" tabindex="-1" role="dialog" aria-hidden="true">
 	                                       <div class="modal-dialog">
         	                               <div class="modal-content animated fadeIn">
@@ -402,7 +402,7 @@
 					<td>
 						<a href="/image/{{master.split("@")[0]}}/unshare/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-warning">unshare</button></a>
 						<a href="/image/{{master.split("@")[0]}}/delete/{{ image['name'] }}/"><button type="button" class="btn btn-xs btn-danger">delete</button></a>
-    						<button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#Copyimage_{{ image['name'] }}_{{master.split("@")[1]}}"><i class="fa fa-plus"></i>Copy</button>
+    						<button type="button" class="btn btn-xs btn-primary" data-toggle="modal" data-target="#Copyimage_{{ image['name'] }}_{{master.split("@")[1]}}">Copy</button>
 					</td>
 				{% endif %}
               		 </tr>
