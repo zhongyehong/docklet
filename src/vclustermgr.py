@@ -450,7 +450,7 @@ class VclusterMgr(object):
         if vcluster.status =='running':
             return [False, "cluster is still running, you need to stop it and then delete"]
         ips = []
-        for container in info['containers']:
+        for container in vcluster.containers:
             worker = self.nodemgr.ip_to_rpc(container.host)
             if worker is None:
                 return [False, "The worker can't be found or has been stopped."]
@@ -480,8 +480,8 @@ class VclusterMgr(object):
         if not status:
             return [False, "cluster not found"]
         new_containers = []
-        for container in info['containers']:
-            if container['containername'] == containername:
+        for container in vcluster.containers:
+            if container.containername == containername:
                 worker = self.nodemgr.ip_to_rpc(container.host)
                 if worker is None:
                     return [False, "The worker can't be found or has been stopped."]
