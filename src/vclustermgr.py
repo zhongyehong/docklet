@@ -462,6 +462,8 @@ class VclusterMgr(object):
         self.networkmgr.release_userips(username, ips)
         self.networkmgr.printpools()
         #os.remove(self.fspath+"/global/users/"+username+"/clusters/"+clustername)
+        for bh in vcluster.billing_history:
+            db.session.delete(bh)
         db.session.delete(vcluster)
         db.session.commit()
         os.remove(self.fspath+"/global/users/"+username+"/hosts/"+str(vcluster.clusterid)+".hosts")

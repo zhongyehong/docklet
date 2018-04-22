@@ -24,7 +24,7 @@ import lxc
 import xmlrpc.client
 from datetime import datetime
 
-from model import db,VNode,History
+from model import db,VNode,History,BillingHistory,VCluster,PortMapping
 from log import logger
 from httplib2 import Http
 from urllib.parse import urlencode
@@ -594,65 +594,39 @@ def get_cluster(container_name):
     return names[1]
 
 def count_port_mapping(vnode_name):
-    clusters_dir = env.getenv("FS_PREFIX")+"/global/users/"+get_owner(vnode_name)+"/clusters/"
-    if not os.path.exists(clusters_dir):
-        return 0
-    clusters = os.listdir(clusters_dir)
-    ports_count = 0
-    for cluster in clusters:
-        clusterpath = clusters_dir + cluster
-        if not os.path.isfile(clusterpath):
-            continue
-        infofile = open(clusterpath, 'r')
-        info = json.loads(infofile.read())
-        infofile.close()
-        ports_count += len([mapping for mapping in info['port_mapping'] if mapping['node_name'] == vnode_name])
-    return ports_count
+    pms = PortMapping.query.filter_by(node_name=vnode_name).all()
+    return len(pms)
 
 def save_billing_history(vnode_name, billing_history):
-    clusters_dir = env.getenv("FS_PREFIX")+"/global/users/"+get_owner(vnode_name)+"/clusters/"
-    if not os.path.exists(clusters_dir):
-        return
-    clusters = os.listdir(clusters_dir)
     vnode_cluster_id = get_cluster(vnode_name)
-    for cluster in clusters:
-        clusterpath = clusters_dir + cluster
-        if not os.path.isfile(clusterpath):
-            continue
-        infofile = open(clusterpath, 'r')
-        info = json.loads(infofile.read())
-        infofile.close()
-        if vnode_cluster_id != str(info['clusterid']):
-            continue
-        if 'billing_history' not in info:
-            info['billing_history'] = {}
-        info['billing_history'][vnode_name] = billing_history
-        infofile = open(clusterpath, 'w')
-        infofile.write(json.dumps(info))
-        infofile.close()
-        break
+    try:
+        vcluster = VCluster.query.get(int(vnode_cluster_id))
+        billinghistory = BillingHistory.query.get(vnode_name)
+        if billinghistory is not None:
+            billinghistory.cpu = billing_history["cpu"]
+            billinghistory.mem = billing_history["mem"]
+            billinghistory.disk = billing_history["disk"]
+            billinghistory.port = billing_history["port"]
+        else:
+            billinghistory = BillingHistory(vnode_name,billing_history["cpu"],billing_history["mem"],billing_history["disk"],billing_history["port"])
+            vcluster.billing_history.append(billinghistory)
+        db.session.add(vcluster)
+        db.session.commit()
+    except Exception as err:
+        logger.error(traceback.format_exc())
     return
 
 def get_billing_history(vnode_name):
-    clusters_dir = env.getenv("FS_PREFIX")+"/global/users/"+get_owner(vnode_name)+"/clusters/"
-    if os.path.exists(clusters_dir):
-        clusters = os.listdir(clusters_dir)
-        for cluster in clusters:
-            clusterpath = clusters_dir + cluster
-            if not os.path.isfile(clusterpath):
-                continue
-            infofile = open(clusterpath, 'r')
-            info = json.loads(infofile.read())
-            infofile.close()
-            if 'billing_history' not in info or vnode_name not in info['billing_history']:
-                continue
-            return info['billing_history'][vnode_name]
-    default = {}
-    default['cpu'] = 0
-    default['mem'] = 0
-    default['disk'] = 0
-    default['port'] = 0
-    return default
+    billinghistory = BillingHistory.query.get(vnode_name)
+    if billinghistory is not None:
+        return dict(eval(str(billinghistory)))
+    else:
+        default = {}
+        default['cpu'] = 0
+        default['mem'] = 0
+        default['disk'] = 0
+        default['port'] = 0
+        return default
 
 # the thread to collect data from each worker and store them in monitor_hosts and monitor_vnodes
 class Master_Collector(threading.Thread):

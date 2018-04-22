@@ -316,6 +316,26 @@ class PortMapping(db.Model):
     def __repr__(self):
         return "{\"id\":\"%d\", \"node_name\":\"%s\", \"node_ip\": \"%s\", \"node_port\":\"%s\", \"host_port\":\"%s\"}" % (self.id, self.node_name, self.node_ip, self.node_port, self.host_port)
 
+class BillingHistory(db.Model):
+    __bind_key__ = 'system'
+    node_name = db.Column(db.String(100), primary_key=True)
+    vclusterid = db.Column(db.Integer, db.ForeignKey('v_cluster.clusterid'))
+    cpu = db.Column(db.Float)
+    mem = db.Column(db.Float)
+    disk = db.Column(db.Float)
+    port = db.Column(db.Float)
+
+    def __init__(self,node_name,cpu,mem,disk,port):
+        self.node_name = node_name
+        self.cpu = cpu
+        self.mem = mem
+        self.disk = disk
+        self.port = port
+
+    def __repr__(self):
+        return "{\"node_name\":\"%s\", \"cpu\": %f, \"mem\": %f, \"disk\": %f, \"port\": %f}" % (self.node_name, self.cpu, self.mem, self.disk, self.port)
+
+
 class VCluster(db.Model):
     __bind_key__ = 'system'
     clusterid = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
@@ -330,6 +350,7 @@ class VCluster(db.Model):
     proxy_server_ip = db.Column(db.String(20))
     proxy_public_ip = db.Column(db.String(20))
     port_mapping = db.relationship('PortMapping', backref='v_cluster', lazy='dynamic')
+    billing_history = db.relationship('BillingHistory', backref='v_cluster', lazy='dynamic')
 
     def __init__(self, clusterid, clustername, ownername, status, size, nextcid, proxy_server_ip, proxy_public_ip):
         self.clusterid = clusterid
@@ -342,6 +363,7 @@ class VCluster(db.Model):
         self.proxy_public_ip = proxy_public_ip
         self.containers = []
         self.port_mapping = []
+        self.billing_history = []
         self.create_time = datetime.now()
         self.start_time = "------"
 
@@ -359,6 +381,7 @@ class VCluster(db.Model):
         info["start_time"] = self.start_time
         info["containers"] = [dict(eval(str(con))) for con in self.containers]
         info["port_mapping"] = [dict(eval(str(pm))) for pm in self.port_mapping]
+        info["billing_history"] = [dict(eval(str(bh))) for bh in self.billing_history]
         #return "{\"clusterid\":\"%d\", \"clustername\":\"%s\", \"ownername\": \"%s\", \"status\":\"%s\", \"size\":\"%d\", \"proxy_server_ip\":\"%s\", \"create_time\":\"%s\"}" % (self.clusterid, self.clustername, self.ownername, self.status, self.size, self.proxy_server_ip, self.create_time.strftime("%Y-%m-%d %H:%M:%S"))
         return json.dumps(info)
 
