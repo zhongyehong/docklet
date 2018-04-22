@@ -296,6 +296,8 @@ class VclusterMgr(object):
             return [False, 'Port mapping quota exceed.']
 
         [status, clusterinfo] = self.get_clusterinfo(clustername, username)
+        if clusterinfo['status'] == 'stopped':
+            return [False, 'Please start the clusters first.']
         host_port = 0
         if self.distributedgw == 'True':
             worker = self.nodemgr.ip_to_rpc(clusterinfo['proxy_server_ip'])
@@ -370,7 +372,6 @@ class VclusterMgr(object):
                 if not success:
                     return [False,msg]
                 db.session.delete(item)
-                print("HHH")
                 break
         else:
             return [False,"No port mapping."]
@@ -461,6 +462,8 @@ class VclusterMgr(object):
         self.networkmgr.release_userips(username, ips)
         self.networkmgr.printpools()
         #os.remove(self.fspath+"/global/users/"+username+"/clusters/"+clustername)
+        for bh in vcluster.billing_history:
+            db.session.delete(bh)
         db.session.delete(vcluster)
         db.session.commit()
         os.remove(self.fspath+"/global/users/"+username+"/hosts/"+str(vcluster.clusterid)+".hosts")
