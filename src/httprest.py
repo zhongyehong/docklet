@@ -23,7 +23,7 @@ import os
 import http.server, cgi, json, sys, shutil
 import xmlrpc.client
 from socketserver import ThreadingMixIn
-import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr, lockmgr
+import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr, lockmgr, jobmgr, taskmgr
 from logs import logs
 import userManager,beansapplicationmgr
 import monitor,traceback
@@ -694,6 +694,26 @@ def resetall_system(user, beans, form):
         return json.dumps({'success':'false', 'message': message})
     return json.dumps(result)
 
+@app.route("/batch/job/add/", methods=['POST'])
+@login_required
+def add_job(user,beans,form):
+    pass
+
+@app.route("/batch/job/list/", methods=['POST'])
+@login_required
+def list_job(user,beans,form):
+    pass
+
+@app.route("/batch/job/info/", methods=['POST'])
+@login_required
+def info_job(user,beans,form):
+    pass
+
+@app.route("/batch/task/info/", methods=['POST'])
+@login_required
+def info_task(user,beans,form):
+    pass
+
 # @app.route("/inside/cluster/scaleout/", methods=['POST'])
 # @inside_ip_required
 # def inside_cluster_scalout(cur_user, cluster_info, form):
@@ -760,6 +780,8 @@ if __name__ == '__main__':
     global G_historymgr
     global G_applicationmgr
     global G_ulockmgr
+    global G_jobmgr
+    global G_taskmgr
     # move 'tools.loadenv' to the beginning of this file
 
     fs_path = env.getenv("FS_PREFIX")
@@ -850,6 +872,9 @@ if __name__ == '__main__':
 
     G_networkmgr = network.NetworkMgr(clusternet, etcdclient, mode, ipaddr)
     G_networkmgr.printpools()
+
+    G_taskmgr = taskmgr.TaskMgr()
+    G_jobmgr = jobmgr.JobMgr(taskmgr)
 
     # start NodeMgr and NodeMgr will wait for all nodes to start ...
     G_nodemgr = nodemgr.NodeMgr(G_networkmgr, etcdclient, addr = ipaddr, mode=mode)

@@ -17,6 +17,7 @@ import etcdlib, network, container
 from nettools import netcontrol,ovscontrol,portcontrol
 import monitor, proxytool
 from lvmtool import new_group, recover_group
+from taskmgr import TaskMgr
 
 ##################################################################
 #                       Worker
@@ -139,6 +140,7 @@ class Worker(object):
         self.rpcserver.register_function(proxytool.delete_route)
         self.rpcserver.register_function(portcontrol.acquire_port_mapping)
         self.rpcserver.register_function(portcontrol.release_port_mapping)
+        self.rpcserver.register_function(TaskMgr.execute_task)
         # register functions or instances to server for rpc
         #self.rpcserver.register_function(function_name)
 
