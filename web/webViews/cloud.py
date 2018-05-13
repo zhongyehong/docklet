@@ -9,7 +9,7 @@ class cloudView(normalView):
 
     @classmethod
     def post(self):
-        accounts = dockletRequest.post('/cloud/account/query/').get('accounts',[])
+        accounts = dockletRequest.post_to_all('/cloud/account/query/')
         return self.render(self.template_path, accounts = accounts)
 
     @classmethod
