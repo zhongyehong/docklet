@@ -178,3 +178,7 @@
 # The two ports next to '-' are inclueded. If there are several ranges,
 # Please seperate them by ',' , for example: 10000-20000,30000-40000
 # ALLOCATED_PORTS=10000-65535
+
+# ALLOW_SCALE_OUT: allow docklet to rent server on the cloud to scale out
+# Only when you deploy docklet on the cloud can you set it to True
+# ALLOW_SCALE_OUT=False

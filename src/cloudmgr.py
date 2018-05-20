@@ -162,6 +162,11 @@ class AliyunMgr():
         thread.setDaemon(True)
         thread.start()
 
+class EmptyMgr():
+    def addNodeAsync(self):
+        logger.error("current cluster does not support scale out")
+        return False
+
 class CloudMgr():
     
     def getSettingFile(self):
@@ -185,4 +190,7 @@ class CloudMgr():
 
 
     def __init__(self):
-        self.engine = AliyunMgr()
+        if env.getenv("ALLOW_SCALE_OUT") == "True":
+            self.engine = AliyunMgr()
+        else:
+            self.engine = EmptyMgr()
