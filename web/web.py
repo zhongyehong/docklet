@@ -534,6 +534,12 @@ def cloud_account_del(cloudname):
 def cloud_account_modify(cloudname):
     return cloudAccountModifyView.as_view()
 
+@app.route("/cloud/<masterip>/node/add/", methods = ['POST', 'GET'])
+@administration_required
+def cloud_node_add(masterip):
+    cloudNodeAddView.masterip = masterip
+    return cloudNodeAddView.as_view()
+
 
 @app.route("/notification/", methods=['GET'])
 @administration_required
@@ -605,6 +611,7 @@ def adminpage():
 @administration_required
 def updatesettings():
     return updatesettingsView.as_view()
+
 
 @app.route('/index/', methods=['GET'])
 def jupyter_control():

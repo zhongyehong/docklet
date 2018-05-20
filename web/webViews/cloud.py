@@ -40,3 +40,14 @@ class cloudAccountModifyView(normalView):
     def post(self):
         dockletRequest.post('/cloud/account/modify/', request.form)
         return redirect('/cloud/')
+
+class cloudNodeAddView(normalView):
+    @classmethod
+    def post(self):
+        data = {}
+        dockletRequest.post('/cloud/node/add/', data, self.masterip)
+        return redirect('/hosts/')
+
+    @classmethod
+    def get(self):
+        return self.post()
