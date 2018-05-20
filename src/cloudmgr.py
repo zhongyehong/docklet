@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 from io import StringIO
-import os,sys,subprocess,time,re,datetime,threading,random
+import os,sys,subprocess,time,re,datetime,threading,random,shutil
 from model import db, Image
 from deploy import *
 import json
@@ -26,6 +26,12 @@ class AliyunMgr():
             "AssociateEipAddressRequest"])
 
     def loadClient(self):
+        if not os.path.exists(fspath+"/global/sys/cloudsetting.json"):
+            currentfilepath = os.path.dirname(os.path.abspath(__file__))
+            templatefilepath = currentfilepath + "/../tools/cloudsetting.aliyun.template.json"
+            shutil.copyfile(templatefilepath,fspath+"/global/sys/cloudsetting.json")
+            logger.error("please modify the setting file first")
+            return False
         try:
             settingfile = open(fspath+"/global/sys/cloudsetting.json", 'r')
             self.setting = json.loads(settingfile.read())
@@ -35,7 +41,6 @@ class AliyunMgr():
             return True
         except Exception as e:
             logger.error(e)
-            logger.error("account file not existed, can not load CLT")
             return False
     
     def createInstance(self):
@@ -158,5 +163,26 @@ class AliyunMgr():
         thread.start()
 
 class CloudMgr():
+    
+    def getSettingFile(self):
+        if not os.path.exists(fspath+"/global/sys/cloudsetting.json"):
+            currentfilepath = os.path.dirname(os.path.abspath(__file__))
+            templatefilepath = currentfilepath + "/../tools/cloudsetting.aliyun.template.json"
+            shutil.copyfile(templatefilepath,fspath+"/global/sys/cloudsetting.json")
+        settingfile = open(fspath+"/global/sys/cloudsetting.json", 'r')
+        setting = settingfile.read()
+        settingfile.close()
+        return {'success':'true', 'result':setting}
+
+    def modifySettingFile(self, setting):
+        if setting == None:
+            logger.error("setting is None")
+            return {'success':'false'}
+        settingfile = open(fspath+"/global/sys/cloudsetting.json", 'w')
+        settingfile.write(setting)
+        settingfile.close()
+        return {'success':'true'}
+
+
     def __init__(self):
         self.engine = AliyunMgr()
