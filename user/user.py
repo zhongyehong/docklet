@@ -164,38 +164,6 @@ def auth_token(cur_user, user, form):
      logger.info("auth success")
      return req
 
-@app.route("/cloud/account/query/", methods=['POST'])
-@login_required
-def query_account_cloud(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: cloud/account/query/")
-    result = G_usermgr.cloud_account_query(cur_user = cur_user)
-    return json.dumps(result)
-
-@app.route("/cloud/account/add/", methods=['POST'])
-@login_required
-def add_account_cloud(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: cloud/account/add/")
-    result = G_usermgr.cloud_account_add(cur_user = cur_user, form = form)
-    return json.dumps(result)
-
-@app.route("/cloud/account/delete/", methods=['POST'])
-@login_required
-def del_account_cloud(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: cloud/account/delete/")
-    result = G_usermgr.cloud_account_del(cur_user = cur_user, form = form)
-    return json.dumps(result)
-
-@app.route("/cloud/account/modify/", methods=['POST'])
-@login_required
-def modify_account_cloud(cur_user, user, form):
-    global G_usermgr
-    logger.info("handle request: cloud/account/modify/")
-    result = G_usermgr.cloud_account_modify(cur_user = cur_user, form = form)
-    return json.dumps(result)
-
 
 @app.route("/user/modify/", methods=['POST'])
 @login_required

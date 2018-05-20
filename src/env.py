@@ -77,5 +77,7 @@ def getenv(key):
         return os.environ.get("APPROVAL_RBT","ON")
     elif key =="ALLOCATED_PORTS":
         return os.environ.get("ALLOCATED_PORTS","10000-65535")
+    elif key =="ALLOW_SCALE_OUT":
+        return os.environ.get("ALLOW_SCALE_OUT", "False")
     else:
         return os.environ.get(key,"")

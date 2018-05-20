@@ -38,7 +38,6 @@ class dockletRequest():
                 'user',
                 'beans',
                 'notification',
-                'cloud',
                 'settings'
                 }
         if ":" not in endpoint:

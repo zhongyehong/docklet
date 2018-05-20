@@ -517,22 +517,17 @@ def userquery():
 def cloud():
     return cloudView.as_view()
 
-@app.route("/cloud/account/add/", methods = ['POST'])
+@app.route("/cloud/<masterip>/setting/modify/", methods = ['POST'])
 @administration_required
-def cloud_account_add():
-    return cloudAccountAddView.as_view()
+def cloud_setting_modify(masterip):
+    cloudSettingModifyView.masterip = masterip
+    return cloudSettingModifyView.as_view()
 
-@app.route("/cloud/account/delete/<cloudname>/", methods = ['POST', 'GET'])
+@app.route("/cloud/<masterip>/node/add/", methods = ['POST', 'GET'])
 @administration_required
-def cloud_account_del(cloudname):
-    cloudAccountDelView.cloudname = cloudname
-    return cloudAccountDelView.as_view()
-
-
-@app.route("/cloud/account/modify/<cloudname>/", methods = ['POST'])
-@administration_required
-def cloud_account_modify(cloudname):
-    return cloudAccountModifyView.as_view()
+def cloud_node_add(masterip):
+    cloudNodeAddView.masterip = masterip
+    return cloudNodeAddView.as_view()
 
 
 @app.route("/notification/", methods=['GET'])
@@ -605,6 +600,7 @@ def adminpage():
 @administration_required
 def updatesettings():
     return updatesettingsView.as_view()
+
 
 @app.route('/index/', methods=['GET'])
 def jupyter_control():

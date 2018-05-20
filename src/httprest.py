@@ -23,7 +23,7 @@ import os
 import http.server, cgi, json, sys, shutil
 import xmlrpc.client
 from socketserver import ThreadingMixIn
-import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr, lockmgr
+import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr, lockmgr, cloudmgr
 from logs import logs
 import userManager,beansapplicationmgr
 import monitor,traceback
@@ -438,6 +438,31 @@ def copytarget_image(user, beans, form):
         return json.dumps({'success':'false', 'message':str(e)})
     return json.dumps({'success':'true', 'action':'copy image to target.'})
 
+@app.route("/cloud/setting/get/", methods=['POST'])
+@login_required
+def query_account_cloud(cur_user, user, form):
+    global G_cloudmgr
+    logger.info("handle request: cloud/setting/get/")
+    result = G_cloudmgr.getSettingFile()
+    return json.dumps(result)
+
+@app.route("/cloud/setting/modify/", methods=['POST'])
+@login_required
+def modify_account_cloud(cur_user, user, form):
+    global G_cloudmgr
+    logger.info("handle request: cloud/setting/modify/")
+    result = G_cloudmgr.modifySettingFile(form.get('setting',None))
+    return json.dumps(result)
+
+@app.route("/cloud/node/add/", methods=['POST'])
+@login_required
+def add_node_cloud(user, beans, form):
+    global G_cloudmgr
+    logger.info("handle request: cloud/node/add/")
+    G_cloudmgr.engine.addNodeAsync()
+    result = {'success':'true'}
+    return json.dumps(result)
+
 @app.route("/addproxy/", methods=['POST'])
 @login_required
 def addproxy(user, beans, form):
@@ -760,6 +785,7 @@ if __name__ == '__main__':
     global G_historymgr
     global G_applicationmgr
     global G_ulockmgr
+    global G_cloudmgr
     # move 'tools.loadenv' to the beginning of this file
 
     fs_path = env.getenv("FS_PREFIX")
@@ -850,6 +876,8 @@ if __name__ == '__main__':
 
     G_networkmgr = network.NetworkMgr(clusternet, etcdclient, mode, ipaddr)
     G_networkmgr.printpools()
+
+    G_cloudmgr = cloudmgr.CloudMgr()
 
     # start NodeMgr and NodeMgr will wait for all nodes to start ...
     G_nodemgr = nodemgr.NodeMgr(G_networkmgr, etcdclient, addr = ipaddr, mode=mode)
