@@ -37,7 +37,7 @@ export FS_PREFIX
 DAEMON_USER=root
 
 # settings for docklet worker
-DAEMON=$DOCKLET_LIB/worker.py
+DAEMON=$DOCKLET_LIB/worker/worker.py
 DAEMON_NAME=docklet-worker
 DAEMON_OPTS=
 # The process ID of the script when it runs is stored here:
@@ -87,7 +87,7 @@ pre_start () {
 	if [ ! -d $FS_PREFIX/local/basefs ]; then
 		log_daemon_msg "basefs does not exist, run prepare.sh first" && exit 1
 	fi
-	
+
 	if [ ! -d $FS_PREFIX/local/packagefs ]; then
 		mkdir -p $FS_PREFIX/local/packagefs
 	fi
@@ -96,6 +96,7 @@ pre_start () {
 do_start() {
     pre_start
     log_daemon_msg "Starting $DAEMON_NAME in $FS_PREFIX"
+    #python3 $DAEMON
     start-stop-daemon --start --oknodo --background --pidfile $PIDFILE --make-pidfile --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON -- $DAEMON_OPTS
     log_end_msg $?
 }
