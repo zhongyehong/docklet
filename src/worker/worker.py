@@ -1,22 +1,24 @@
 #!/usr/bin/python3
 
 # first init env
-import env, tools
+import sys
+sys.path.append("../")
+from com import env, tools
 config = env.getenv("CONFIG")
-tools.loadenv(config)
+#tools.loadenv(config)
 
 # must import logger after initlogging, ugly
-from log import initlogging
-initlogging("docklet-worker")
-from log import logger
+from com.log import initlogging
+#initlogging("docklet-worker")
+from com.log import logger
 
 import xmlrpc.server, sys, time
 from socketserver import ThreadingMixIn
 import threading
-import etcdlib, network, container
-from nettools import netcontrol,ovscontrol,portcontrol
-import monitor, proxytool
-from lvmtool import new_group, recover_group
+from com import etcdlib, proxytool
+from worker import container, monitor
+from com.nettools import netcontrol,ovscontrol,portcontrol
+from worker.lvmtool import new_group, recover_group
 
 ##################################################################
 #                       Worker

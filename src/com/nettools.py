@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
-import subprocess, env, threading
-from log import logger
+import subprocess, threading
+from com.log import logger
+from com import env
 
 class ipcontrol(object):
     @staticmethod

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import os, shutil
-from log import logger
+from com.log import logger
 
 def aufs_remove(basefs):
     try:

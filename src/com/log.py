@@ -6,7 +6,7 @@ import argparse
 import sys
 import time  # this is only being used as part of the example
 import os
-import env
+from com import env
 
 # logger should only be imported after initlogging has been called
 logger = None
@@ -17,7 +17,7 @@ def initlogging(name='docklet'):
 
     homepath = env.getenv('FS_PREFIX')
     LOG_FILENAME = homepath + '/local/log/' + name + '.log'
-        
+
     LOG_LIFE = env.getenv('LOG_LIFE')
     LOG_LEVEL = env.getenv('LOG_LEVEL')
     if LOG_LEVEL == "DEBUG":
