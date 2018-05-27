@@ -2,14 +2,16 @@
 
 # first init env
 import sys
-sys.path.append("../")
+if sys.path[0].endswith("worker"):
+    sys.path[0] = sys.path[0][:-6]
 from com import env, tools
 config = env.getenv("CONFIG")
-#tools.loadenv(config)
+#config = "/opt/docklet/local/docklet-running.conf"
+tools.loadenv(config)
 
 # must import logger after initlogging, ugly
 from com.log import initlogging
-#initlogging("docklet-worker")
+initlogging("docklet-worker")
 from com.log import logger
 
 import xmlrpc.server, sys, time
@@ -19,6 +21,7 @@ from com import etcdlib, proxytool
 from worker import container, monitor
 from com.nettools import netcontrol,ovscontrol,portcontrol
 from worker.lvmtool import new_group, recover_group
+from master import network
 
 ##################################################################
 #                       Worker

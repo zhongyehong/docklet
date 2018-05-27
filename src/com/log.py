@@ -32,7 +32,6 @@ def initlogging(name='docklet'):
         LOG_LEVEL = logging.CRITIAL
     else:
         LOG_LEVEL = logging.DEBUG
-
     logger = logging.getLogger(name)
     # Configure logging to log to a file, making a new file at midnight and keeping the last 3 day's data
     # Give the logger a unique name (good practice)
@@ -47,7 +46,6 @@ def initlogging(name='docklet'):
     handler.setFormatter(formatter)
     # Attach the handler to the logger
     logger.addHandler(handler)
-
     # Replace stdout with logging to file at INFO level
     sys.stdout = RedirectLogger(logger, logging.INFO)
     # Replace stderr with logging to file at ERROR level
