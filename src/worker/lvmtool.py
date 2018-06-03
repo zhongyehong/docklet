@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
 import subprocess,os,time
-from com.log import logger
-from com import env
+from utils.log import logger
+from utils import env
 
 def sys_run(command,check=False):
     Ret = subprocess.run(command, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, shell=True, check=check)

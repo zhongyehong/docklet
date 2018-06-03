@@ -34,7 +34,7 @@ import os, json
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from itsdangerous import SignatureExpired, BadSignature
 
-from com import env
+from utils import env
 
 fsdir = env.getenv('FS_PREFIX')
 

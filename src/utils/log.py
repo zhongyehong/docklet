@@ -6,7 +6,7 @@ import argparse
 import sys
 import time  # this is only being used as part of the example
 import os
-from com import env
+from utils import env
 
 # logger should only be imported after initlogging has been called
 logger = None

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import requests, json
-from com import env
+from utils import env
 
 proxy_api_port = env.getenv("PROXY_API_PORT")
 proxy_control="http://localhost:"+ str(proxy_api_port) +"/api/routes"

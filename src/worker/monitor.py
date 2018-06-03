@@ -19,13 +19,13 @@ Design:Monitor mainly consists of three parts: Collectors, Master_Collector and 
 
 import subprocess,re,os,psutil,math,sys
 import time,threading,json,traceback,platform
-from com import env, etcdlib
+from utils import env, etcdlib
 import lxc
 import xmlrpc.client
 from datetime import datetime
 
-from com.model import db,VNode,History,BillingHistory,VCluster,PortMapping
-from com.log import logger
+from utils.model import db,VNode,History,BillingHistory,VCluster,PortMapping
+from utils.log import logger
 from httplib2 import Http
 from urllib.parse import urlencode
 

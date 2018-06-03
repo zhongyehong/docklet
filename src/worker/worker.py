@@ -4,22 +4,22 @@
 import sys
 if sys.path[0].endswith("worker"):
     sys.path[0] = sys.path[0][:-6]
-from com import env, tools
+from utils import env, tools
 config = env.getenv("CONFIG")
 #config = "/opt/docklet/local/docklet-running.conf"
 tools.loadenv(config)
 
 # must import logger after initlogging, ugly
-from com.log import initlogging
+from utils.log import initlogging
 initlogging("docklet-worker")
-from com.log import logger
+from utils.log import logger
 
 import xmlrpc.server, sys, time
 from socketserver import ThreadingMixIn
 import threading
-from com import etcdlib, proxytool
+from utils import etcdlib, proxytool
 from worker import container, monitor
-from com.nettools import netcontrol,ovscontrol,portcontrol
+from utils.nettools import netcontrol,ovscontrol,portcontrol
 from worker.lvmtool import new_group, recover_group
 from master import network
 
@@ -179,7 +179,7 @@ class Worker(object):
                 netcontrol.new_bridge('docklet-br')
             else:
                 if not netcontrol.bridge_exists('docklet-br'):
-                    logger.error("docklet-br not found")
+          utils       logger.error("docklet-br not found")
                     sys.exit(1)
             logger.info ("setup GRE tunnel to master %s" % self.master)
             #network.netsetup("gre", self.master)

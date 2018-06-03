@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import os, shutil
-from com.log import logger
+from utils.log import logger
 
 def aufs_remove(basefs):
     try:
@@ -13,7 +13,7 @@ def aufs_remove(basefs):
         logger.error(e)
 
 def aufs_clean(basefs):
-    # clean the aufs mark 
+    # clean the aufs mark
     allfiles = os.listdir(basefs)
     for onefile in allfiles:
         if onefile[:4] == ".wh.":

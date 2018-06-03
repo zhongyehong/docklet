@@ -20,10 +20,10 @@ from configparser import ConfigParser
 from io import StringIO
 import os,sys,subprocess,time,re,datetime,threading,random
 import xmlrpc.client
-from com.model import db, Image
+from utils.model import db, Image
 
-from com.log import logger
-from com import env, updatebase
+from utils.log import logger
+from utils import env, updatebase
 from worker.lvmtool import *
 import requests
 

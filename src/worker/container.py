@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
 import subprocess, os, json
-from com.log import logger
-from com import env, imagemgr
+from utils.log import logger
+from utils import env, imagemgr
 from worker.lvmtool import sys_run, check_volume
 from worker.monitor import Container_Collector, History_Manager
 import lxc
