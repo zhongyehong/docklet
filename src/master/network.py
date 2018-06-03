@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 
 import json, sys, netifaces, threading
-from com.nettools import netcontrol,ovscontrol
+from utils.nettools import netcontrol,ovscontrol
 
-from com.log import logger
+from utils.log import logger
 
 # getip : get ip from network interface
 # ifname : name of network interface
