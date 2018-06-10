@@ -13,7 +13,7 @@ src_folder = os.path.realpath(os.path.abspath(os.path.join(this_folder,"../../..
 if src_folder not in sys.path:
     sys.path.insert(0, src_folder)
 
-import env
+from utils import env
 
 if (env.getenv('EXTERNAL_LOGIN') == 'True'):
     sys.path.insert(0, os.path.realpath(os.path.abspath(os.path.join(this_folder,"../../../src", "plugin"))))
@@ -140,7 +140,7 @@ class external_login_callbackView(normalView):
 class external_loginView(normalView):
     if (env.getenv('EXTERNAL_LOGIN') == 'True'):
         template_path = external_generate.html_path
-    
+
     @classmethod
     def post(self):
         return render_template(self.template_path)
