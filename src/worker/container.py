@@ -3,7 +3,7 @@
 import subprocess, os, json
 from utils.log import logger
 from utils import env, imagemgr
-from worker.lvmtool import sys_run, check_volume
+from utils.lvmtool import sys_run, check_volume
 from worker.monitor import Container_Collector, History_Manager
 import lxc
 
@@ -44,7 +44,7 @@ class Container(object):
 
             if not os.path.isdir("%s/global/users/%s" % (self.fspath,username)):
                 path = env.getenv('DOCKLET_LIB')
-                subprocess.call([path+"/userinit.sh", username])
+                subprocess.call([path+"/master/userinit.sh", username])
                 logger.info("user %s directory not found, create it" % username)
             sys_run("mkdir -p /var/lib/lxc/%s" % lxc_name)
             logger.info("generate config file for %s" % lxc_name)

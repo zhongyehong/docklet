@@ -20,7 +20,7 @@ import threading
 from utils import etcdlib, proxytool
 from worker import container, monitor
 from utils.nettools import netcontrol,ovscontrol,portcontrol
-from worker.lvmtool import new_group, recover_group
+from utils.lvmtool import new_group, recover_group
 from master import network
 
 ##################################################################

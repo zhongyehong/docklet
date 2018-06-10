@@ -24,7 +24,7 @@ from utils.model import db, Image
 
 from utils.log import logger
 from utils import env, updatebase
-from worker.lvmtool import *
+from utils.lvmtool import *
 import requests
 
 master_port = str(env.getenv('MASTER_PORT'))

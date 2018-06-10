@@ -11,14 +11,14 @@ This module consists of three parts:
 '''
 
 import threading,datetime,random,time
-from model import db,User,ApplyMsg
-from userManager import administration_required
-import env
+from utils.model import db,User,ApplyMsg
+from master.userManager import administration_required
+from utils import env
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
-from settings import settings
+from master.settings import settings
 
 
 # send email to remind users of their beans
