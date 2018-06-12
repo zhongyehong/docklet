@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 from io import StringIO
 import os,sys,subprocess,time,re,datetime,threading,random,shutil
-from model import db, Image
-from deploy import *
+from utils.model import db, Image
+from master.deploy import *
 import json
 
-from log import logger
-import env
+from utils.log import logger
+from utils import env
 import requests
 
 fspath = env.getenv('FS_PREFIX')
@@ -42,12 +42,12 @@ class AliyunMgr():
         except Exception as e:
             logger.error(e)
             return False
-    
+
     def createInstance(self):
         request = self.Request.CreateInstanceRequest.CreateInstanceRequest()
         request.set_accept_format('json')
         request.add_query_param('RegionId', self.setting['RegionId'])
-        if 'ZoneId' in self.setting and not self.setting['ZoneId'] == "": 
+        if 'ZoneId' in self.setting and not self.setting['ZoneId'] == "":
             request.add_query_param('ZoneId', self.setting['ZoneId'])
         if 'VSwitchId' in self.setting and not self.setting['VSwitchId'] == "":
             request.add_query_param('VSwitchId', self.setting['VSwitchId'])
@@ -60,25 +60,25 @@ class AliyunMgr():
         request.add_query_param('Password', self.setting['Password'])
         response = self.clt.do_action_with_exception(request)
         logger.info(response)
-    
+
         instanceid=json.loads(bytes.decode(response))['InstanceId']
         return instanceid
-        
+
     def startInstance(self, instanceid):
         request = self.Request.StartInstanceRequest.StartInstanceRequest()
         request.set_accept_format('json')
         request.add_query_param('InstanceId', instanceid)
         response = self.clt.do_action_with_exception(request)
         logger.info(response)
-        
-    
+
+
     def createEIP(self):
         request = self.Request.AllocateEipAddressRequest.AllocateEipAddressRequest()
         request.set_accept_format('json')
         request.add_query_param('RegionId', self.setting['RegionId'])
         response = self.clt.do_action_with_exception(request)
         logger.info(response)
-    
+
         response=json.loads(bytes.decode(response))
         eipid=response['AllocationId']
         eipaddr=response['EipAddress']
@@ -94,7 +94,7 @@ class AliyunMgr():
         response = self.clt.do_action_with_exception(request)
         logger.info(response)
 
-    
+
     def getInnerIP(self, instanceid):
         request = self.Request.DescribeInstancesRequest.DescribeInstancesRequest()
         request.set_accept_format('json')
@@ -168,7 +168,7 @@ class EmptyMgr():
         return False
 
 class CloudMgr():
-    
+
     def getSettingFile(self):
         if not os.path.exists(fspath+"/global/sys/cloudsetting.json"):
             currentfilepath = os.path.dirname(os.path.abspath(__file__))

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import requests, json
-import env
+from utils import env
 
 proxy_api_port = env.getenv("PROXY_API_PORT")
 proxy_control="http://localhost:"+ str(proxy_api_port) +"/api/routes"
@@ -22,7 +22,7 @@ def set_route(path, target):
     except:
         return [False, 'Connect Failed']
     return [True, 'set ok']
-    
+
 def delete_route(path):
     path='/'+path.strip('/')
     try:

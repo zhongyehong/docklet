@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
-import env,subprocess,os,time
-from log import logger
+import subprocess,os,time
+from utils.log import logger
+from utils import env
 
 def sys_run(command,check=False):
     Ret = subprocess.run(command, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, shell=True, check=check)
@@ -45,12 +46,12 @@ def new_group(group_name, size = "5000", file_path = "/opt/docklet/local/docklet
             logger.error(e)
         logger.info("initialize lvm group:%s with size %sM success" % (group_name,size))
         return True
-         
+
     elif storage == "disk":
         disk = env.getenv("DISK")
         if disk is None:
             logger.error("use disk for story without a physical disk")
-            return False        
+            return False
         #check vg
         Ret = sys_run("vgdisplay " + group_name)
         if Ret.returncode == 0:
@@ -63,8 +64,8 @@ def new_group(group_name, size = "5000", file_path = "/opt/docklet/local/docklet
         except Exception as e:
             logger.error(e)
         logger.info("initialize lvm group:%s with size %sM success" % (group_name,size))
-        return True 
-    
+        return True
+
     else:
         logger.info("unknown storage type:" + storage)
         return False
@@ -85,7 +86,7 @@ def recover_group(group_name,file_path="/opt/docklet/local/docklet-storage"):
         time.sleep(1)
         #recover vg
         Ret = sys_run("vgdisplay " + group_name)
-        if Ret.returncode != 0: 
+        if Ret.returncode != 0:
             Ret = sys_run("vgcreate %s /dev/loop0" % group_name)
             if Ret.returncode != 0:
                 logger.error("create VG %s failed:%s" % (group_name,Ret.stdout.decode('utf-8')))
@@ -96,10 +97,10 @@ def recover_group(group_name,file_path="/opt/docklet/local/docklet-storage"):
         disk = env.getenv("DISK")
         if disk is None:
             logger.error("use disk for story without a physical disk")
-            return False        
+            return False
         #recover vg
         Ret = sys_run("vgdisplay " + group_name)
-        if Ret.returncode != 0: 
+        if Ret.returncode != 0:
             Ret = sys_run("vgcreate %s %s" % (group_name,disk))
             if Ret.returncode != 0:
                 logger.error("create VG %s failed:%s" % (group_name,Ret.stdout.decode('utf-8')))
@@ -161,5 +162,3 @@ def delete_volume(group_name, volume_name):
             return False
     else:
         logger.info("lv %s in vg %s does not exists" % (volume_name,group_name))
-     
- 

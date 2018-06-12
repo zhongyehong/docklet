@@ -13,12 +13,7 @@ src_folder = os.path.realpath(os.path.abspath(os.path.join(this_folder,"..", "sr
 if src_folder not in sys.path:
     sys.path.insert(0, src_folder)
 
-# must first init loadenv
-from log import initlogging
-initlogging("docklet-user")
-from log import logger
-
-import tools, env
+from utils import tools, env
 config = env.getenv("CONFIG")
 tools.loadenv(config)
 masterips = env.getenv("MASTER_IPS").split(",")
@@ -26,14 +21,19 @@ G_masterips = []
 for masterip in masterips:
     G_masterips.append(masterip.split("@")[0] + ":" + str(env.getenv("MASTER_PORT")))
 
+# must first init loadenv
+from utils.log import initlogging
+initlogging("docklet-user")
+from utils.log import logger
+
 from flask import Flask, request, session, render_template, redirect, send_from_directory, make_response, url_for, abort
 from functools import wraps
-import userManager,beansapplicationmgr, notificationmgr, lockmgr
+from master import userManager,beansapplicationmgr, notificationmgr, lockmgr
 import threading,traceback
-from model import User,db
+from utils.model import User,db
 from httplib2 import Http
 from urllib.parse import urlencode
-from settings import settings
+from master.settings import settings
 
 external_login = env.getenv('EXTERNAL_LOGIN')
 if(external_login == 'TRUE'):

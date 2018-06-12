@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
-import paramiko, time
-from log import logger
-import env,os
+import paramiko, time, os
+from utils.log import logger
+from utils import env
 
 def myexec(ssh,command):
     stdin,stdout,stderr = ssh.exec_command(command)
@@ -12,7 +12,7 @@ def myexec(ssh,command):
         if time.time() > endtime:
             stdout.channel.close()
             logger.error(command + ": fail")
-            return 
+            return
 #    for line in stdout.readlines():
 #        if line is None:
 #            time.sleep(5)
@@ -35,7 +35,7 @@ def deploy(ipaddr,masterip,account,password,volumename):
     sftp.put(deployscriptpath,'/root/docklet-deploy.sh')
     sftp.put('/etc/hosts', '/etc/hosts')
     transport.close()
-    
+
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     while True:
