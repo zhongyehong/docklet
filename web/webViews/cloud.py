@@ -9,34 +9,26 @@ class cloudView(normalView):
 
     @classmethod
     def post(self):
-        accounts = dockletRequest.post('/cloud/account/query/').get('accounts',[])
-        return self.render(self.template_path, accounts = accounts)
+        settings = dockletRequest.post_to_all('/cloud/setting/get/')
+        return self.render(self.template_path, settings = settings)
 
     @classmethod
     def get(self):
         return self.post()
 
-class cloudAccountAddView(normalView):
+class cloudSettingModifyView(normalView):
     @classmethod
     def post(self):
-        dockletRequest.post('/cloud/account/add/', request.form)
+        dockletRequest.post('/cloud/setting/modify/', request.form, self.masterip)
         return redirect('/cloud/')
 
-class cloudAccountDelView(normalView):
+class cloudNodeAddView(normalView):
     @classmethod
     def post(self):
-        data = {
-                'cloudname' : self.cloudname,
-                }
-        dockletRequest.post('/cloud/account/delete/', data)
-        return redirect('/cloud/')
+        data = {}
+        dockletRequest.post('/cloud/node/add/', data, self.masterip)
+        return redirect('/hosts/')
 
     @classmethod
     def get(self):
         return self.post()
-
-class cloudAccountModifyView(normalView):
-    @classmethod
-    def post(self):
-        dockletRequest.post('/cloud/account/modify/', request.form)
-        return redirect('/cloud/')

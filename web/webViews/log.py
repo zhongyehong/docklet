@@ -12,7 +12,7 @@ this_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(ins
 src_folder = os.path.realpath(os.path.abspath(os.path.join(this_folder,"../..", "src")))
 if src_folder not in sys.path:
     sys.path.insert(0, src_folder)
-import env
+from utils import env
 
 # logger should only be imported after initlogging has been called
 logger = None

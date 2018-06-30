@@ -9,7 +9,7 @@ src_folder = os.path.realpath(os.path.abspath(os.path.join(this_folder,"../..", 
 if src_folder not in sys.path:
     sys.path.insert(0, src_folder)
 
-import env
+from utils import env
 
 masterips=env.getenv('MASTER_IPS').split(",")
 user_endpoint = "http://" + env.getenv('USER_IP') + ":" + str(env.getenv('USER_PORT'))
@@ -38,7 +38,6 @@ class dockletRequest():
                 'user',
                 'beans',
                 'notification',
-                'cloud',
                 'settings'
                 }
         if ":" not in endpoint:
@@ -61,7 +60,7 @@ class dockletRequest():
         return result
         #except:
             #abort(500)
-    
+
     @classmethod
     def getdesc(self,mastername):
         return env.getenv(mastername+"_desc")[1:-1]

@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
-import env
+from utils import env
 import json, os
-from log import logger
+from utils.log import logger
 from werkzeug.utils import secure_filename
 
 logsPath = env.getenv('FS_PREFIX') + '/local/log/'

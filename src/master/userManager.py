@@ -7,22 +7,22 @@ Warning: in some early versions, "token" stand for the instance of class model.U
 Original author: Liu Peidong
 '''
 
-from model import db, User, UserGroup, Notification, UserUsage
+from utils.model import db, User, UserGroup, Notification, UserUsage
 from functools import wraps
 import os, subprocess, math
 import hashlib
 import pam
 from base64 import b64encode
-import env
-from settings import settings
+from utils import env
+from master.settings import settings
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
 from datetime import datetime
 import json
-from log import logger
-from lvmtool import *
+from utils.log import logger
+from utils.lvmtool import *
 
 PAM = pam.pam()
 fspath = env.getenv('FS_PREFIX')
@@ -162,7 +162,7 @@ class userManager:
             sys_admin.auth_method = 'local'
             db.session.add(sys_admin)
             path = env.getenv('DOCKLET_LIB')
-            subprocess.call([path+"/userinit.sh", username])
+            subprocess.call([path+"/master/userinit.sh", username])
             db.session.commit()
         if not os.path.exists(fspath+"/global/sys/quota"):
             groupfile = open(fspath+"/global/sys/quota",'w')
@@ -870,7 +870,7 @@ class userManager:
         # now initialize for all kind of users
         #if newuser.status == 'normal':
         path = env.getenv('DOCKLET_LIB')
-        subprocess.call([path+"/userinit.sh", newuser.username])
+        subprocess.call([path+"/master/userinit.sh", newuser.username])
         res = self.groupQuery(name=newuser.user_group)
         if res['success']:
             self.set_nfs_quota(newuser.username,res['data']['data'])
@@ -967,62 +967,6 @@ class userManager:
         lxcsettingfile.write(json.dumps(lxcsetting))
         lxcsettingfile.close()
         return {"success": 'true'}
-
-    @administration_required
-    def cloud_account_query(*args, **kwargs):
-        accountfile = open(fspath+"/global/sys/cloudaccount", 'r')
-        account = json.loads(accountfile.read())
-        accountfile.close()
-        return {"success": 'true', 'accounts':account}
-
-    @administration_required
-    def cloud_account_add(*args, **kwargs):
-        form = kwargs.get('form')
-        accountfile = open(fspath+"/global/sys/cloudaccount", 'r')
-        account = json.loads(accountfile.read())
-        accountfile.close()
-        account.append(
-                { 'cloudname' : form['cloudname'],
-                    'username' : form['username'],
-                    'password' : form['password'],
-                })
-        accountfile = open(fspath+"/global/sys/cloudaccount", 'w')
-        accountfile.write(json.dumps(account))
-        accountfile.close()
-        return {"success": 'true'}
-
-    @administration_required
-    def cloud_account_del(*args, **kwargs):
-        form = kwargs.get('form')
-        cloudname = form['cloudname']
-        accountfile = open(fspath+"/global/sys/cloudaccount", 'r')
-        account = json.loads(accountfile.read())
-        accountfile.close()
-        for acc in account:
-            if acc['cloudname'] == cloudname:
-                account.remove(acc)
-                break
-        accountfile = open(fspath+"/global/sys/cloudaccount", 'w')
-        accountfile.write(json.dumps(account))
-        accountfile.close()
-        return {"success": 'true'}
-
-    @administration_required
-    def cloud_account_modify(*args, **kwargs):
-        form = kwargs.get('form')
-        cloudname = form['cloudname']
-        accountfile = open(fspath+"/global/sys/cloudaccount", 'r')
-        account = json.loads(accountfile.read())
-        accountfile.close()
-        for acc in account:
-            if acc['cloudname'] == cloudname:
-                acc['username'] = form['username']
-                acc['password'] = form['password']
-                break
-        accountfile = open(fspath+"/global/sys/cloudaccount", 'w')
-        accountfile.write(json.dumps(account))
-        accountfile.close()
-        return {"success": "true"}
 
 
     def queryForDisplay(*args, **kwargs):

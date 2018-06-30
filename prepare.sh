@@ -15,13 +15,13 @@ fi
 # install packages that docklet needs (in ubuntu)
 # some packages' name maybe different in debian
 apt-get install -y cgmanager lxc lxcfs lxc-templates lvm2 bridge-utils curl exim4 openssh-server openvswitch-switch
-apt-get install -y python3 python3-netifaces python3-flask python3-flask-sqlalchemy python3-pampy python3-httplib2
+apt-get install -y python3 python3-netifaces python3-flask python3-flask-sqlalchemy python3-pampy python3-httplib2 python3-pip
 apt-get install -y python3-psutil python3-flask-migrate
 apt-get install -y python3-lxc
 apt-get install -y python3-requests python3-suds
 apt-get install -y nodejs nodejs-legacy npm
 apt-get install -y etcd
-apt-get install -y glusterfs-client
+apt-get install -y glusterfs-client attr
 apt-get install -y nginx
 
 #add ip forward
@@ -55,7 +55,7 @@ mkdir -p /opt/docklet/local/
 
 echo "directory /opt/docklet have been created"
 
-if [ ! -d /opt/docklet/local/basefs ]; then
+if [[ ! -d /opt/docklet/local/basefs && ! $1 = "withoutfs" ]]; then
 	mkdir -p /opt/docklet/local/basefs
 	echo "Generating basefs"
 	wget -P /opt/docklet/local http://iwork.pku.edu.cn:1616/basefs-0.11.tar.bz2 && tar xvf /opt/docklet/local/basefs-0.11.tar.bz2 -C /opt/docklet/local/ > /dev/null

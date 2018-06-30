@@ -45,7 +45,7 @@ export FS_PREFIX
 DAEMON_USER=root
 
 # settings for docklet master
-DAEMON_MASTER=$DOCKLET_LIB/httprest.py
+DAEMON_MASTER=$DOCKLET_LIB/master/httprest.py
 DAEMON_NAME_MASTER=docklet-master
 DAEMON_OPTS_MASTER=
 # The process ID of the script when it runs is stored here:
@@ -158,7 +158,7 @@ do_start_web () {
 }
 
 do_start_user () {
-    
+
     log_daemon_msg "Starting $DAEMON_NAME_USER in $FS_PREFIX"
 
     DAEMON_OPTS_USER="-p $USER_PORT"

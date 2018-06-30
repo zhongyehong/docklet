@@ -1,0 +1,12 @@
+{
+	"CloudName": "aliyun", 
+	"AccessKeyId": "your-key", 
+	"AccessKeySecret": "your-secret", 
+	"RegionId": "cn-beijing", 	
+	"ZoneId": "cn-beijing-a", 
+	"InstanceType": "ecs.sn1ne.xlarge",
+	"SystemDisk.Size": 500,
+	"Password": "Unias1234",
+	"VSwitchId": "the vswitchid of your vpc",
+	"VolumeName": "the volume name (with host name) of your glusterfs"
+}
