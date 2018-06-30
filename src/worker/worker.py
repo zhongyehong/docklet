@@ -19,6 +19,7 @@ from socketserver import ThreadingMixIn
 import threading
 from utils import etcdlib, proxytool
 from worker import container, monitor
+from worker.taskmgr import TaskMgr
 from utils.nettools import netcontrol,ovscontrol,portcontrol
 from utils.lvmtool import new_group, recover_group
 from master import network
