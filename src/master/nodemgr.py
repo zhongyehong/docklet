@@ -2,9 +2,9 @@
 
 import threading, random, time, xmlrpc.client, sys
 #import network
-from nettools import netcontrol,ovscontrol
-from log import logger
-import env
+from utils.nettools import netcontrol,ovscontrol
+from utils.log import logger
+from utils import env
 
 ##########################################
 #                NodeMgr
@@ -149,7 +149,7 @@ class NodeMgr(object):
             taskargs = task['args']
             logger.info("recover task:%s in worker:%s" % (taskname, ip))
             eval('worker.'+taskname)(*taskargs)
-    
+
     # get all run nodes' IP addr
     def get_nodeips(self):
         return self.runnodes

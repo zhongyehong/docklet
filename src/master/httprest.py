@@ -4,10 +4,13 @@
 # because some modules need variables when import
 # for example, userManager/model.py
 
+import sys
+if sys.path[0].endswith("master"):
+    sys.path[0] = sys.path[0][:-6]
 from flask import Flask, request
 
 # must first init loadenv
-import tools, env
+from utils import tools, env
 # default CONFIG=/opt/docklet/local/docklet-running.conf
 
 config = env.getenv("CONFIG")
@@ -15,26 +18,23 @@ tools.loadenv(config)
 
 # second init logging
 # must import logger after initlogging, ugly
-from log import initlogging
+from utils.log import initlogging
 initlogging("docklet-master")
-from log import logger
+from utils.log import logger
 
 import os
-import http.server, cgi, json, sys, shutil
+import http.server, cgi, json, sys, shutil, traceback
 import xmlrpc.client
 from socketserver import ThreadingMixIn
-<<<<<<< HEAD
-import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr, lockmgr, cloudmgr
-=======
-import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr, lockmgr, jobmgr, taskmgr
->>>>>>> 2c2f318b64cbd0af06780df49c1320432d437eae
-from logs import logs
-import userManager,beansapplicationmgr
-import monitor,traceback
+import nodemgr, vclustermgr, etcdlib, network, imagemgr, notificationmgr, lockmgr, cloudmgr,jobmgr, taskmgr
+from utils import etcdlib, imagemgr
+from master import nodemgr, vclustermgr, notificationmgr, lockmgr, cloudmgr
+from utils.logs import logs
+from master import userManager, beansapplicationmgr, monitor, sysmgr, network
+from worker.monitor import History_Manager
 import threading
-import sysmgr
 import requests
-from nettools import portcontrol
+from utils.nettools import portcontrol
 
 #default EXTERNAL_LOGIN=False
 external_login = env.getenv('EXTERNAL_LOGIN')
@@ -923,7 +923,7 @@ if __name__ == '__main__':
     masterport = env.getenv('MASTER_PORT')
     logger.info("using MASTER_PORT %d", int(masterport))
 
-    G_historymgr = monitor.History_Manager()
+    G_historymgr = History_Manager()
     master_collector = monitor.Master_Collector(G_nodemgr,ipaddr+":"+str(masterport))
     master_collector.start()
     logger.info("master_collector started")

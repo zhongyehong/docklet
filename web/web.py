@@ -12,7 +12,7 @@ if src_folder not in sys.path:
     sys.path.insert(0, src_folder)
 
 # must first init loadenv
-import tools, env
+from utils import tools, env
 config = env.getenv("CONFIG")
 tools.loadenv(config)
 

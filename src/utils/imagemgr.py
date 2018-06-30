@@ -20,12 +20,11 @@ from configparser import ConfigParser
 from io import StringIO
 import os,sys,subprocess,time,re,datetime,threading,random
 import xmlrpc.client
-from model import db, Image
+from utils.model import db, Image
 
-from log import logger
-import env
-from lvmtool import *
-import updatebase
+from utils.log import logger
+from utils import env, updatebase
+from utils.lvmtool import *
 import requests
 
 master_port = str(env.getenv('MASTER_PORT'))

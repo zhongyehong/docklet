@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 
-import env
+from utils import env
 import json, os
 from functools import wraps
-from log import logger
+from utils.log import logger
 
 
 class settingsClass:

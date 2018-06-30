@@ -6,7 +6,7 @@ import argparse
 import sys
 import time  # this is only being used as part of the example
 import os
-import env
+from utils import env
 
 # logger should only be imported after initlogging has been called
 logger = None
@@ -17,7 +17,7 @@ def initlogging(name='docklet'):
 
     homepath = env.getenv('FS_PREFIX')
     LOG_FILENAME = homepath + '/local/log/' + name + '.log'
-        
+
     LOG_LIFE = env.getenv('LOG_LIFE')
     LOG_LEVEL = env.getenv('LOG_LEVEL')
     if LOG_LEVEL == "DEBUG":
@@ -32,7 +32,6 @@ def initlogging(name='docklet'):
         LOG_LEVEL = logging.CRITIAL
     else:
         LOG_LEVEL = logging.DEBUG
-
     logger = logging.getLogger(name)
     # Configure logging to log to a file, making a new file at midnight and keeping the last 3 day's data
     # Give the logger a unique name (good practice)
@@ -47,7 +46,6 @@ def initlogging(name='docklet'):
     handler.setFormatter(formatter)
     # Attach the handler to the logger
     logger.addHandler(handler)
-
     # Replace stdout with logging to file at INFO level
     sys.stdout = RedirectLogger(logger, logging.INFO)
     # Replace stderr with logging to file at ERROR level
