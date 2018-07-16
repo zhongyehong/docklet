@@ -27,11 +27,10 @@ import http.server, cgi, json, sys, shutil, traceback
 import xmlrpc.client
 from socketserver import ThreadingMixIn
 from utils import etcdlib, imagemgr
-from master import nodemgr, vclustermgr, notificationmgr, lockmgr, cloudmgr, jobmgr
+from master import nodemgr, vclustermgr, notificationmgr, lockmgr, cloudmgr, jobmgr, taskmgr
 from utils.logs import logs
 from master import userManager, beansapplicationmgr, monitor, sysmgr, network
 from worker.monitor import History_Manager
-from worker import taskmgr
 import threading
 import requests
 from utils.nettools import portcontrol
