@@ -27,10 +27,11 @@ message Task {
 	int32 Timeout = 7;			// 超时阈值
 
     enum TaskStatus {
-    	RUNNING = 0;
-        COMPLETED = 1;
-        FAILED = 2;
-        TIMEOUT = 3;
+    	WAITING = 0;
+    	RUNNING = 1;
+        COMPLETED = 2;
+        FAILED = 3;
+        TIMEOUT = 4;
     }
 }
 
