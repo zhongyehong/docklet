@@ -1,19 +1,25 @@
 import threading
 import time
 
+# must import logger after initlogging, ugly
+from utils.log import initlogging
+initlogging("docklet-taskmgr")
+from utils.log import logger
+
+# grpc
 from concurrent import futures
 import grpc
-from protos.taskmgr_pb2 import Task, Reply
-from protos.taskmgr_pb2_grpc import TaskReporterServicer, add_TaskReporterServicer_to_server
+from protos.rpc_pb2 import Task, Reply
+from protos.rpc_pb2_grpc import MasterServicer, add_MasterServicer_to_server
 
-class TaskReport(TaskReporterServicer):
+class TaskReporter(MasterServicer):
 
     def __init__(self, taskmgr):
         self.taskmgr = taskmgr
 
     def report(self, request, context):
         self.taskmgr.on_task_report(request)
-        return Reply(message='received')
+        return Reply(message=Reply.ACCEPTED)
 
 class TaskMgr(threading.Thread):
 
@@ -32,12 +38,12 @@ class TaskMgr(threading.Thread):
             task = self.task_scheduler()
             if task is not None:
                 self.task_processor(task)
-            time.sleep(1)
+            time.sleep(2)
 
 
     def serve(self):
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        add_TaskReporterServicer_to_server(TaskReport(self), self.server)
+        add_MasterServicer_to_server(TaskReporter(self), self.server)
         self.server.add_insecure_port('[::]:50051')
         self.server.start()
 
@@ -49,10 +55,15 @@ class TaskMgr(threading.Thread):
 
     # this method is called when worker send heart-beat rpc request
     def on_task_report(self, task):
-        self.taskQueue.append('task')
-        print('rec')
-        time.sleep(2)
-        print(self.taskQueue)
+        logger.info('receive task report: id %d, status %d' % (task.id, task.status))
+        if task.status == Task.RUNNING:
+            pass
+        elif task.status == Task.COMPLETED:
+            # tell jobmgr
+            pass
+        elif task.status == Task.FAILED || task.status == Task.TIMEOUT:
+            # retry
+            pass
 
 
     # this is a thread to process task(or a instance)
@@ -77,13 +88,11 @@ class TaskMgr(threading.Thread):
     # task: a json string
     # save the task information into database
     # called when jobmgr assign task to taskmgr
-    def add_task(self,user,task):
+    def add_task(self, task):
         pass
 
 
     # user: username
-    # jobid: the id of job
-    # taskid: the id of task
     # get the information of a task, including the status, task description and other information
-    def get_task(self, user, jobid, taskid):
+    def get_task(self, taskid):
         pass
