@@ -54,8 +54,14 @@ class TaskMgr(threading.Thread):
 
 
     # this method is called when worker send heart-beat rpc request
-    def on_task_report(self, task):
-        logger.info('receive task report: id %d, status %d' % (task.id, task.status))
+    def on_task_report(self, report):
+        logger.info('[on_task_report] receive task report: id %d, status %d' % (report.id, report.status))
+        task = get_task(report.id)
+        if task == None:
+            logger.error('[on_task_report] task not found')
+            return
+
+        task.status = report.status
         if task.status == Task.RUNNING:
             pass
         elif task.status == Task.COMPLETED:
@@ -63,7 +69,15 @@ class TaskMgr(threading.Thread):
             pass
         elif task.status == Task.FAILED || task.status == Task.TIMEOUT:
             # retry
-            pass
+            if task.maxRetryCount <= 0:
+                # tell jobmgr
+                pass
+            else:
+                # decrease max retry count & waiting for retry
+                task.maxRetryCount -= 1
+                task.status = Task.WAITING
+        else:
+            logger.error('[on_task_report] receive report from waiting task')
 
 
     # this is a thread to process task(or a instance)
@@ -95,4 +109,7 @@ class TaskMgr(threading.Thread):
     # user: username
     # get the information of a task, including the status, task description and other information
     def get_task(self, taskid):
-        pass
+        for task in self.taskQueue:
+            if task.id == taskid:
+                return task
+        return None
