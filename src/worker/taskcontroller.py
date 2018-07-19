@@ -1,23 +1,25 @@
 #!/usr/bin/python3
 
-import xmlrpc.client
-from log import logger
-import env
+from concurrent import futures
+import grpc
+from utils.log import logger
+from utils import env
 import json,lxc,subprocess,threading,os
-import imagemgr
+from utils import imagemgr
+from protos import rpc_pb2, rpc_pb2_grpc
 
-class TaskController(object):
+class TaskController(rpc_pb2_grpc.WorkerServicer):
 
     def __init__(self):
         self.imgmgr = imagemgr.ImageMgr()
         self.fspath = env.getenv('FS_PREFIX')
         self.confpath = env.getenv('DOCKLET_CONF')
-        self.masterip = '162.105.88.190'
-        self.masterport = 9002
-        self.masterrpc = xmlrpc.client.ServerProxy("http://%s:%s" % (self.masterip,self.masterport))
+        #self.masterip = '162.105.88.190'
+        #self.masterport = 9002
+        #self.masterrpc = xmlrpc.client.ServerProxy("http://%s:%s" % (self.masterip,self.masterport))
         logger.info('TaskController init success')
 
-    def process_task(self, parameter):
+    def process_task(self, request, context):
         logger.info('excute task with parameter: ' + parameter)
         parameter = json.loads(parameter)
         jobid = parameter['JobId']
