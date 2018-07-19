@@ -19,7 +19,6 @@ from socketserver import ThreadingMixIn
 import threading
 from utils import etcdlib, proxytool
 from worker import container, monitor
-from worker.taskmgr import TaskMgr
 from utils.nettools import netcontrol,ovscontrol,portcontrol
 from utils.lvmtool import new_group, recover_group
 from master import network
@@ -145,7 +144,6 @@ class Worker(object):
         self.rpcserver.register_function(proxytool.delete_route)
         self.rpcserver.register_function(portcontrol.acquire_port_mapping)
         self.rpcserver.register_function(portcontrol.release_port_mapping)
-        self.rpcserver.register_function(TaskMgr.execute_task)
         # register functions or instances to server for rpc
         #self.rpcserver.register_function(function_name)
 
