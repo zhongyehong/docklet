@@ -1,16 +1,16 @@
 syntax = "proto3";
 
 service Master {
-    rpc report (Task) returns (Reply) {};
+    rpc report (TaskMsg) returns (Reply) {};
 }
 
 service Worker {
-    //rpc add_task (Task) returns (Reply) {}
     rpc process_task (Task) returns (Reply) {}
 }
 
 message Reply {
-    ReplyStatus message = 1;	// 返回值
+    ReplyStatus status = 1;	// 返回值
+    string message = 2;
 
     enum ReplyStatus {
     	ACCEPTED = 0;
@@ -18,22 +18,30 @@ message Reply {
     }
 }
 
+message TaskMsg {
+    string taskid = 1;
+    int32 instanceid = 2;
+    Status instanceStatus = 3; // 任务状态
+
+}
+
+enum Status {
+    WAITING = 0;
+    RUNNING = 1;
+    COMPLETED = 2;
+    FAILED = 3;
+    TIMEOUT = 4;
+}
+
 message Task {
 	string id = 1;
-    TaskStatus status = 2;		// 任务状态
-	int32 instanceCount = 3;	// 实例个数
-	int32 maxRetryCount = 4;	// 最大重试次数
-	Parameters parameters = 5;	// 参数
-	Cluster cluster = 6;		// 集群配置
-	int32 Timeout = 7;			// 超时阈值
-
-    enum TaskStatus {
-    	WAITING = 0;
-    	RUNNING = 1;
-        COMPLETED = 2;
-        FAILED = 3;
-        TIMEOUT = 4;
-    }
+  string username = 2;
+  int32 instanceid = 3;
+	int32 instanceCount = 4;	// 实例个数
+	int32 maxRetryCount = 5;	// 最大重试次数
+	Parameters parameters = 6;	// 参数
+	Cluster cluster = 7;		// 集群配置
+	int32 timeout = 8;			// 超时阈值
 }
 
 message Parameters {

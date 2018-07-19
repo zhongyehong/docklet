@@ -1,16 +1,27 @@
 #!/usr/bin/python3
+import sys
+if sys.path[0].endswith("worker"):
+    sys.path[0] = sys.path[0][:-6]
+from utils import env, tools
+#config = env.getenv("CONFIG")
+config = "/opt/docklet/local/docklet-running.conf"
+tools.loadenv(config)
+from utils.log import initlogging
+initlogging("docklet-worker")
+from utils.log import logger
 
 from concurrent import futures
 import grpc
-from utils.log import logger
-from utils import env
-import json,lxc,subprocess,threading,os
+#from utils.log import logger
+#from utils import env
+import json,lxc,subprocess,threading,os,time
 from utils import imagemgr
 from protos import rpc_pb2, rpc_pb2_grpc
 
 class TaskController(rpc_pb2_grpc.WorkerServicer):
 
     def __init__(self):
+        rpc_pb2_grpc.WorkerServicer.__init__(self)
         self.imgmgr = imagemgr.ImageMgr()
         self.fspath = env.getenv('FS_PREFIX')
         self.confpath = env.getenv('DOCKLET_CONF')
@@ -20,22 +31,24 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         logger.info('TaskController init success')
 
     def process_task(self, request, context):
-        logger.info('excute task with parameter: ' + parameter)
-        parameter = json.loads(parameter)
-        jobid = parameter['JobId']
-        taskid = parameter['TaskId']
-        taskno = parameter['TaskNo']
-        username = parameter['UserName']
-        lxcname = '%s-%s-%s-%s' % (username,jobid,taskid,taskno)
-        command = '/root/getenv.sh'  #parameter['Parameters']['Command']['CommandLine']
-        envs = {'MYENV1':'MYVAL1', 'MYENV2':'MYVAL2'} #parameters['Parameters']['Command']['EnvVars']
-        envs['TASK_NO']=taskno
-        image = parameter['ImageId']
-        instance_type =  parameter['InstanceType']
+        logger.info('excute task with parameter: ' + str(request))
+        taskid = request.id
+        instanceid = request.instanceid
 
-        status = self.imgmgr.prepareFS(username,image,lxcname,instance_type['disk'])
+        command = request.parameters.command.commandLine #'/root/getenv.sh'  #parameter['Parameters']['Command']['CommandLine']
+        #envs = {'MYENV1':'MYVAL1', 'MYENV2':'MYVAL2'} #parameters['Parameters']['Command']['EnvVars']
+        envs = request.parameters.command.envVars
+        image = {}
+        image['name'] = request.cluster.image.name
+        image['type'] = 'private' if request.cluster.image.type == rpc_pb2.Image.PRIVATE else 'public'
+        image['owner'] = request.cluster.image.owner
+        username = request.username
+        lxcname = '%s-batch-%s-%s' % (username,taskid,str(instanceid))
+        instance_type =  request.cluster.instance
+
+        status = self.imgmgr.prepareFS(username,image,lxcname,str(instance_type.disk))
         if not status:
-            return [False, "Create container for batch failed when preparing filesystem"]
+            return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED, message="Create container for batch failed when preparing filesystem")
 
         rootfs = "/var/lib/lxc/%s/rootfs" % lxcname
 
@@ -48,13 +61,16 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
 
         def config_prepare(content):
             content = content.replace("%ROOTFS%",rootfs)
-            content = content.replace("%CONTAINER_MEMORY%",str(instance_type['memory']))
-            content = content.replace("%CONTAINER_CPU%",str(instance_type['cpu']*100000))
+            content = content.replace("%HOSTNAME%","batch-%s" % instanceid)
+            content = content.replace("%CONTAINER_MEMORY%",str(instance_type.memory))
+            content = content.replace("%CONTAINER_CPU%",str(instance_type.cpu*100000))
             content = content.replace("%FS_PREFIX%",self.fspath)
+            content = content.replace("%LXCSCRIPT%",env.getenv("LXC_SCRIPT"))
             content = content.replace("%USERNAME%",username)
             content = content.replace("%LXCNAME%",lxcname)
             return content
 
+        logger.info(self.confpath)
         conffile = open(self.confpath+"/container.batch.conf", 'r')
         conftext = conffile.read()
         conffile.close()
@@ -68,18 +84,18 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         container = lxc.Container(lxcname)
         if not container.start():
             logger.error('start container %s failed' % lxcname)
-            return True
+            return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
             #return json.dumps({'success':'false','message': "start container failed"})
         else:
             logger.info('start container %s success' % lxcname)
 
         #mount oss here
 
-        thread = threading.Thread(target = self.excute_task, args=(jobid,taskid,envs,lxcname,command))
-        thread.setDaemon(True)
-        thread.start()
+        #thread = threading.Thread(target = self.excute_task, args=(jobid,taskid,envs,lxcname,command))
+        #thread.setDaemon(True)
+        #thread.start()
 
-        return True
+        return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
         #return json.dumps({'success':'true','message':'task is running'})
 
     def excute_task(self,jobid,taskid,envs,lxcname,command):
@@ -109,3 +125,20 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
             logger.info("delete container %s success" % lxcname)
         else:
             logger.error("delete container %s failed" % lxcname)
+
+_ONE_DAY_IN_SECONDS = 60 * 60 * 24
+
+def TaskControllerServe():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    rpc_pb2_grpc.add_WorkerServicer_to_server(TaskController(), server)
+    server.add_insecure_port('[::]:50051')
+    server.start()
+    logger.info("Start TaskController Servicer")
+    try:
+        while True:
+            time.sleep(_ONE_DAY_IN_SECONDS)
+    except KeyboardInterrupt:
+        server.stop(0)
+
+if __name__ == "__main__":
+    TaskControllerServe()
