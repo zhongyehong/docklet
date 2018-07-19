@@ -1,5 +1,7 @@
 import threading
 import time
+import string
+import random
 
 import master.monitor
 
@@ -11,8 +13,9 @@ from utils.log import logger
 # grpc
 from concurrent import futures
 import grpc
-from protos.rpc_pb2 import Task, Reply
-from protos.rpc_pb2_grpc import MasterServicer, add_MasterServicer_to_server
+from protos.rpc_pb2 import Task, TaskMsg, Status, Reply
+from protos.rpc_pb2_grpc import MasterServicer, add_MasterServicer_to_server, WorkerStub
+
 
 class TaskReporter(MasterServicer):
 
@@ -22,6 +25,7 @@ class TaskReporter(MasterServicer):
     def report(self, request, context):
         self.taskmgr.on_task_report(request)
         return Reply(message=Reply.ACCEPTED)
+
 
 class TaskMgr(threading.Thread):
 
@@ -34,6 +38,7 @@ class TaskMgr(threading.Thread):
 
         # tasks
         self.task_queue = []
+        self.heart_beat_timeout = 60 # (s)
 
         # nodes
         self.nodemgr = nodemgr
@@ -68,22 +73,22 @@ class TaskMgr(threading.Thread):
 
     # this method is called when worker send heart-beat rpc request
     def on_task_report(self, report):
-        logger.info('[on_task_report] receive task report: id %d, status %d' % (report.id, report.status))
-        task = get_task(report.id)
+        logger.info('[on_task_report] receive task report: id %d, status %d' % (report.taskid, report.instanceStatus))
+        task = get_task(report.taskid)
         if task == None:
             logger.error('[on_task_report] task not found')
             return
 
-        instance_id = report.parameters.command.envVars['INSTANCE_ID']
-        instance = task.instance_list[instance_id]
+        instance = task.instance_list[report.instanceid]
+        if instance['token'] != report.token:
+            return
 
-        if report.status == Task.RUNNING:
-            pass
-        elif report.status == Task.COMPLETED:
-            instance['status'] = 'completed'
+        instance['status'] = report.instanceStatus
+        if report.instanceStatus == Status.RUNNING:
+            instance['last_update_time'] = time.time()
+        elif report.instanceStatus == Status.COMPLETED:
             check_task_completed(task)
-        elif report.status == Task.FAILED || report.status == Task.TIMEOUT:
-            instance['status'] = 'failed'
+        elif report.instanceStatus == Status.FAILED || report.instanceStatus == Status.TIMEOUT:
             if instance['try_count'] > task.maxRetryCount:
                 check_task_completed(task)
         else:
@@ -95,27 +100,45 @@ class TaskMgr(threading.Thread):
             return
         failed = False
         for instance in task.instance_list:
-            if instance['status'] == 'running':
+            if instance['status'] == Status.RUNNING || instance['status'] == Status.WAITING:
                 return
-            if instance['status'] == 'failed':
+            if instance['status'] == Status.FAILED || instance['status'] == Status.TIMEOUT:
                 if instance['try_count'] > task.maxRetryCount:
                     failed = True
                 else:
                     return
         if failed:
-            # tell jobmgr task failed
-            task.status = Task.FAILED
+            # TODO tell jobmgr task failed
+            task.status = Status.FAILED
         else:
-            # tell jobmgr task completed
-            task.status = Task.COMPLETED
+            # TODO tell jobmgr task completed
+            task.status = Status.COMPLETED
         self.task_queue.remove(task)
 
 
     def task_processor(self, task, instance_id, worker):
-        task.status = Task.RUNNING
-        task.parameters.command.envVars['INSTANCE_ID'] = instance_id
-        # TODO call the rpc to call a function in worker
-        print('processing %s' % task.id)
+        task.status = Status.RUNNING
+
+        # properties for transaction
+        task.instanceid = instance_id
+        task.token = ''.join(random.sample(string.ascii_letters + string.digits, 8))
+
+        instance = task.instance_list[instance_id]
+        instance['status'] = Status.RUNNING
+        instance['last_update_time'] = time.time()
+        instance['try_count'] += 1
+        instance['token'] = task.token
+
+        try:
+            logger.info('[task_processor] processing %s' % task.id)
+            channel = grpc.insecure_channel('%s:50052' % worker)
+            stub = WorkerStub(channel)
+            response = stub.process_task(task)
+            logger.info('[task_processor] worker response: %d' response.message)
+        except Exception as e:
+            logger.error('[task_processor] rpc error message: %s' e)
+            instance['status'] = Status.FAILED
+            instance['try_count'] -= 1
 
 
     # return task, worker
@@ -126,14 +149,17 @@ class TaskMgr(threading.Thread):
             if worker is not None:
                 # find instance to retry
                 for instance, index in enumerate(task.instance_list):
-                    if instance['status'] == 'failed' and instance['try_count'] <= task.maxRetryCount:
-                        instance['try_count'] += 1
+                    if (instance['status'] == Status.FAILED || instance['status'] == Status.TIMEOUT) and instance['try_count'] <= task.maxRetryCount:
                         return task, index, worker
+                    elif instance['status'] == Status.RUNNING:
+                        if time.time() - instance['last_update_time'] > self.heart_beat_timeout:
+                            instance['status'] = Status.FAILED
+                            instance['token'] = ''
+                            return task, index, worker
 
                 # start new instance
                 if len(task.instance_list) < task.instanceCount:
                     instance = {}
-                    instance['status'] = 'running'
                     instance['try_count'] = 0
                     task.instance_list.append(instance)
                     return task, len(task.instance_list) - 1, worker
@@ -146,8 +172,11 @@ class TaskMgr(threading.Thread):
             logger.warning('[task_scheduler] running nodes not found')
             return None
 
-        # TODO
-        return nodes[0]
+        for node in nodes:
+            # TODO
+            if True:
+                return node[0]
+        return None
 
 
     def get_all_nodes(self):
@@ -159,7 +188,7 @@ class TaskMgr(threading.Thread):
         self.all_nodes = []
         for node_ip in node_ips:
             fetcher = master.monitor.Fetcher(node_ip)
-            self.all_nodes.append(fetcher.info)
+            self.all_nodes.append((node_ip, fetcher.info))
         return self.all_nodes
 
 
@@ -170,6 +199,7 @@ class TaskMgr(threading.Thread):
     def add_task(self, task):
         # decode json string to object defined in grpc
         task.instance_list = []
+        task.status = Status.WAITING
         self.task_queue.append(task)
 
 
