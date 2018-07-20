@@ -85,12 +85,11 @@ class TaskMgr(threading.Thread):
             logger.warning('[on_task_report] wrong token')
             return
 
-        instance['status'] = report.instanceStatus
-
-        if report.instanceStatus == Status.RUNNING:
-            instance['last_update_time'] = time.time()
-        else:
+        if instance['status'] == Status.RUNNING and report.instanceStatus != Status.RUNNING:
             self.cpu_usage[instance['worker']] -= task.cluster.instance.cpu
+
+        instance['status'] = report.instanceStatus
+        instance['last_update_time'] = time.time()
 
         if report.instanceStatus == Status.COMPLETED:
             check_task_completed(task)
