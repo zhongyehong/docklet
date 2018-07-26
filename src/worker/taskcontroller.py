@@ -32,6 +32,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         self.imgmgr = imagemgr.ImageMgr()
         self.fspath = env.getenv('FS_PREFIX')
         self.confpath = env.getenv('DOCKLET_CONF')
+        self.lock = threading.Lock()
         self.cons_gateway = '10.0.3.1'
         self.cons_ips = '10.0.3.0/24'
 
@@ -45,18 +46,22 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
 
     # Need Locks
     def acquire_ip(self):
+        self.lock.acquire()
         if len(self.free_ips) == 0:
             return [False, "No free ips"]
         ip = int_to_ip(self.ipbase + self.free_ips[0])
         self.free_ips.remove(self.free_ips[0])
         logger.info(str(self.free_ips))
+        self.lock.release()
         return [True, ip + "/" + str(32 - self.cidr)]
 
     # Need Locks
     def release_ip(self,ipstr):
+        self.lock.acquire()
         ipnum = ip_to_int(ipstr.split('/')[0]) - self.ipbase
         self.free_ips.append(ipnum)
         logger.info(str(self.free_ips))
+        self.lock.release()
 
     def process_task(self, request, context):
         logger.info('excute task with parameter: ' + str(request))
@@ -173,7 +178,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
 def TaskControllerServe():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=5))
     rpc_pb2_grpc.add_WorkerServicer_to_server(TaskController(), server)
     server.add_insecure_port('[::]:50051')
     server.start()
