@@ -18,6 +18,13 @@ import json,lxc,subprocess,threading,os,time
 from utils import imagemgr
 from protos import rpc_pb2, rpc_pb2_grpc
 
+def ip_to_int(addr):
+    [a, b, c, d] = addr.split('.')
+    return (int(a)<<24) + (int(b)<<16) + (int(c)<<8) + int(d)
+
+def int_to_ip(num):
+    return str((num>>24)&255)+"."+str((num>>16)&255)+"."+str((num>>8)&255)+"."+str(num&255)
+
 class TaskController(rpc_pb2_grpc.WorkerServicer):
 
     def __init__(self):
@@ -25,29 +32,68 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         self.imgmgr = imagemgr.ImageMgr()
         self.fspath = env.getenv('FS_PREFIX')
         self.confpath = env.getenv('DOCKLET_CONF')
-        #self.masterip = '162.105.88.190'
-        #self.masterport = 9002
-        #self.masterrpc = xmlrpc.client.ServerProxy("http://%s:%s" % (self.masterip,self.masterport))
+        self.lock = threading.Lock()
+        self.cons_gateway = '10.0.3.1'
+        self.cons_ips = '10.0.3.0/24'
+
+        self.cidr = 32 - int(self.cons_ips.split('/')[1])
+        self.ipbase = ip_to_int(self.cons_ips.split('/')[0])
+        self.free_ips = []
+        for i in range(2, (1 << self.cidr) - 1):
+            self.free_ips.append(i)
+
         logger.info('TaskController init success')
+
+    # Need Locks
+    def acquire_ip(self):
+        self.lock.acquire()
+        if len(self.free_ips) == 0:
+            return [False, "No free ips"]
+        ip = int_to_ip(self.ipbase + self.free_ips[0])
+        self.free_ips.remove(self.free_ips[0])
+        logger.info(str(self.free_ips))
+        self.lock.release()
+        return [True, ip + "/" + str(32 - self.cidr)]
+
+    # Need Locks
+    def release_ip(self,ipstr):
+        self.lock.acquire()
+        ipnum = ip_to_int(ipstr.split('/')[0]) - self.ipbase
+        self.free_ips.append(ipnum)
+        logger.info(str(self.free_ips))
+        self.lock.release()
 
     def process_task(self, request, context):
         logger.info('excute task with parameter: ' + str(request))
         taskid = request.id
         instanceid = request.instanceid
 
+        # get config from request
         command = request.parameters.command.commandLine #'/root/getenv.sh'  #parameter['Parameters']['Command']['CommandLine']
         #envs = {'MYENV1':'MYVAL1', 'MYENV2':'MYVAL2'} #parameters['Parameters']['Command']['EnvVars']
         envs = request.parameters.command.envVars
         image = {}
         image['name'] = request.cluster.image.name
-        image['type'] = 'private' if request.cluster.image.type == rpc_pb2.Image.PRIVATE else 'public'
+        if request.cluster.image.type == rpc_pb2.Image.PRIVATE:
+            image['type'] = 'private'
+        elif request.cluster.image.type == rpc_pb2.Image.PUBLIC:
+            image['type'] = 'public'
+        else:
+            image['type'] = 'base'
         image['owner'] = request.cluster.image.owner
         username = request.username
         lxcname = '%s-batch-%s-%s' % (username,taskid,str(instanceid))
         instance_type =  request.cluster.instance
 
+        # acquire ip
+        [status, ip] = self.acquire_ip()
+        if not status:
+            return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED, message=ip)
+
+        # prepare image and filesystem
         status = self.imgmgr.prepareFS(username,image,lxcname,str(instance_type.disk))
         if not status:
+            self.release_ip(ip)
             return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED, message="Create container for batch failed when preparing filesystem")
 
         rootfs = "/var/lib/lxc/%s/rootfs" % lxcname
@@ -68,6 +114,8 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
             content = content.replace("%LXCSCRIPT%",env.getenv("LXC_SCRIPT"))
             content = content.replace("%USERNAME%",username)
             content = content.replace("%LXCNAME%",lxcname)
+            content = content.replace("%IP%",ip)
+            content = content.replace("%GATEWAY%",self.cons_gateway)
             return content
 
         logger.info(self.confpath)
@@ -84,7 +132,8 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         container = lxc.Container(lxcname)
         if not container.start():
             logger.error('start container %s failed' % lxcname)
-            return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
+            self.release_ip(ip)
+            return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED,message="Can't start the container")
             #return json.dumps({'success':'false','message': "start container failed"})
         else:
             logger.info('start container %s success' % lxcname)
@@ -129,7 +178,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
 def TaskControllerServe():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=5))
     rpc_pb2_grpc.add_WorkerServicer_to_server(TaskController(), server)
     server.add_insecure_port('[::]:50051')
     server.start()

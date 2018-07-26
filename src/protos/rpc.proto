@@ -68,8 +68,9 @@ message Image {
 	string owner = 3;	// 所有者
 
 	enum ImageType {
-		PUBLIC = 0;
-		PRIVATE = 1;
+    BASE = 0;
+    PUBLIC = 1;
+    PRIVATE = 2;
 	}
 }
 

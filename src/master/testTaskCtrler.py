@@ -13,7 +13,7 @@ def run():
     comm = rpc_pb2.Command(commandLine="echo hello_world > test.txt", packagePath=".", envVars={})
     paras = rpc_pb2.Parameters(command=comm, stderrRedirectPath="", stdoutRedirectPath="")
 
-    img = rpc_pb2.Image(name="base", type=rpc_pb2.Image.PUBLIC, owner="docklet")
+    img = rpc_pb2.Image(name="base", type=rpc_pb2.Image.BASE, owner="docklet")
     inst = rpc_pb2.Instance(cpu=2, memory=2000, disk=500, gpu=0)
     mnt = rpc_pb2.Mount(localPath="",remotePath="")
     clu = rpc_pb2.Cluster(image=img, instance=inst, mount=[mnt])

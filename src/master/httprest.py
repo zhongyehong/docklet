@@ -903,11 +903,11 @@ if __name__ == '__main__':
     G_networkmgr.printpools()
 
     G_cloudmgr = cloudmgr.CloudMgr()
-    G_taskmgr = taskmgr.TaskMgr()
+    '''G_taskmgr = taskmgr.TaskMgr()
     G_jobmgr = jobmgr.JobMgr(taskmgr)
     G_jobmgr.start()
     G_taskmgr.set_jobmgr(G_jobmgr)
-    G_taskmgr.start()
+    G_taskmgr.start()'''
 
     # start NodeMgr and NodeMgr will wait for all nodes to start ...
     G_nodemgr = nodemgr.NodeMgr(G_networkmgr, etcdclient, addr = ipaddr, mode=mode)
