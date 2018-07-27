@@ -71,7 +71,10 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         # get config from request
         command = request.parameters.command.commandLine #'/root/getenv.sh'  #parameter['Parameters']['Command']['CommandLine']
         #envs = {'MYENV1':'MYVAL1', 'MYENV2':'MYVAL2'} #parameters['Parameters']['Command']['EnvVars']
+        pkgpath = request.parameters.command.packagePath
         envs = request.parameters.command.envVars
+        envs['taskid'] = str(taskid)
+        envs['instanceid'] = str(instanceid)
         image = {}
         image['name'] = request.cluster.image.name
         if request.cluster.image.type == rpc_pb2.Image.PRIVATE:
@@ -134,32 +137,31 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
             logger.error('start container %s failed' % lxcname)
             self.release_ip(ip)
             return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED,message="Can't start the container")
-            #return json.dumps({'success':'false','message': "start container failed"})
         else:
             logger.info('start container %s success' % lxcname)
 
         #mount oss here
 
-        #thread = threading.Thread(target = self.excute_task, args=(jobid,taskid,envs,lxcname,command))
-        #thread.setDaemon(True)
-        #thread.start()
+        thread = threading.Thread(target = self.excute_task, args=(taskid,instanceid,envs,lxcname,pkgpath,command,ip))
+        thread.setDaemon(True)
+        thread.start()
 
         return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
-        #return json.dumps({'success':'true','message':'task is running'})
 
-    def excute_task(self,jobid,taskid,envs,lxcname,command):
+    def excute_task(self,taskid,instanceid,envs,lxcname,pkgpath,command,ip):
         cmd = "lxc-attach -n " + lxcname
         for envkey,envval in envs.items():
             cmd = cmd + " -v %s=%s" % (envkey,envval)
-        cmd = cmd + " " + command
+        cmd = cmd + " -- /bin/bash -c " + "\"cd " + pkgpath + ";" + command + "\""
         logger.info('run task with command - %s' % cmd)
-        Ret = subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
-        if Ret == 0:
+        ret = subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
+        logger.info(ret)
+        if ret.returncode == 0:
             #call master rpc function to tell the taskmgr
-            self.masterrpc.complete_task(jobid,taskid)
+            pass
         else:
-            self.masterrpc.fail_task(jobid,taskid)
             #call master rpc function to tell the wrong
+            pass
 
         #umount oss here
 
@@ -174,6 +176,10 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
             logger.info("delete container %s success" % lxcname)
         else:
             logger.error("delete container %s failed" % lxcname)
+
+        logger.info("release ip address %s" % ip)
+        self.release_ip(ip)
+
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
