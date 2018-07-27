@@ -10,7 +10,7 @@ def run():
     channel = grpc.insecure_channel('localhost:50051')
     stub = rpc_pb2_grpc.WorkerStub(channel)
 
-    comm = rpc_pb2.Command(commandLine="echo hello_world > test.txt", packagePath=".", envVars={})
+    comm = rpc_pb2.Command(commandLine=r"echo \"s\" | awk '{print \"test\n\\\"\"}' > test.txt;cat test.txt", packagePath="/root", envVars={'test1':'10','test2':'20'}) # | awk '{print \"test\\\"\\n\"}'
     paras = rpc_pb2.Parameters(command=comm, stderrRedirectPath="", stdoutRedirectPath="")
 
     img = rpc_pb2.Image(name="base", type=rpc_pb2.Image.BASE, owner="docklet")
