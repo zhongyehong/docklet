@@ -3,11 +3,11 @@ import sys
 if sys.path[0].endswith("worker"):
     sys.path[0] = sys.path[0][:-6]
 from utils import env, tools
-#config = env.getenv("CONFIG")
-config = "/opt/docklet/local/docklet-running.conf"
+config = env.getenv("CONFIG")
+#config = "/opt/docklet/local/docklet-running.conf"
 tools.loadenv(config)
 from utils.log import initlogging
-initlogging("docklet-worker")
+initlogging("docklet-taskcontroller")
 from utils.log import logger
 
 from concurrent import futures
@@ -33,14 +33,17 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         self.fspath = env.getenv('FS_PREFIX')
         self.confpath = env.getenv('DOCKLET_CONF')
         self.lock = threading.Lock()
-        self.cons_gateway = '10.0.3.1'
-        self.cons_ips = '10.0.3.0/24'
+        self.cons_gateway = env.getenv('BATCH_GATEWAY')
+        self.cons_ips = env.getenv('BATCH_NET')
+        logger.info("Batch gateway ip address %s" % self.cons_gateway)
+        logger.info("Batch ip pools %s" % self.cons_ips)
 
         self.cidr = 32 - int(self.cons_ips.split('/')[1])
         self.ipbase = ip_to_int(self.cons_ips.split('/')[0])
         self.free_ips = []
         for i in range(2, (1 << self.cidr) - 1):
             self.free_ips.append(i)
+        logger.info("Free ip addresses pool %s" % str(self.free_ips))
 
         logger.info('TaskController init success')
 
@@ -184,11 +187,14 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
 def TaskControllerServe():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=5))
+    max_threads = int(env.getenv('BATCH_MAX_THREAD_WORKER'))
+    worker_port = int(env.getenv('BATCH_WORKER_PORT'))
+    logger.info("Max Threads on a worker is %d" % max_threads)
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_threads))
     rpc_pb2_grpc.add_WorkerServicer_to_server(TaskController(), server)
-    server.add_insecure_port('[::]:50051')
+    server.add_insecure_port('[::]:'+str(worker_port))
     server.start()
-    logger.info("Start TaskController Servicer")
+    logger.info("Start TaskController Servicer on port:%d" % worker_port)
     try:
         while True:
             time.sleep(_ONE_DAY_IN_SECONDS)
