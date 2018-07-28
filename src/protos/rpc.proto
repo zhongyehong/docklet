@@ -1,42 +1,42 @@
 syntax = "proto3";
 
 service Master {
-    rpc report (TaskMsg) returns (Reply) {};
+	rpc report (TaskMsg) returns (Reply) {};
 }
 
 service Worker {
-    rpc process_task (Task) returns (Reply) {}
+	rpc process_task (TaskInfo) returns (Reply) {}
 }
 
 message Reply {
-    ReplyStatus status = 1;	// 返回值
-    string message = 2;
+	ReplyStatus status = 1;	// 返回值
+	string message = 2;
 
-    enum ReplyStatus {
-    	ACCEPTED = 0;
-    	REFUSED = 1;
-    }
+	enum ReplyStatus {
+		ACCEPTED = 0;
+		REFUSED = 1;
+	}
 }
 
 message TaskMsg {
-    string taskid = 1;
-    int32 instanceid = 2;
-    Status instanceStatus = 3; // 任务状态
+	string taskid = 1;
+	int32 instanceid = 2;
+	Status instanceStatus = 3; // 任务状态
 
 }
 
 enum Status {
-    WAITING = 0;
-    RUNNING = 1;
-    COMPLETED = 2;
-    FAILED = 3;
-    TIMEOUT = 4;
+	WAITING = 0;
+	RUNNING = 1;
+	COMPLETED = 2;
+	FAILED = 3;
+	TIMEOUT = 4;
 }
 
-message Task {
+message TaskInfo {
 	string id = 1;
-  string username = 2;
-  int32 instanceid = 3;
+	string username = 2;
+	int32 instanceid = 3;
 	int32 instanceCount = 4;	// 实例个数
 	int32 maxRetryCount = 5;	// 最大重试次数
 	Parameters parameters = 6;	// 参数
@@ -68,9 +68,9 @@ message Image {
 	string owner = 3;	// 所有者
 
 	enum ImageType {
-    BASE = 0;
-    PUBLIC = 1;
-    PRIVATE = 2;
+	BASE = 0;
+	PUBLIC = 1;
+	PRIVATE = 2;
 	}
 }
 
