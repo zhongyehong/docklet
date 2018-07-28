@@ -1,8 +1,9 @@
 import master.taskmgr
 from concurrent import futures
 import grpc
-from protos import rpc_pb2, rpc_pb2_grpc
-import threading, json, time
+from protos.rpc_pb2 import *
+from protos.rpc_pb2_grpc import *
+import threading, json, time, random
 from utils import env
 
 
@@ -22,10 +23,15 @@ class SimulatedMonitorFetcher():
 		self.info['diskinfo'][0]['free'] = 8 * 1024 * 1024 * 1024 # (b) simulate 8 GB disk
 
 
-class SimulatedTaskController(rpc_pb2_grpc.WorkerServicer):
+class SimulatedTaskController(WorkerServicer):
+
+	def __init__(self, worker):
+		self.worker = worker
+
 	def process_task(self, task, context):
-		print('[SimulatedTaskController] receive task [%s]' % task.id)
-		return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
+		print('[SimulatedTaskController] receive task [%s] instanceid [%d] token [%s]' % (task.id, task.instanceid, task.token))
+		worker.process(task)
+		return Reply(status=Reply.ACCEPTED,message="")
 
 
 class SimulatedWorker(threading.Thread):
@@ -33,19 +39,35 @@ class SimulatedWorker(threading.Thread):
 	def __init__(self):
 		threading.Thread.__init__(self)
 		self.thread_stop = False
+		self.tasks = []
 
 	def run(self):
 		worker_port = env.getenv('BATCH_WORKER_PORT')
 		server = grpc.server(futures.ThreadPoolExecutor(max_workers=5))
-		rpc_pb2_grpc.add_WorkerServicer_to_server(SimulatedTaskController(), server)
+		add_WorkerServicer_to_server(SimulatedTaskController(self), server)
 		server.add_insecure_port('[::]:' + worker_port)
 		server.start()
 		while not self.thread_stop:
+			for task in self.tasks:
+				seed = random.random()
+				if seed < 0.25:
+					report(task.id, task.instanceid, RUNNING, task.token)
+				elif seed < 0.5:
+					report(task.id, task.instanceid, COMPLETED, task.token)
+					self.tasks.remove(task)
+				elif seed < 0.75:
+					report(task.id, task.instanceid, FAILED, task.token)
+					self.tasks.remove(task)
+				else:
+					pass
 			time.sleep(5)
 		server.stop(0)
 
 	def stop(self):
 		self.thread_stop = True
+
+	def process(self, task):
+		self.tasks.append(task)
 
 
 class SimulatedJobMgr(threading.Thread):
@@ -63,9 +85,9 @@ class SimulatedJobMgr(threading.Thread):
 		self.thread_stop = True
 
 	def report(self, task):
-		print('[SimulatedJobMgr] task[%s] status %d' % (task.id, task.status))
+		print('[SimulatedJobMgr] task[%s] status %d' % (task.info.id, task.status))
 
-	def asignTask(self, taskmgr, taskid, instance_count, retry_count, timeout, cpu, memory, disk):
+	def assignTask(self, taskmgr, taskid, instance_count, retry_count, timeout, cpu, memory, disk):
 		task = {}
 		task['instanceCount'] = instance_count
 		task['maxRetryCount'] = retry_count
@@ -113,11 +135,26 @@ def test():
 	jobmgr = SimulatedJobMgr()
 	jobmgr.start()
 
-	taskmgr = master.taskmgr.TaskMgr(SimulatedNodeMgr(), SimulatedMonitorFetcher, SimulatedLogger())
+	taskmgr = master.taskmgr.TaskMgr(SimulatedNodeMgr(), SimulatedMonitorFetcher, SimulatedLogger(), worker_timeout=10, scheduler_interval=2)
 	taskmgr.set_jobmgr(jobmgr)
 	taskmgr.start()
 
-	jobmgr.asignTask(taskmgr, 'task_0', 2, 2, 60, 2, 2048, 2048)
+	add('task_0', instance_count=2, retry_count=2, timeout=60, cpu=2, memory=2048, disk=2048)
+
+
+def add(taskid, instance_count, retry_count, timeout, cpu, memory, disk):
+	global jobmgr
+	global taskmgr
+	jobmgr.assignTask(taskmgr, taskid, instance_count, retry_count, timeout, cpu, memory, disk)
+
+
+def report(taskid, instanceid, status, token):
+	global taskmgr
+
+	master_port = env.getenv('BATCH_MASTER_PORT')
+	channel = grpc.insecure_channel('%s:%s' % ('0.0.0.0', master_port))
+	stub = MasterStub(channel)
+	response = stub.report(TaskMsg(taskid=taskid, instanceid=instanceid, instanceStatus=status, token=token))
 
 
 def stop():
