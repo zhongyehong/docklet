@@ -4,18 +4,24 @@ import string
 import random
 import json
 
-import master.monitor
-
 # must import logger after initlogging, ugly
-from utils.log import initlogging
-initlogging("docklet-taskmgr")
-from utils.log import logger
+# from utils.log import initlogging
+# initlogging("docklet-taskmgr")
+# from utils.log import logger
 
 # grpc
 from concurrent import futures
 import grpc
-from protos.rpc_pb2 import Task, TaskMsg, Status, Reply, Parameters, Cluster, Command, Image, Mount, Instance
+from protos.rpc_pb2 import *
 from protos.rpc_pb2_grpc import MasterServicer, add_MasterServicer_to_server, WorkerStub
+
+
+class Task():
+    def __init__(self, info):
+        self.info = info
+        self.status = WAITING
+        self.instance_list = []
+        self.token = ''
 
 
 class TaskReporter(MasterServicer):
@@ -33,15 +39,17 @@ class TaskMgr(threading.Thread):
     # load task information from etcd
     # initial a task queue and task schedueler
     # taskmgr: a taskmgr instance
-    def __init__(self, nodemgr):
+    def __init__(self, nodemgr, monitor_fetcher, logger):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.jobmgr = None
         self.task_queue = []
-        self.heart_beat_timeout = 60 # (s)
+        self.heart_beat_timeout = 5 # (s)
+        self.logger = logger
 
         # nodes
         self.nodemgr = nodemgr
+        self.monitor_fetcher = monitor_fetcher
         self.cpu_usage = {}
         # self.all_nodes = None
         # self.last_nodes_info_update_time = 0
@@ -63,136 +71,146 @@ class TaskMgr(threading.Thread):
         add_MasterServicer_to_server(TaskReporter(self), self.server)
         self.server.add_insecure_port('[::]:50051')
         self.server.start()
-        logger.info('[taskmgr_rpc] start rpc server')
+        self.logger.info('[taskmgr_rpc] start rpc server')
 
 
     def stop(self):
         self.thread_stop = True
         self.server.stop(0)
-        logger.info('[taskmgr_rpc] stop rpc server')
+        self.logger.info('[taskmgr_rpc] stop rpc server')
 
 
     # this method is called when worker send heart-beat rpc request
     def on_task_report(self, report):
-        logger.info('[on_task_report] receive task report: id %s-%d, status %d' % (report.taskid, report.instanceid, report.instanceStatus))
+        self.logger.info('[on_task_report] receive task report: id %s-%d, status %d' % (report.taskid, report.instanceid, report.instanceStatus))
         task = get_task(report.taskid)
         if task == None:
-            logger.error('[on_task_report] task not found')
+            self.logger.error('[on_task_report] task not found')
             return
 
         instance = task.instance_list[report.instanceid]
         if instance['token'] != report.token:
-            logger.warning('[on_task_report] wrong token')
+            self.logger.warning('[on_task_report] wrong token')
             return
 
-        if instance['status'] == Status.RUNNING and report.instanceStatus != Status.RUNNING:
-            self.cpu_usage[instance['worker']] -= task.cluster.instance.cpu
+        if instance['status'] == RUNNING and report.instanceStatus != RUNNING:
+            self.cpu_usage[instance['worker']] -= task.info.cluster.instance.cpu
 
         instance['status'] = report.instanceStatus
         instance['last_update_time'] = time.time()
 
-        if report.instanceStatus == Status.COMPLETED:
+        if report.instanceStatus == COMPLETED:
             check_task_completed(task)
-        elif report.instanceStatus == Status.FAILED or report.instanceStatus == Status.TIMEOUT:
-            if instance['try_count'] > task.maxRetryCount:
+        elif report.instanceStatus == FAILED or report.instanceStatus == TIMEOUT:
+            if instance['try_count'] > task.info.maxRetryCount:
                 check_task_completed(task)
         else:
-            logger.error('[on_task_report] receive report from waiting task')
+            self.logger.error('[on_task_report] receive report from waiting task')
 
 
     def check_task_completed(self, task):
-        if len(task.instance_list) < task.instanceCount:
+        if len(task.instance_list) < task.info.instanceCount:
             return
         failed = False
         for instance in task.instance_list:
-            if instance['status'] == Status.RUNNING or instance['status'] == Status.WAITING:
+            if instance['status'] == RUNNING or instance['status'] == WAITING:
                 return
-            if instance['status'] == Status.FAILED or instance['status'] == Status.TIMEOUT:
-                if instance['try_count'] > task.maxRetryCount:
+            if instance['status'] == FAILED or instance['status'] == TIMEOUT:
+                if instance['try_count'] > task.info.maxRetryCount:
                     failed = True
                 else:
                     return
         if self.jobmgr is None:
-            logger.error('[check_task_completed] jobmgr is None!')
+            self.logger.error('[check_task_completed] jobmgr is None!')
             return
         if failed:
             # TODO tell jobmgr task failed
-            task.status = Status.FAILED
+            task.status = FAILED
+            self.jobmgr.report(task)
         else:
             # TODO tell jobmgr task completed
-            task.status = Status.COMPLETED
-        logger.info('task %s completed' % task.id)
+            task.status = COMPLETED
+            self.jobmgr.report(task)
+        self.logger.info('task %s completed' % task.info.id)
         self.task_queue.remove(task)
 
 
     def task_processor(self, task, instance_id, worker):
-        task.status = Status.RUNNING
+        task.status = RUNNING
 
         # properties for transaction
-        task.instanceid = instance_id
+        task.info.instanceid = instance_id
         task.token = ''.join(random.sample(string.ascii_letters + string.digits, 8))
 
         instance = task.instance_list[instance_id]
-        instance['status'] = Status.RUNNING
+        instance['status'] = RUNNING
         instance['last_update_time'] = time.time()
         instance['try_count'] += 1
         instance['token'] = task.token
         instance['worker'] = worker
 
-        self.cpu_usage[worker] += task.cluster.instance.cpu
+        self.cpu_usage[worker] += task.info.cluster.instance.cpu
 
         try:
-            logger.info('[task_processor] processing %s' % task.id)
+            self.logger.info('[task_processor] processing task [%s] instance [%d]' % (task.info.id, task.info.instanceid))
             channel = grpc.insecure_channel('%s:50052' % worker)
             stub = WorkerStub(channel)
-            response = stub.process_task(task)
+            response = stub.process_task(task.info)
             if response.status != Reply.ACCEPTED:
                 raise Exception(response.message)
         except Exception as e:
-            logger.error('[task_processor] rpc error message: %s' % e)
-            instance['status'] = Status.FAILED
+            self.logger.error('[task_processor] rpc error message: %s' % e)
+            instance['status'] = FAILED
             instance['try_count'] -= 1
 
 
     # return task, worker
     def task_scheduler(self):
         # simple FIFO
+        self.logger.info('[task_scheduler] scheduling...')
         for task in self.task_queue:
             worker = self.find_proper_worker(task)
-            if worker is not None:
+
+            for index, instance in enumerate(task.instance_list):
                 # find instance to retry
-                for instance, index in enumerate(task.instance_list):
-                    if (instance['status'] == Status.FAILED or instance['status'] == Status.TIMEOUT) and instance['try_count'] <= task.maxRetryCount:
+                if (instance['status'] == FAILED or instance['status'] == TIMEOUT) and instance['try_count'] <= task.info.maxRetryCount:
+                    if worker is not None:
+                        self.logger.info('[task_scheduler] retry')
                         return task, index, worker
-                    elif instance['status'] == Status.RUNNING:
-                        if time.time() - instance['last_update_time'] > self.heart_beat_timeout:
-                            instance['status'] = Status.FAILED
-                            instance['token'] = ''
+                # find timeout instance
+                elif instance['status'] == RUNNING:
+                    if time.time() - instance['last_update_time'] > self.heart_beat_timeout:
+                        instance['status'] = FAILED
+                        instance['token'] = ''
+                        self.cpu_usage[instance['worker']] -= task.info.cluster.instance.cpu
+
+                        self.logger.warning('[task_scheduler] worker timeout task [%s] instance [%d]' % (task.info.id, index))
+                        if worker is not None:
                             return task, index, worker
 
+            if worker is not None:
                 # start new instance
-                if len(task.instance_list) < task.instanceCount:
+                if len(task.instance_list) < task.info.instanceCount:
                     instance = {}
                     instance['try_count'] = 0
                     task.instance_list.append(instance)
                     return task, len(task.instance_list) - 1, worker
-        return None
-
+        return None, None, None
 
     def find_proper_worker(self, task):
-        nodes = get_all_nodes()
+        nodes = self.get_all_nodes()
         if nodes is None or len(nodes) == 0:
-            logger.warning('[task_scheduler] running nodes not found')
+            self.logger.warning('[task_scheduler] running nodes not found')
             return None
 
         for worker_ip, worker_info in nodes:
-            if task.cluster.instance.cpu + get_cpu_usage(worker_ip) > worker_info['cpu']:
+            if task.info.cluster.instance.cpu + self.get_cpu_usage(worker_ip) > worker_info['cpu']:
                 continue
-            if task.cluster.instance.memory > worker_info['memory']:
+            if task.info.cluster.instance.memory > worker_info['memory']:
                 continue
-            if task.cluster.instance.disk > worker_info['disk']:
+            if task.info.cluster.instance.disk > worker_info['disk']:
                 continue
-            if task.cluster.instance.gpu > worker_info['gpu']:
+            if task.info.cluster.instance.gpu > worker_info['gpu']:
                 continue
             return worker_ip
         return None
@@ -204,12 +222,12 @@ class TaskMgr(threading.Thread):
         #     return self.all_nodes
         # get running nodes
         node_ips = self.nodemgr.get_nodeips()
-        all_nodes = [(node_ip, get_worker_resource_info(node_ip)) for node_ip in node_ips]
+        all_nodes = [(node_ip, self.get_worker_resource_info(node_ip)) for node_ip in node_ips]
         return all_nodes
 
 
     def get_worker_resource_info(self, worker_ip):
-        fetcher = master.monitor.Fetcher(worker_ip)
+        fetcher = self.monitor_fetcher(worker_ip)
         worker_info = fetcher.info
         info = {}
         info['cpu'] = len(worker_info['cpuconfig'])
@@ -238,7 +256,7 @@ class TaskMgr(threading.Thread):
     def add_task(self, username, taskid, json_task):
         # decode json string to object defined in grpc
         json_task = json.loads(json_task)
-        task = Task(
+        task = Task(TaskInfo(
             id = taskid,
             username = username,
             instanceCount = json_task['instanceCount'],
@@ -260,13 +278,9 @@ class TaskMgr(threading.Thread):
                     cpu = json_task['cluster']['instance']['cpu'],
                     memory = json_task['cluster']['instance']['memory'],
                     disk = json_task['cluster']['instance']['disk'],
-                    gpu = json_task['cluster']['instance']['gpu'])))
-        task.cluster.mount = [Mount(localPath=mount['localPath'], remotePath=mount['remotePath'])
-                                 for mount in json_task['cluster']['mount']]
-
-        # local properties
-        task.status = Status.WAITING
-        task.instance_list = []
+                    gpu = json_task['cluster']['instance']['gpu']))))
+        task.info.cluster.mount.extend([Mount(localPath=mount['localPath'], remotePath=mount['remotePath'])
+                                 for mount in json_task['cluster']['mount']])
         self.task_queue.append(task)
 
 
@@ -274,6 +288,6 @@ class TaskMgr(threading.Thread):
     # get the information of a task, including the status, task description and other information
     def get_task(self, taskid):
         for task in self.task_queue:
-            if task.id == taskid:
+            if task.info.id == taskid:
                 return task
         return None
