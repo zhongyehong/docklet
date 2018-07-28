@@ -9,8 +9,6 @@ def getenv(key):
         return int(os.environ.get("CLUSTER_SIZE", 1))
     elif key == "CLUSTER_NET":
         return os.environ.get("CLUSTER_NET", "172.16.0.1/16")
-    elif key == "BATCH_NET":
-        return os.environ.get("BATCH_NET","10.0.3.0/24")
     elif key == "CONTAINER_CPU":
         return int(os.environ.get("CONTAINER_CPU", 100000))
     elif key == "CONTAINER_DISK":
@@ -81,5 +79,17 @@ def getenv(key):
         return os.environ.get("ALLOCATED_PORTS","10000-65535")
     elif key =="ALLOW_SCALE_OUT":
         return os.environ.get("ALLOW_SCALE_OUT", "False")
+    elif key == "BATCH_ON":
+        return os.environ.get("BATCH_ON","True")
+    elif key == "BATCH_MASTER_PORT":
+        return os.environ.get("BATCH_MASTER_PORT","50050")
+    elif key == "BATCH_WORKER_PORT":
+        return os.environ.get("BATCH_WORKER_PORT","50051")
+    elif key == "BATCH_GATEWAY":
+        return os.environ.get("BATCH_GATEWAY","10.0.3.1")
+    elif key == "BATCH_NET":
+        return os.environ.get("BATCH_NET","10.0.3.0/24")
+    elif key == "BATCH_MAX_THREAD_WORKER":
+        return os.environ.get("BATCH_MAX_THREAD_WORKER","5")
     else:
         return os.environ.get(key,"")
