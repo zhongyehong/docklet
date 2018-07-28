@@ -3,6 +3,7 @@ from concurrent import futures
 import grpc
 from protos import rpc_pb2, rpc_pb2_grpc
 import threading, json, time
+from utils import env
 
 
 class SimulatedNodeMgr():
@@ -34,9 +35,10 @@ class SimulatedWorker(threading.Thread):
 		self.thread_stop = False
 
 	def run(self):
+		worker_port = env.getenv('BATCH_WORKER_PORT')
 		server = grpc.server(futures.ThreadPoolExecutor(max_workers=5))
 		rpc_pb2_grpc.add_WorkerServicer_to_server(SimulatedTaskController(), server)
-		server.add_insecure_port('[::]:50052')
+		server.add_insecure_port('[::]:' + worker_port)
 		server.start()
 		while not self.thread_stop:
 			time.sleep(5)

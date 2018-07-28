@@ -15,6 +15,8 @@ import grpc
 from protos.rpc_pb2 import *
 from protos.rpc_pb2_grpc import MasterServicer, add_MasterServicer_to_server, WorkerStub
 
+from utils import env
+
 
 class Task():
     def __init__(self, info):
@@ -47,6 +49,9 @@ class TaskMgr(threading.Thread):
         self.heart_beat_timeout = 5 # (s)
         self.logger = logger
 
+        self.master_port = env.getenv('BATCH_MASTER_PORT')
+        self.worker_port = env.getenv('BATCH_WORKER_PORT')
+
         # nodes
         self.nodemgr = nodemgr
         self.monitor_fetcher = monitor_fetcher
@@ -69,7 +74,7 @@ class TaskMgr(threading.Thread):
     def serve(self):
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         add_MasterServicer_to_server(TaskReporter(self), self.server)
-        self.server.add_insecure_port('[::]:50051')
+        self.server.add_insecure_port('[::]:' + self.master_port)
         self.server.start()
         self.logger.info('[taskmgr_rpc] start rpc server')
 
@@ -135,7 +140,7 @@ class TaskMgr(threading.Thread):
         self.task_queue.remove(task)
 
 
-    def task_processor(self, task, instance_id, worker):
+    def task_processor(self, task, instance_id, worker_ip):
         task.status = RUNNING
 
         # properties for transaction
@@ -147,13 +152,13 @@ class TaskMgr(threading.Thread):
         instance['last_update_time'] = time.time()
         instance['try_count'] += 1
         instance['token'] = task.token
-        instance['worker'] = worker
+        instance['worker'] = worker_ip
 
-        self.cpu_usage[worker] += task.info.cluster.instance.cpu
+        self.cpu_usage[worker_ip] += task.info.cluster.instance.cpu
 
         try:
             self.logger.info('[task_processor] processing task [%s] instance [%d]' % (task.info.id, task.info.instanceid))
-            channel = grpc.insecure_channel('%s:50052' % worker)
+            channel = grpc.insecure_channel('%s:%s' % (worker_ip, self.worker_port))
             stub = WorkerStub(channel)
             response = stub.process_task(task.info)
             if response.status != Reply.ACCEPTED:
