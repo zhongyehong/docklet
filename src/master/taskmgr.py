@@ -15,6 +15,8 @@ import grpc
 from protos.rpc_pb2 import *
 from protos.rpc_pb2_grpc import MasterServicer, add_MasterServicer_to_server, WorkerStub
 
+from utils import env
+
 
 class Task():
     def __init__(self, info):
@@ -39,13 +41,18 @@ class TaskMgr(threading.Thread):
     # load task information from etcd
     # initial a task queue and task schedueler
     # taskmgr: a taskmgr instance
-    def __init__(self, nodemgr, monitor_fetcher, logger):
+    def __init__(self, nodemgr, monitor_fetcher, logger, worker_timeout=60, scheduler_interval=2):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.jobmgr = None
         self.task_queue = []
-        self.heart_beat_timeout = 5 # (s)
+
+        self.heart_beat_timeout = worker_timeout # (s)
+        self.scheduler_interval = scheduler_interval
         self.logger = logger
+
+        self.master_port = env.getenv('BATCH_MASTER_PORT')
+        self.worker_port = env.getenv('BATCH_WORKER_PORT')
 
         # nodes
         self.nodemgr = nodemgr
@@ -63,13 +70,13 @@ class TaskMgr(threading.Thread):
             if task is not None and worker is not None:
                 self.task_processor(task, instance_id, worker)
             else:
-                time.sleep(2)
+                time.sleep(self.scheduler_interval)
 
 
     def serve(self):
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         add_MasterServicer_to_server(TaskReporter(self), self.server)
-        self.server.add_insecure_port('[::]:50051')
+        self.server.add_insecure_port('[::]:' + self.master_port)
         self.server.start()
         self.logger.info('[taskmgr_rpc] start rpc server')
 
@@ -83,7 +90,7 @@ class TaskMgr(threading.Thread):
     # this method is called when worker send heart-beat rpc request
     def on_task_report(self, report):
         self.logger.info('[on_task_report] receive task report: id %s-%d, status %d' % (report.taskid, report.instanceid, report.instanceStatus))
-        task = get_task(report.taskid)
+        task = self.get_task(report.taskid)
         if task == None:
             self.logger.error('[on_task_report] task not found')
             return
@@ -93,6 +100,9 @@ class TaskMgr(threading.Thread):
             self.logger.warning('[on_task_report] wrong token')
             return
 
+        if instance['status'] != RUNNING:
+            self.logger.error('[on_task_report] receive task report when instance is not running')
+
         if instance['status'] == RUNNING and report.instanceStatus != RUNNING:
             self.cpu_usage[instance['worker']] -= task.info.cluster.instance.cpu
 
@@ -100,12 +110,10 @@ class TaskMgr(threading.Thread):
         instance['last_update_time'] = time.time()
 
         if report.instanceStatus == COMPLETED:
-            check_task_completed(task)
+            self.check_task_completed(task)
         elif report.instanceStatus == FAILED or report.instanceStatus == TIMEOUT:
             if instance['try_count'] > task.info.maxRetryCount:
-                check_task_completed(task)
-        else:
-            self.logger.error('[on_task_report] receive report from waiting task')
+                self.check_task_completed(task)
 
 
     def check_task_completed(self, task):
@@ -135,25 +143,25 @@ class TaskMgr(threading.Thread):
         self.task_queue.remove(task)
 
 
-    def task_processor(self, task, instance_id, worker):
+    def task_processor(self, task, instance_id, worker_ip):
         task.status = RUNNING
 
         # properties for transaction
         task.info.instanceid = instance_id
-        task.token = ''.join(random.sample(string.ascii_letters + string.digits, 8))
+        task.info.token = ''.join(random.sample(string.ascii_letters + string.digits, 8))
 
         instance = task.instance_list[instance_id]
         instance['status'] = RUNNING
         instance['last_update_time'] = time.time()
         instance['try_count'] += 1
-        instance['token'] = task.token
-        instance['worker'] = worker
+        instance['token'] = task.info.token
+        instance['worker'] = worker_ip
 
-        self.cpu_usage[worker] += task.info.cluster.instance.cpu
+        self.cpu_usage[worker_ip] += task.info.cluster.instance.cpu
 
         try:
             self.logger.info('[task_processor] processing task [%s] instance [%d]' % (task.info.id, task.info.instanceid))
-            channel = grpc.insecure_channel('%s:50052' % worker)
+            channel = grpc.insecure_channel('%s:%s' % (worker_ip, self.worker_port))
             stub = WorkerStub(channel)
             response = stub.process_task(task.info)
             if response.status != Reply.ACCEPTED:
@@ -167,7 +175,7 @@ class TaskMgr(threading.Thread):
     # return task, worker
     def task_scheduler(self):
         # simple FIFO
-        self.logger.info('[task_scheduler] scheduling...')
+        self.logger.info('[task_scheduler] scheduling... (%d tasks remains)' % len(self.task_queue))
         for task in self.task_queue:
             worker = self.find_proper_worker(task)
 
@@ -195,6 +203,9 @@ class TaskMgr(threading.Thread):
                     instance['try_count'] = 0
                     task.instance_list.append(instance)
                     return task, len(task.instance_list) - 1, worker
+
+            self.check_task_completed(task)
+            
         return None, None, None
 
     def find_proper_worker(self, task):

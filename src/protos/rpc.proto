@@ -22,7 +22,7 @@ message TaskMsg {
 	string taskid = 1;
 	int32 instanceid = 2;
 	Status instanceStatus = 3; // 任务状态
-
+	string token = 4;
 }
 
 enum Status {
@@ -42,6 +42,7 @@ message TaskInfo {
 	Parameters parameters = 6;	// 参数
 	Cluster cluster = 7;		// 集群配置
 	int32 timeout = 8;			// 超时阈值
+	string token = 9;
 }
 
 message Parameters {
