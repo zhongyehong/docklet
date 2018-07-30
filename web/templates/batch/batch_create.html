@@ -1,0 +1,142 @@
+{% extends 'base_AdminLTE.html' %}
+
+{% block title %}Docklet | Create Batch Job{% endblock %}
+
+{% block css_src %}
+<!--<style>
+.divcontent { overflow-y:scroll; height:200px;}
+</style>-->
+<link href="//cdn.bootcss.com/datatables/1.10.11/css/dataTables.bootstrap.min.css" rel="stylesheet">
+<link href="//cdn.bootcss.com/datatables/1.10.11/css/jquery.dataTables_themeroller.css" rel="stylesheet">
+<link href="/static/dist/css/modalconfig.css" rel="stylesheet">
+
+{% endblock %}
+
+{% block panel_title %}Batch Job Info{% endblock %}
+
+{% block panel_list %}
+<ol class="breadcrumb">
+  <li>
+      <a href="/dashboard/"><i class="fa fa-dashboard"></i>Home</a>
+  </li>
+</ol>
+{% endblock %}
+
+<div>
+{% block content %}
+<div class="row">
+                <div class="col-lg-12">
+                  <div class="box box-info">
+                       <div class="box-header with-border">
+                         <h3 class="box-title">Batch Job Create
+                           <button type="button" id="add_task" class="btn btn-box-tool" title="add a task"><i class="fa fa-plus"></i>
+                           </button>
+                         </h3>
+
+                         <div class="box-tools pull-right">
+                           <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+                           </button>
+                           <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                         </div>
+                       </div>
+                        <div class="box-body">
+				<form id="form" class="form-horizontal" action="/batch_job/add/" method="POST">
+
+				    <div class="form-group"><label class="col-sm-2 control-label">Job Name</label>
+					    <div class="col-sm-10"><input type="text" class="form-control" name="job_name" id="job_name"></div>
+				    </div>
+				    <div class="hr-line-dashed"></div>
+                    <br/>
+		    		    <div class="form-group"><label class="col-sm-2 control-label">Priority</label>
+					    <div class="col-sm-10"><select id="priority_selector" class="form-control">
+						{% for priority in range(10) %}
+						<option value="{{priority}}">{{priority}}</option>
+						{% endfor %}
+					    </select></div>
+				    </div>
+					<br/>
+
+				    <div class="hr-line-dashed"></div>
+				    <div class="panel-group" id="accordion">
+                    <!-- Tasks -->
+                    </div>
+                    <br/>
+				    <div class="hr-line-dashed"></div>
+				    <div class="row">
+				    <div class="form-group">
+					    <div class="col-sm-4 col-sm-offset-2">
+						    <button class="btn btn-primary" type="submit">Create</button>
+					    </div>
+				    </div>
+				    </div>
+                            </form>
+                        </div>
+                    </div>
+                    </div>
+
+</div>
+</div>
+{% endblock %}
+
+{% block script_src %}
+    <!-- Custom and plugin javascript -->
+    <script src="/static/js/inspinia.js"></script>
+
+    <script src="http://cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+
+    <!-- Steps -->
+    <script src="http://cdn.bootcss.com/jquery-steps/1.1.0/jquery.steps.min.js"></script>
+
+    <!-- Jquery Validate -->
+    <script src="http://cdn.bootcss.com/jquery-validate/1.15.0/jquery.validate.min.js"></script>
+
+
+	<script src="http://cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.js"></script>
+	<script src="http://cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.js"></script>
+	<script src="http://cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
+
+
+    <script type="text/javascript">
+    function removeTask(obj) {
+        $("#task_pannel_"+obj.id).remove();
+    }
+    var task_number = 0;
+    $("#add_task").click(function() {
+        task_number += 1;
+        var task_html = '';
+        task_html += 
+              '<div class="panel panel-default" id="task_pannel_' + task_number + '">'
+             +'<div class="panel-heading">'
+             +'<h4 class="panel-title">'
+             +'<a data-toggle="collapse" data-panel="#accordion" href="#collapse' + task_number + '">'
+             +'Task #' + task_number
+             +'</a><div class="box-tools pull-right"><button type="button" id="' + task_number + '" onclick="removeTask(this)" class="btn btn-box-tool"><i class="fa fa-times"></i></button></div>'
+             +'</h4></div>'
+             +'<div id="collapse' + task_number + '" class="panel-collapse collapse">'
+             +'<div class="panel-body">'
+             +'<div class="form-group">'
+             +'<label class="col-sm-2 control-label">CPU</label>'
+             +'<div class="col-sm-3"><input type="number" class="form-control" name="cpuSetting" id="cpuSetting_' + task_number + '" value = 1  />'
+             +'</div>'
+             +'<label class="col-sm-2 control-label">Memory</label>'
+             +'<div class="col-sm-3"><input type="number" class="form-control" name="memorySetting" id="memorySetting_' + task_number + '" value = 1024  />'
+             +'</div>MB</div>'
+             +'<div class="form-group">'
+             +'<label class="col-sm-2 control-label">GPU</label>'
+             +'<div class="col-sm-3"><input type="number" class="form-control" name="gpuSetting" id="gpuSetting_' + task_number + '" value= 0  />'
+             +'</div>'
+             +'<label class="col-sm-2 control-label">Disk</label>'
+             +'<div class="col-sm-3"><input type="number" class="form-control" name="diskSetting" id="diskSetting_' + task_number + '" value= 1024  />'
+             +'</div>MB</div>'
+             +'<div class="form-group">'
+             +'<label class="col-sm-2 control-label">Instance Count</label>'
+             +'<div class="col-sm-3"><input type="number" class="form-control" name="instCount" id="instCount_' + task_number + '" value= 1  />'
+             +'</div>'
+             +'<label class="col-sm-2 control-label">Max Retry Count</label>'
+             +'<div class="col-sm-3"><input type="number" class="form-control" name="retryCount" id="retryCount_' + task_number + '" value= 1  />'
+             +'</div></div>'
+             +'</div></div></div>'
+        $(task_html).appendTo("#accordion");
+    });
+    </script>
+{% endblock %}

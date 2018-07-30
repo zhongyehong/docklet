@@ -1,5 +1,11 @@
+import time, threading
+import master.monitor
+
+from utils.log import initlogging, logger
+initlogging("docklet-jobmgr")
+
 class JobMgr(object):
-    
+
     # user: username
     # job: a json string
     # user submit a new job, add this job to queue and database
@@ -18,12 +24,12 @@ class JobMgr(object):
     # call get_task to get the task information
     def get_job(self, user, jobid):
         pass
-    
+
     # job: a json string
     # this is a thread to process a job
     def job_processor(self, job):
         # according the DAG of job, add task to taskmanager
-        # wait for all task completed and exit 
+        # wait for all task completed and exit
         pass
 
     # this is a thread to schedule the jobs
