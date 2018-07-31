@@ -11,7 +11,7 @@ def run():
     stub = rpc_pb2_grpc.WorkerStub(channel)
 
     comm = rpc_pb2.Command(commandLine="echo \"s\" | awk '{print \"test\\n\\\"\"}' > test.txt;cat test.txt", packagePath="/root", envVars={'test1':'10','test2':'20'}) # | awk '{print \"test\\\"\\n\"}'
-    paras = rpc_pb2.Parameters(command=comm, stderrRedirectPath="", stdoutRedirectPath="")
+    paras = rpc_pb2.Parameters(command=comm, stderrRedirectPath="tmp/", stdoutRedirectPath="tmp/")
 
     img = rpc_pb2.Image(name="base", type=rpc_pb2.Image.BASE, owner="docklet")
     inst = rpc_pb2.Instance(cpu=2, memory=2000, disk=500, gpu=0)

@@ -90,6 +90,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         username = request.username
         lxcname = '%s-batch-%s-%s' % (username,taskid,str(instanceid))
         instance_type =  request.cluster.instance
+        outpath = [request.parameters.stdoutRedirectPath,request.parameters.stderrRedirectPath]
 
         # acquire ip
         [status, ip] = self.acquire_ip()
@@ -145,17 +146,32 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
 
         #mount oss here
 
-        thread = threading.Thread(target = self.excute_task, args=(taskid,instanceid,envs,lxcname,pkgpath,command,ip))
+        thread = threading.Thread(target = self.excute_task, args=(taskid,instanceid,envs,lxcname,pkgpath,command,outpath,ip))
         thread.setDaemon(True)
         thread.start()
 
         return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
 
-    def excute_task(self,taskid,instanceid,envs,lxcname,pkgpath,command,ip):
-        lxcfspath = "/var/lib/lxc/"+lxcname+"/rootfs"
+    def write_output(self,content,path):
+        dirpath = path[:path.rfind("/")]
+        if not os.path.isdir(dirpath):
+            logger.info("Output directory doesn't exist. Create (%s)" % dirpath)
+            os.makedirs(dirpath)
+        try:
+            outfile = open(path,"w")
+            outfile.write(content.decode(encoding="utf-8"))
+            outfile.close()
+        except Exception as err:
+            logger.error(traceback.format_exc())
+            logger.error("Fail to write to path(%s)" % path)
+        else:
+            logger.info("Succeed to writing to %s" % path)
+
+    def excute_task(self,taskid,instanceid,envs,lxcname,pkgpath,command,outpath,ip):
+        lxcfspath = "/var/lib/lxc/"+lxcname+"/rootfs/"
         scriptname = "batch_job.sh"
         try:
-            scriptfile = open(lxcfspath+"/root/"+scriptname,"w")
+            scriptfile = open(lxcfspath+"root/"+scriptname,"w")
             scriptfile.write("#!/bin/bash\n")
             scriptfile.write("cd "+str(pkgpath)+"\n")
             scriptfile.write(command)
@@ -169,8 +185,14 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
                 cmd = cmd + " -v %s=%s" % (envkey,envval)
             cmd = cmd + " -- /bin/bash \"" + "/root/" + scriptname + "\""
             logger.info('run task with command - %s' % cmd)
-            ret = subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
+            ret = subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE, shell=True)
             logger.info(ret)
+            if outpath[0][-1] == "/":
+                outpath[0] += "stdout.txt"
+            if outpath[1][-1] == "/":
+                outpath[1] += "stderr.txt"
+            self.write_output(ret.stdout,lxcfspath+outpath[0])
+            self.write_output(ret.stderr,lxcfspath+outpath[1])
             if ret.returncode == 0:
                 #call master rpc function to tell the taskmgr
                 pass
