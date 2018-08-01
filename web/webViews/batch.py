@@ -1,6 +1,7 @@
 from flask import session, redirect, request
 from webViews.view import normalView
 from webViews.checkname import checkname
+from webViews.dockletrequest import dockletRequest
 
 class batchJobListView(normalView):
     template_path = "batch/batch_list.html"
@@ -17,8 +18,10 @@ class createBatchJobView(normalView):
     
     @classmethod
     def get(self):
+        masterips = dockletRequest.post_to_all()
+        images = dockletRequest.post("/image/list/",{},masterips[0].split("@")[0]).get("images")
         if True:
-            return self.render(self.template_path)
+            return self.render(self.template_path, masterips=masterips, images=images)
         else:
             return self.error()
 

@@ -134,7 +134,8 @@ def create_batch_job():
 @login_required
 def add_batch_job():
     #TODO get form parameters of a job description
-    addBatchJobView.job_name = request.form["job_name"]
+    job_data = {}
+    job_data["job_name"] = request.form["job_name"]
     return addBatchJobView().as_view()
 
 @app.route("/batch_job/state/", methods=['GET'])
