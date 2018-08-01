@@ -14,7 +14,7 @@ from concurrent import futures
 import grpc
 #from utils.log import logger
 #from utils import env
-import json,lxc,subprocess,threading,os,time
+import json,lxc,subprocess,threading,os,time,traceback
 from utils import imagemgr
 from protos import rpc_pb2, rpc_pb2_grpc
 
@@ -90,6 +90,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         username = request.username
         lxcname = '%s-batch-%s-%s' % (username,taskid,str(instanceid))
         instance_type =  request.cluster.instance
+        outpath = [request.parameters.stdoutRedirectPath,request.parameters.stderrRedirectPath]
 
         # acquire ip
         [status, ip] = self.acquire_ip()
@@ -145,26 +146,59 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
 
         #mount oss here
 
-        thread = threading.Thread(target = self.excute_task, args=(taskid,instanceid,envs,lxcname,pkgpath,command,ip))
+        thread = threading.Thread(target = self.excute_task, args=(taskid,instanceid,envs,lxcname,pkgpath,command,outpath,ip))
         thread.setDaemon(True)
         thread.start()
 
         return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
 
-    def excute_task(self,taskid,instanceid,envs,lxcname,pkgpath,command,ip):
-        cmd = "lxc-attach -n " + lxcname
-        for envkey,envval in envs.items():
-            cmd = cmd + " -v %s=%s" % (envkey,envval)
-        cmd = cmd + " -- /bin/bash -c " + "\"cd " + pkgpath + ";" + command + "\""
-        logger.info('run task with command - %s' % cmd)
-        ret = subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
-        logger.info(ret)
-        if ret.returncode == 0:
-            #call master rpc function to tell the taskmgr
-            pass
+    def write_output(self,content,path):
+        dirpath = path[:path.rfind("/")]
+        if not os.path.isdir(dirpath):
+            logger.info("Output directory doesn't exist. Create (%s)" % dirpath)
+            os.makedirs(dirpath)
+        try:
+            outfile = open(path,"w")
+            outfile.write(content.decode(encoding="utf-8"))
+            outfile.close()
+        except Exception as err:
+            logger.error(traceback.format_exc())
+            logger.error("Fail to write to path(%s)" % path)
         else:
-            #call master rpc function to tell the wrong
-            pass
+            logger.info("Succeed to writing to %s" % path)
+
+    def excute_task(self,taskid,instanceid,envs,lxcname,pkgpath,command,outpath,ip):
+        lxcfspath = "/var/lib/lxc/"+lxcname+"/rootfs/"
+        scriptname = "batch_job.sh"
+        try:
+            scriptfile = open(lxcfspath+"root/"+scriptname,"w")
+            scriptfile.write("#!/bin/bash\n")
+            scriptfile.write("cd "+str(pkgpath)+"\n")
+            scriptfile.write(command)
+            scriptfile.close()
+        except Exception as err:
+            logger.error(traceback.format_exc())
+            logger.error("Fail to write script file with taskid(%s) instanceid(%s)" % (str(taskid),str(instanceid)))
+        else:
+            cmd = "lxc-attach -n " + lxcname
+            for envkey,envval in envs.items():
+                cmd = cmd + " -v %s=%s" % (envkey,envval)
+            cmd = cmd + " -- /bin/bash \"" + "/root/" + scriptname + "\""
+            logger.info('run task with command - %s' % cmd)
+            ret = subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE, shell=True)
+            logger.info(ret)
+            if outpath[0][-1] == "/":
+                outpath[0] += "stdout.txt"
+            if outpath[1][-1] == "/":
+                outpath[1] += "stderr.txt"
+            self.write_output(ret.stdout,lxcfspath+outpath[0])
+            self.write_output(ret.stderr,lxcfspath+outpath[1])
+            if ret.returncode == 0:
+                #call master rpc function to tell the taskmgr
+                pass
+            else:
+                #call master rpc function to tell the wrong
+                pass
 
         #umount oss here
 
