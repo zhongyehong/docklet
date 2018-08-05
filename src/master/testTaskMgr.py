@@ -154,7 +154,7 @@ def report(taskid, instanceid, status, token):
 	master_port = env.getenv('BATCH_MASTER_PORT')
 	channel = grpc.insecure_channel('%s:%s' % ('0.0.0.0', master_port))
 	stub = MasterStub(channel)
-	response = stub.report(TaskMsg(taskid=taskid, instanceid=instanceid, instanceStatus=status, token=token))
+	response = stub.report(ReportMsg(taskmsgs=TaskMsg(taskid=taskid, instanceid=instanceid, instanceStatus=status, token=token)))
 
 
 def stop():
