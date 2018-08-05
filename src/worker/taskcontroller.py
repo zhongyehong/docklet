@@ -18,6 +18,9 @@ import json,lxc,subprocess,threading,os,time,traceback
 from utils import imagemgr,etcdlib
 from protos import rpc_pb2, rpc_pb2_grpc
 
+_ONE_DAY_IN_SECONDS = 60 * 60 * 24
+MAX_RUNNING_TIME = _ONE_DAY_IN_SECONDS
+
 def ip_to_int(addr):
     [a, b, c, d] = addr.split('.')
     return (int(a)<<24) + (int(b)<<16) + (int(c)<<8) + int(d)
@@ -125,6 +128,8 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         for i in range(len(outpath)):
             if outpath[i] == "":
                 outpath[i] = "/root/nfs/"
+        timeout = request.timeout
+        token = request.token
 
         # acquire ip
         [status, ip] = self.acquire_ip()
@@ -148,7 +153,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
 
         def config_prepare(content):
             content = content.replace("%ROOTFS%",rootfs)
-            content = content.replace("%HOSTNAME%","batch-%s" % instanceid)
+            content = content.replace("%HOSTNAME%","batch-%s" % str(instanceid))
             content = content.replace("%CONTAINER_MEMORY%",str(instance_type.memory))
             content = content.replace("%CONTAINER_CPU%",str(instance_type.cpu*100000))
             content = content.replace("%FS_PREFIX%",self.fspath)
@@ -180,7 +185,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
 
         #mount oss here
 
-        thread = threading.Thread(target = self.excute_task, args=(taskid,instanceid,envs,lxcname,pkgpath,command,outpath,ip))
+        thread = threading.Thread(target = self.excute_task, args=(taskid,instanceid,envs,lxcname,pkgpath,command,timeout,outpath,ip,token))
         thread.setDaemon(True)
         thread.start()
 
@@ -216,7 +221,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         logger.info("Succeed to moving nfs/%s to %s" % (tmpfilename,filepath))
         return [True,""]
 
-    def excute_task(self,taskid,instanceid,envs,lxcname,pkgpath,command,outpath,ip):
+    def excute_task(self,taskid,instanceid,envs,lxcname,pkgpath,command,timeout,outpath,ip,token):
         lxcfspath = "/var/lib/lxc/"+lxcname+"/rootfs/"
         scriptname = "batch_job.sh"
         try:
@@ -234,22 +239,45 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
                 cmd = cmd + " -v %s=%s" % (envkey,envval)
             cmd = cmd + " -- /bin/bash \"" + "/root/" + scriptname + "\""
             logger.info('run task with command - %s' % cmd)
-            ret = subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE, shell=True)
-            logger.info(ret)
-            stdoutname = str(taskid)+"-"+str(instanceid)+"-stdout.txt"
-            stderrname = str(taskid)+"-"+str(instanceid)+"-stderr.txt"
-            if outpath[0][-1] == "/":
-                outpath[0] += stdoutname
-            if outpath[1][-1] == "/":
-                outpath[1] += stderrname
-            [success,msg] = self.write_output(lxcname,stdoutname,ret.stdout,lxcfspath,outpath[0])
-            [success,msg] = self.write_output(lxcname,stderrname,ret.stderr,lxcfspath,outpath[1])
-            if ret.returncode == 0:
-                #call master rpc function to tell the taskmgr
-                pass
+            p = subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE, shell=True)
+            #logger.info(p)
+            if timeout == 0:
+                to = MAX_RUNNING_TIME
             else:
-                #call master rpc function to tell the wrong
-                pass
+                to = timeout
+            while p.poll() is None and to > 0:
+                time.sleep(min(2,to))
+                to -= 2
+            if p.poll() is None:
+                p.kill()
+                logger.info("Running time(%d) is out. Task(%s-%s-%s) will be killed." % (timeout,str(taskid),str(instanceid),token))
+                self.add_msg(taskid,instanceid,rpc_pb2.TIMEOUT,token,"Running time is out.")
+            else:
+                out,err = p.communicate()
+                logger.info(out)
+                logger.info(err)
+                stdoutname = str(taskid)+"-"+str(instanceid)+"-stdout.txt"
+                stderrname = str(taskid)+"-"+str(instanceid)+"-stderr.txt"
+                if outpath[0][-1] == "/":
+                    outpath[0] += stdoutname
+                if outpath[1][-1] == "/":
+                    outpath[1] += stderrname
+                [success1,msg1] = self.write_output(lxcname,stdoutname,out,lxcfspath,outpath[0])
+                [success2,msg2] = self.write_output(lxcname,stderrname,err,lxcfspath,outpath[1])
+                if not success1 or not success2:
+                    if not success1:
+                        msg = msg1
+                    else:
+                        msg = msg2
+                    logger.info("Output error on Task(%s-%s-%s)." % (str(taskid),str(instanceid),token))
+                    self.add_msg(taskid,instanceid,rpc_pb2.OUTPUTERROR,token,msg)
+                else:
+                    if p.poll() == 0:
+                        logger.info("Task(%s-%s-%s) completed." % (str(taskid),str(instanceid),token))
+                        self.add_msg(taskid,instanceid,rpc_pb2.COMPLETED,token,"")
+                    else:
+                        logger.info("Task(%s-%s-%s) failed." % (str(taskid),str(instanceid),token))
+                        self.add_msg(taskid,instanceid,rpc_pb2.FAILED,token,"")
 
         #umount oss here
 
@@ -268,13 +296,14 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         logger.info("release ip address %s" % ip)
         self.release_ip(ip)
 
-    def add_msg(self,taskid,instanceid,instanceStatus,token,errmsg):
+    def add_msg(self,taskid,instanceid,status,token,errmsg):
         self.msgslock.acquire()
         try:
-            self.msgslock.append(rpc_pb2.TaskMsg(str(taskid),int(instanceid),instanceStatus,token,errmsg))
+            self.taskmsgs.append(rpc_pb2.TaskMsg(taskid=str(taskid),instanceid=int(instanceid),instanceStatus=status,token=token,errmsg=errmsg))
         except Exception as err:
             logger.error(traceback.format_exc())
         self.msgslock.release()
+        #logger.info(str(self.taskmsgs))
 
     def report_msg(self):
         channel = grpc.insecure_channel(self.master_ip+":"+self.master_port)
@@ -297,8 +326,6 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         thread.start()
         logger.info("Start to report task messages to master every %d seconds." % self.report_interval)
 
-
-_ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
 def TaskControllerServe():
     max_threads = int(env.getenv('BATCH_MAX_THREAD_WORKER'))
