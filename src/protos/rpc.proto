@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 service Master {
-	rpc report (TaskMsg) returns (Reply) {};
+	rpc report (ReportMsg) returns (Reply) {};
 }
 
 service Worker {
@@ -18,11 +18,16 @@ message Reply {
 	}
 }
 
+message ReportMsg {
+	repeated TaskMsg taskmsgs = 1;
+}
+
 message TaskMsg {
 	string taskid = 1;
 	int32 instanceid = 2;
 	Status instanceStatus = 3; // 任务状态
 	string token = 4;
+	string errmsg = 5;
 }
 
 enum Status {
@@ -31,6 +36,7 @@ enum Status {
 	COMPLETED = 2;
 	FAILED = 3;
 	TIMEOUT = 4;
+	OUTPUTERROR = 5;
 }
 
 message TaskInfo {

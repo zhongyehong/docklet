@@ -15,7 +15,7 @@ import grpc
 #from utils.log import logger
 #from utils import env
 import json,lxc,subprocess,threading,os,time,traceback
-from utils import imagemgr
+from utils import imagemgr,etcdlib
 from protos import rpc_pb2, rpc_pb2_grpc
 
 def ip_to_int(addr):
@@ -29,9 +29,39 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
 
     def __init__(self):
         rpc_pb2_grpc.WorkerServicer.__init__(self)
+        etcdaddr = env.getenv("ETCD")
+        logger.info ("using ETCD %s" % etcdaddr )
+
+        clustername = env.getenv("CLUSTER_NAME")
+        logger.info ("using CLUSTER_NAME %s" % clustername )
+
+        # init etcdlib client
+        try:
+            self.etcdclient = etcdlib.Client(etcdaddr, prefix = clustername)
+        except Exception:
+            logger.error ("connect etcd failed, maybe etcd address not correct...")
+            sys.exit(1)
+        else:
+            logger.info("etcd connected")
+
+        # get master ip and report port
+        [success,masterip] = self.etcdclient.getkey("service/master")
+        if not success:
+            logger.error("Fail to get master ip address.")
+            sys.exit(1)
+        else:
+            self.master_ip = masterip
+            logger.info("Get master ip address: %s" % (self.master_ip))
+        self.master_port = env.getenv('BATCH_MASTER_PORT')
+
         self.imgmgr = imagemgr.ImageMgr()
         self.fspath = env.getenv('FS_PREFIX')
         self.confpath = env.getenv('DOCKLET_CONF')
+
+        self.taskmsgs = []
+        self.msgslock = threading.Lock()
+        self.report_interval = 2
+
         self.lock = threading.Lock()
         self.cons_gateway = env.getenv('BATCH_GATEWAY')
         self.cons_ips = env.getenv('BATCH_NET')
@@ -45,6 +75,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
             self.free_ips.append(i)
         logger.info("Free ip addresses pool %s" % str(self.free_ips))
 
+        self.start_report()
         logger.info('TaskController init success')
 
     # Need Locks
@@ -236,6 +267,35 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
 
         logger.info("release ip address %s" % ip)
         self.release_ip(ip)
+
+    def add_msg(self,taskid,instanceid,instanceStatus,token,errmsg):
+        self.msgslock.acquire()
+        try:
+            self.msgslock.append(rpc_pb2.TaskMsg(str(taskid),int(instanceid),instanceStatus,token,errmsg))
+        except Exception as err:
+            logger.error(traceback.format_exc())
+        self.msgslock.release()
+
+    def report_msg(self):
+        channel = grpc.insecure_channel(self.master_ip+":"+self.master_port)
+        stub = rpc_pb2_grpc.MasterStub(channel)
+        while True:
+            self.msgslock.acquire()
+            reportmsg = rpc_pb2.ReportMsg(taskmsgs = self.taskmsgs)
+            try:
+                response = stub.report(reportmsg)
+                logger.info("Response from master by reporting: "+str(response.status)+" "+response.message)
+            except Exception as err:
+                logger.error(traceback.format_exc())
+            self.taskmsgs = []
+            self.msgslock.release()
+            time.sleep(self.report_interval)
+
+    def start_report(self):
+        thread = threading.Thread(target = self.report_msg, args=())
+        thread.setDaemon(True)
+        thread.start()
+        logger.info("Start to report task messages to master every %d seconds." % self.report_interval)
 
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
