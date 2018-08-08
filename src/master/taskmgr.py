@@ -5,9 +5,7 @@ import random
 import json
 
 # must import logger after initlogging, ugly
-# from utils.log import initlogging
-# initlogging("docklet-taskmgr")
-# from utils.log import logger
+from utils.log import logger
 
 # grpc
 from concurrent import futures
@@ -49,7 +47,7 @@ class TaskMgr(threading.Thread):
         self.task_queue = []
 
         self.scheduler_interval = scheduler_interval
-        self.logger = external_logger
+        self.logger = logger
 
         self.master_port = env.getenv('BATCH_MASTER_PORT')
         self.worker_port = env.getenv('BATCH_WORKER_PORT')
@@ -290,7 +288,8 @@ class TaskMgr(threading.Thread):
     # called when jobmgr assign task to taskmgr
     def add_task(self, username, taskid, json_task):
         # decode json string to object defined in grpc
-        json_task = json.loads(json_task)
+        self.logger.info('[taskmgr add_task] receive task %s' % taskid)
+        # json_task = json.loads(json_task)
         task = Task(TaskInfo(
             id = taskid,
             username = username,
@@ -315,7 +314,7 @@ class TaskMgr(threading.Thread):
                     disk = int(json_task['diskSetting']),
                     gpu = int(json_task['gpuSetting'])))))
         task.info.cluster.mount.extend([Mount(localPath=json_task['mapping'][mapping_key]['mappingLocalDir'], 
-                                              remotePath=json_task['mapping'][mapping_key]['mappingRemotefDir'])
+                                              remotePath=json_task['mapping'][mapping_key]['mappingRemoteDir'])
                                         for mapping_key in json_task['mapping']])
         self.task_queue.append(task)
 

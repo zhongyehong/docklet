@@ -2,7 +2,6 @@ import time, threading, random, string
 import master.monitor
 
 from utils.log import initlogging, logger
-initlogging("docklet-jobmgr")
 
 class BatchJob(object):
     def __init__(self, user, job_info):
@@ -58,7 +57,7 @@ class BatchJob(object):
             if task['status'] == 'pending':
                 task_idx = task['task_idx'].pop()
                 task['status'] = 'running'
-                task_name = self.user + '_' + self.job_id + '_' + self.task_idx
+                task_name = self.user + '_' + self.job_id + '_' + task_idx
                 return task_name, self.raw_job_info["tasks"][task_idx]
         return '', None
     
@@ -66,13 +65,21 @@ class BatchJob(object):
     def finish_task(self, task_idx):
         pass
 
-class JobMgr(object):
+class JobMgr(threading.Thread):
     # load job information from etcd
     # initial a job queue and job schedueler
     def __init__(self, taskmgr):
+        threading.Thread.__init__(self)
         self.job_queue = []
         self.job_map = {}
         self.taskmgr = taskmgr
+
+
+    def run(self):
+        while True:
+            self.job_scheduler()
+            time.sleep(2)
+
 
     # user: username
     # job_data: a json string
@@ -139,7 +146,7 @@ class JobMgr(object):
         # choose a job from queue, create a job processor for it
         for job_id in self.job_queue:
             job = self.job_map[job_id]
-            if self.job_processer(job):
+            if self.job_processor(job):
                 job.status = 'running'
                 break
             else:
