@@ -45,6 +45,18 @@
                         <tr>
                     <thead>
                     <tbody>
+                    {% for job_info in job_list %}
+                        <tr>
+                            <th>{{ job_info['job_id'] }}</th> 
+                            <th>{{ job_info['job_name'] }}</th> 
+                            <th>
+                            {{ job_info['status'] }}
+                            </th> 
+                            <th>Tasks</th> 
+				            <th><button type="button" class="btn btn-xs btn-default">&nbsp;&nbsp;&nbsp;Stop&nbsp;&nbsp;&nbsp;</button></th>
+                            <th>{{ job_info['create_time'] }}</th> 
+                        </tr>
+                    {% endfor %}
                     </tbody>
                  </table>
              </div>

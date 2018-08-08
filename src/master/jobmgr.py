@@ -24,6 +24,8 @@ class BatchJob(object):
             dependency_graph[task_idx] = set()
             task_info = tasks[task_idx]
             dependency = task_info['dependency'].strip().replace(' ', '').split(',')
+            if len(dependency) == 1 and dependency[0] == '':
+                continue
             for t in dependency:
                 if not t in tasks:
                     raise ValueError('task %s is not defined in the dependency of task %s' % (t, task_idx))
@@ -35,9 +37,12 @@ class BatchJob(object):
                 if len(dependency_graph[task_idx]) == 0:
                     flag = True
                     s.add(task_idx)
+            for task_idx in s:
+                dependency_graph.pop(task_idx)
             #there is a circle in the graph
             if not flag:
                 raise ValueError('there is a circle in the dependency graph')
+                break
             for task_idx in dependency_graph:
                 for t in s:
                     if t in dependency_graph[task_idx]:
@@ -51,7 +56,7 @@ class BatchJob(object):
     def get_task(self):
         for task in self.task_queue:
             if task['status'] == 'pending':
-                task_idx = task['task_idx']
+                task_idx = task['task_idx'].pop()
                 task['status'] = 'running'
                 task_name = self.user + '_' + self.job_id + '_' + self.task_idx
                 return task_name, self.raw_job_info["tasks"][task_idx]
@@ -78,9 +83,11 @@ class JobMgr(object):
         try:
             job = BatchJob(user, job_info)
             job.job_id = self.gen_jobid()
-            self.job_queue.append(job_id)
-            self.job_map[job_id] = job
+            self.job_queue.append(job.job_id)
+            self.job_map[job.job_id] = job
         except ValueError as err:
+            return [False, err.args[0]]
+        except Exception as err:
             return [False, err.args[0]]
         finally:
             return [True, "add batch job success"]
@@ -91,6 +98,7 @@ class JobMgr(object):
         res = []
         for job_id in self.job_queue:
             job = self.job_map[job_id]
+            logger.debug('job_id: %s, user: %s' % (job_id, job.user))
             if job.user == user:
                 res.append({
                     'job_name': job.job_name,
@@ -114,7 +122,7 @@ class JobMgr(object):
     # generate a random job id
     def gen_jobid(self):
         job_id = ''.join(random.sample(string.ascii_letters + string.digits, 8))
-        while is_job_exist(job_id):
+        while self.is_job_exist(job_id):
             job_id = ''.join(random.sample(string.ascii_letters + string.digits, 8))
         return job_id
 
@@ -137,4 +145,8 @@ class JobMgr(object):
                 break
             else:
                 job.status = 'done'
+
+    # a task has finished
+    def report(self, task):
+        pass
 
