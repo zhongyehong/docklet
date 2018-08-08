@@ -69,11 +69,10 @@ class BatchJob(object):
 class JobMgr(object):
     # load job information from etcd
     # initial a job queue and job schedueler
-    #def __init__(self, taskmgr):
-    def __init__(self):
+    def __init__(self, taskmgr):
         self.job_queue = []
         self.job_map = {}
-        #self.taskmgr = taskmgr
+        self.taskmgr = taskmgr
 
     # user: username
     # job_data: a json string
@@ -132,7 +131,7 @@ class JobMgr(object):
         if not task_info:
             return False
         else:
-            #self.taskmgr.add_task(job.user, task_name, task_info)
+            self.taskmgr.add_task(job.user, task_name, task_info)
             return True
 
     # this is a thread to schedule the jobs
