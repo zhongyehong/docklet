@@ -94,7 +94,7 @@ class SimulatedJobMgr(threading.Thread):
 		task['timeout'] = timeout
 		task['parameters'] = {}
 		task['parameters']['command'] = {}
-		task['parameters']['command']['commandLine'] = ''
+		task['parameters']['command']['commandLine'] = 'ls'
 		task['parameters']['command']['packagePath'] = ''
 		task['parameters']['command']['envVars'] = {'a':'1'}
 		task['parameters']['stderrRedirectPath'] = ''
@@ -111,7 +111,7 @@ class SimulatedJobMgr(threading.Thread):
 		task['cluster']['instance']['gpu'] = 0
 		task['cluster']['mount'] = [{'remotePath':'', 'localPath':''}]
 
-		taskmgr.add_task('user', taskid, json.dumps(task))
+		taskmgr.add_task('root', taskid, json.dumps(task))
 
 
 class SimulatedLogger():
