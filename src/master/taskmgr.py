@@ -5,9 +5,9 @@ import random
 import json
 
 # must import logger after initlogging, ugly
-# from utils.log import initlogging
-# initlogging("docklet-taskmgr")
-# from utils.log import logger
+from utils.log import initlogging
+initlogging("docklet-taskmgr")
+from utils.log import logger
 
 # grpc
 from concurrent import futures
@@ -42,14 +42,17 @@ class TaskMgr(threading.Thread):
     # load task information from etcd
     # initial a task queue and task schedueler
     # taskmgr: a taskmgr instance
-    def __init__(self, nodemgr, monitor_fetcher, logger, scheduler_interval=2):
+    def __init__(self, nodemgr, monitor_fetcher, scheduler_interval=2, external_logger=None):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.jobmgr = None
         self.task_queue = []
 
         self.scheduler_interval = scheduler_interval
-        self.logger = logger
+        if external_logger is None:
+            self.logger = logger
+        else:
+            self.logger = external_logger
 
         self.master_port = env.getenv('BATCH_MASTER_PORT')
         self.worker_port = env.getenv('BATCH_WORKER_PORT')
