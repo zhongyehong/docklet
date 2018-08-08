@@ -42,14 +42,14 @@ class TaskMgr(threading.Thread):
     # load task information from etcd
     # initial a task queue and task schedueler
     # taskmgr: a taskmgr instance
-    def __init__(self, nodemgr, monitor_fetcher, logger, scheduler_interval=2):
+    def __init__(self, nodemgr, monitor_fetcher, scheduler_interval=2, external_logger=None):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.jobmgr = None
         self.task_queue = []
 
         self.scheduler_interval = scheduler_interval
-        self.logger = logger
+        self.logger = external_logger
 
         self.master_port = env.getenv('BATCH_MASTER_PORT')
         self.worker_port = env.getenv('BATCH_WORKER_PORT')
@@ -206,7 +206,7 @@ class TaskMgr(threading.Thread):
                         return task, index, worker
                 # find timeout instance
                 elif instance['status'] == RUNNING:
-                    if not is_alive(instance['worker']):
+                    if not self.is_alive(instance['worker']):
                         instance['status'] = FAILED
                         instance['token'] = ''
                         self.cpu_usage[instance['worker']] -= task.info.cluster.instance.cpu
@@ -294,28 +294,29 @@ class TaskMgr(threading.Thread):
         task = Task(TaskInfo(
             id = taskid,
             username = username,
-            instanceCount = json_task['instanceCount'],
-            maxRetryCount = json_task['maxRetryCount'],
-            timeout = json_task['timeout'],
+            instanceCount = int(json_task['instCount']),
+            maxRetryCount = int(json_task['retryCount']),
+            timeout = int(json_task['expTime']),
             parameters = Parameters(
                 command = Command(
-                    commandLine = json_task['parameters']['command']['commandLine'],
-                    packagePath = json_task['parameters']['command']['packagePath'],
-                    envVars = json_task['parameters']['command']['envVars']),
-                stderrRedirectPath = json_task['parameters']['stderrRedirectPath'],
-                stdoutRedirectPath = json_task['parameters']['stdoutRedirectPath']),
+                    commandLine = json_task['command'],
+                    packagePath = json_task['srcAddr'],
+                    envVars = {}),
+                stderrRedirectPath = json_task['stdErrRedPth'],
+                stdoutRedirectPath = json_task['stdOutRedPth']),
             cluster = Cluster(
                 image = Image(
-                    name = json_task['cluster']['image']['name'],
-                    type = json_task['cluster']['image']['type'],
-                    owner = json_task['cluster']['image']['owner']),
+                    name = 'base', #json_task['cluster']['image']['name'],
+                    type = Image.BASE, #json_task['cluster']['image']['type'],
+                    owner = 'base'), #json_task['cluster']['image']['owner']),
                 instance = Instance(
-                    cpu = json_task['cluster']['instance']['cpu'],
-                    memory = json_task['cluster']['instance']['memory'],
-                    disk = json_task['cluster']['instance']['disk'],
-                    gpu = json_task['cluster']['instance']['gpu']))))
-        task.info.cluster.mount.extend([Mount(localPath=mount['localPath'], remotePath=mount['remotePath'])
-                                 for mount in json_task['cluster']['mount']])
+                    cpu = int(json_task['cpuSetting']),
+                    memory = int(json_task['memorySetting']),
+                    disk = int(json_task['diskSetting']),
+                    gpu = int(json_task['gpuSetting'])))))
+        task.info.cluster.mount.extend([Mount(localPath=json_task['mapping'][mapping_key]['mappingLocalDir'], 
+                                              remotePath=json_task['mapping'][mapping_key]['mappingRemotefDir'])
+                                        for mapping_key in json_task['mapping']])
         self.task_queue.append(task)
 
 
