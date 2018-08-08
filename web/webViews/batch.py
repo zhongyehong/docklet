@@ -40,7 +40,9 @@ class addBatchJobView(normalView):
 
     @classmethod
     def post(self):
-        if True:
+        masterip = self.masterip
+        result = dockletRequest.post("/batch/job/add/", self.job_data, masterip)
+        if result.get('success', None) == "true":
             return self.render(self.template_path)
         else:
             return self.error()
