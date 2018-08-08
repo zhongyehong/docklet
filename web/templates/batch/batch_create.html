@@ -40,15 +40,15 @@
                          </div>
                        </div>
                         <div class="box-body">
-                <form id="form" class="form-horizontal" action="/batch_job/add/" method="POST">
+                <form id="form" class="form-horizontal" action="/batch_job/{{masterips[0].split("@")[0]}}/add/" method="POST">
 
                     <div class="form-group"><label class="col-sm-2 control-label">Job Name</label>
-                        <div class="col-sm-10"><input type="text" class="form-control" name="job_name" id="job_name"></div>
+                        <div class="col-sm-10"><input type="text" class="form-control" name="jobName" id="job_name"></div>
                     </div>
                     <div class="hr-line-dashed"></div>
                     <br/>
                         <div class="form-group"><label class="col-sm-2 control-label">Priority</label>
-                        <div class="col-sm-10"><select id="priority_selector" class="form-control">
+                        <div class="col-sm-10"><select id="priority_selector" class="form-control" name="taskPriority">
                         {% for priority in range(10) %}
                         <option value="{{priority}}">{{priority}}</option>
                         {% endfor %}
@@ -117,11 +117,11 @@
         var remote_dir = new_mapping.insertCell();
         var source = new_mapping.insertCell();
         var remove = new_mapping.insertCell();
-        local_dir.innerHTML = '<input type="text" class="form-control" name="mapping_local_dir_' + task_number + '_' + mapping_number + '" id="mapping_local_dir_' 
+        local_dir.innerHTML = '<input type="text" class="form-control" name="mappingLocalDir_' + task_number + '_' + mapping_number + '" id="mapping_local_dir_'
                              + task_number + '_' + mapping_number + '" />';
-        remote_dir.innerHTML = '<input type="text" class="form-control" name="mapping_remote_dir_' + task_number + '_' + mapping_number + '" id="mapping_remote_dir_' 
+        remote_dir.innerHTML = '<input type="text" class="form-control" name="mappingRemoteDir_' + task_number + '_' + mapping_number + '" id="mapping_remote_dir_'
                              + task_number + '_' + mapping_number + '" />';
-        source.innerHTML = '<select class="form-control" name="mapping_source_' + task_number + '_' + mapping_number + '" id="mapping_source_' 
+        source.innerHTML = '<select class="form-control" name="mappingSource_' + task_number + '_' + mapping_number + '" id="mapping_source_'
                           + task_number + '_' + mapping_number + '">'
                           +'<option>Aliyun</option><option>AWS</option></select>';
         remove.innerHTML = '<div class="box-tool pull-left"><button type="button" id="' + task_number + '_' + mapping_number +'" onclick="removeMapping(this)" class="btn btn-xs btn-danger">'
