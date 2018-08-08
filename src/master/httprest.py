@@ -780,12 +780,12 @@ def add_job(user,beans,form):
                     }
                 }
                 job_info["tasks"][task_idx] = tmp_dict
-    logger.debug('batch job adding form %s' % job_data)
     logger.debug('batch job adding info %s' % json.dumps(job_info, indent=4))
     [status, msg] = G_jobmgr.add_job(user, job_info)
     if status:
         return json.dumps(message)
     else:
+        logger.debug('fail to add batch job: %s' % msg)
         message["success"] = "false"
         message["message"] = msg
         return json.dumps(message)
@@ -794,7 +794,13 @@ def add_job(user,beans,form):
 @app.route("/batch/job/list/", methods=['POST'])
 @login_required
 def list_job(user,beans,form):
-    pass
+    global G_jobmgr
+    result = {
+        'status': 'true',
+        'data': G_jobmgr.list_jobs(user)
+    }
+    return json.dumps(result)
+
 
 @app.route("/batch/job/info/", methods=['POST'])
 @login_required
