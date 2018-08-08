@@ -135,7 +135,7 @@ def test():
 	jobmgr = SimulatedJobMgr()
 	jobmgr.start()
 
-	taskmgr = master.taskmgr.TaskMgr(SimulatedNodeMgr(), SimulatedMonitorFetcher, scheduler_interval=2, SimulatedLogger())
+	taskmgr = master.taskmgr.TaskMgr(SimulatedNodeMgr(), SimulatedMonitorFetcher, scheduler_interval=2, external_logger=SimulatedLogger())
 	taskmgr.set_jobmgr(jobmgr)
 	taskmgr.start()
 
