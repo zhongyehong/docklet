@@ -973,8 +973,6 @@ if __name__ == '__main__':
     G_networkmgr.printpools()
 
     G_cloudmgr = cloudmgr.CloudMgr()
-    #G_taskmgr = taskmgr.TaskMgr()
-    G_jobmgr = jobmgr.JobMgr()
     '''G_taskmgr = taskmgr.TaskMgr()
     G_jobmgr = jobmgr.JobMgr(taskmgr)
     G_jobmgr.start()
@@ -1003,5 +1001,9 @@ if __name__ == '__main__':
     logger.info("master_collector started")
     # server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
     logger.info("starting master server")
+
+    G_taskmgr = taskmgr.TaskMgr(G_nodemgr, monitor.Fetcher)
+    G_jobmgr = jobmgr.JobMgr(G_taskmgr)
+    G_taskmgr.set_jobmgr(G_jobmgr)
 
     app.run(host = masterip, port = masterport, threaded=True)
