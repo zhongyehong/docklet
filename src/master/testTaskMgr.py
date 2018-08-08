@@ -148,12 +148,12 @@ def test2():
 	jobmgr = SimulatedJobMgr()
 	jobmgr.start()
 
-	taskmgr = master.taskmgr.TaskMgr(SimulatedNodeMgr(), SimulatedMonitorFetcher, scheduler_interval=2, SimulatedLogger())
+	taskmgr = master.taskmgr.TaskMgr(SimulatedNodeMgr(), SimulatedMonitorFetcher, scheduler_interval=2, external_logger=SimulatedLogger())
 	taskmgr.set_jobmgr(jobmgr)
 	taskmgr.start()
 
 	add('task_0', instance_count=2, retry_count=2, timeout=60, cpu=2, memory=2048, disk=2048)
-	
+
 
 
 def add(taskid, instance_count, retry_count, timeout, cpu, memory, disk):
