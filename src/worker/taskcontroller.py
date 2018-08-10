@@ -211,7 +211,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
             return [False,msg]
         logger.info("Succeed to moving output_tmp to nfs/%s" % tmpfilename)
 
-        if "/root/nfs/"+tmpfilename == filepath:
+        if os.path.abspath("/root/nfs/"+tmpfilename) == os.path.abspath(filepath):
             return [True,""]
         ret = subprocess.run(cmd % ("/root/nfs/"+tmpfilename,filepath),stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
         if ret.returncode != 0:
