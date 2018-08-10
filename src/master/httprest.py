@@ -737,7 +737,15 @@ def add_job(user,beans,form):
     for key in job_data:
         key_arr = key.split('_')
         value = job_data[key]
-        if key_arr[0] != 'dependency' and value == '':
+        if key_arr[0] == 'srcAddr' and value == '':
+            task_idx = 'task_' + key_arr[1]
+            if task_idx in job_info['tasks']:
+                job_info['tasks'][task_idx]['srcAddr'] = '/root/nfs'
+            else:
+                job_info['tasks'][task_idx] = {
+                    'srcAddr': '/root/nfs/'
+                }
+        elif key_arr[0] != 'dependency'and value == '':
             message['success'] = 'false'
             message['message'] = 'value of %s is null' % key
         elif len(key_arr) == 1:
@@ -973,11 +981,6 @@ if __name__ == '__main__':
     G_networkmgr.printpools()
 
     G_cloudmgr = cloudmgr.CloudMgr()
-    '''G_taskmgr = taskmgr.TaskMgr()
-    G_jobmgr = jobmgr.JobMgr(taskmgr)
-    G_jobmgr.start()
-    G_taskmgr.set_jobmgr(G_jobmgr)
-    G_taskmgr.start()'''
 
     # start NodeMgr and NodeMgr will wait for all nodes to start ...
     G_nodemgr = nodemgr.NodeMgr(G_networkmgr, etcdclient, addr = ipaddr, mode=mode)

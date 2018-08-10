@@ -15,6 +15,7 @@ class BatchJob(object):
         self.create_time = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())
         self.top_sort()
 
+    # transfer the dependency graph into a job queue
     def top_sort(self):
         logger.debug('top sorting')
         tasks = self.raw_job_info["tasks"]
@@ -74,12 +75,10 @@ class JobMgr(threading.Thread):
         self.job_map = {}
         self.taskmgr = taskmgr
 
-
     def run(self):
         while True:
             self.job_scheduler()
             time.sleep(2)
-
 
     # user: username
     # job_data: a json string
@@ -116,7 +115,7 @@ class JobMgr(threading.Thread):
 
     # user: username
     # jobid: the id of job
-    # get the information of a job, including the status, json description and other informationa
+    # get the information of a job, including the status, json description and other information
     # call get_task to get the task information
     def get_job(self, user, job_id):
         pass

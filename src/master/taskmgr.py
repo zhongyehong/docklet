@@ -113,7 +113,7 @@ class TaskMgr(threading.Thread):
             if instance['try_count'] > task.info.maxRetryCount:
                 self.check_task_completed(task)
         elif report.instanceStatus == OUTPUTERROR:
-            task_failed(task)
+            self.task_failed(task)
 
 
     def check_task_completed(self, task):
@@ -326,4 +326,4 @@ class TaskMgr(threading.Thread):
             if task.info.id == taskid:
                 return task
         return None
-        
+
