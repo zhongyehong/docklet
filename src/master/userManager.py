@@ -7,7 +7,7 @@ Warning: in some early versions, "token" stand for the instance of class model.U
 Original author: Liu Peidong
 '''
 
-from utils.model import db, User, UserGroup, Notification, UserUsage
+from utils.model import db, User, UserGroup, Notification, UserUsage, LoginMsg
 from functools import wraps
 import os, subprocess, math
 import hashlib
@@ -144,6 +144,7 @@ class userManager:
         '''
         try:
             User.query.all()
+            LoginMsg.query.all()
         except:
             db.create_all()
             if password == None:
@@ -268,6 +269,9 @@ class userManager:
 
         username = result['username']
         logger.info("External login success: username=%s, userip=%s" % (username, userip))
+        loginmsg = LoginMsg(username,userip)
+        db.session.add(loginmsg)
+        db.session.commit()
         user = User.query.filter_by(username = username).first()
         if (user != None and user.auth_method == result['auth_method']):
             result = {
@@ -332,6 +336,9 @@ class userManager:
             result  = {'success':'false', 'reason':'auth_method error'}
 
         if result['success'] == 'true':
+            loginmsg = LoginMsg(result['data']['username'],userip)
+            db.session.add(loginmsg)
+            db.session.commit()
             logger.info("Login success: username=%s, userip=%s" % (result['data']['username'], userip))
         else:
             logger.info("Login failed: userip=%s" % (userip))
