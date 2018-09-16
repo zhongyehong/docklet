@@ -254,7 +254,7 @@ class userManager:
         }
         return result
 
-    def auth_external(self, form):
+    def auth_external(self, form, userip=""):
 
         if (env.getenv('EXTERNAL_LOGIN') != 'True'):
             failed_result = {'success': 'false', 'reason' : 'external auth disabled'}
@@ -267,6 +267,7 @@ class userManager:
             return failed_result
 
         username = result['username']
+        logger.info("External login success: username=%s, userip=%s" % (username, userip))
         user = User.query.filter_by(username = username).first()
         if (user != None and user.auth_method == result['auth_method']):
             result = {
@@ -316,19 +317,25 @@ class userManager:
         }
         return result
 
-    def auth(self, username, password):
+    def auth(self, username, password, userip=""):
         '''
         authenticate a user by username & password
         return a token as well as some user information
         '''
         user = User.query.filter_by(username = username).first()
+        result = {}
         if (user == None or user.auth_method =='pam'):
-            return self.auth_pam(username, password)
+            result = self.auth_pam(username, password)
         elif (user.auth_method == 'local'):
-            return self.auth_local(username, password)
+            result = self.auth_local(username, password)
         else:
             result  = {'success':'false', 'reason':'auth_method error'}
-            return result
+
+        if result['success'] == 'true':
+            logger.info("Login success: username=%s, userip=%s" % (result['data']['username'], userip))
+        else:
+            logger.info("Login failed: userip=%s" % (userip))
+        return result
 
     def auth_token(self, token):
         '''

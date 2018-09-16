@@ -52,7 +52,7 @@ class loginView(normalView):
     @classmethod
     def post(self):
         if (request.form['username']):
-            data = {"user": request.form['username'], "key": request.form['password']}
+            data = {"user": request.form['username'], "key": request.form['password'], 'ip': request.remote_addr}
             result = dockletRequest.unauthorizedpost('/login/', data)
             ok = result and result.get('success', None)
             if (ok and (ok == "true")):
