@@ -668,14 +668,3 @@ class History_Manager:
             tmp = {"name":vnode.name,"billing":vnode.billing}
             res.append(tmp)
         return res
-
-    # get users' net_stats
-    def get_user_net_stats(self,owner):
-        global monitor_vnodes
-        try:
-            res = monitor_vnodes[owner]['net_stats']
-        except Exception as err:
-            logger.warning(traceback.format_exc())
-            logger.warning(err)
-            res = {}
-        return res

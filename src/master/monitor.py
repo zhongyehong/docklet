@@ -152,6 +152,18 @@ class Container_Fetcher:
             res = {}
         return res
 
+    # get users' net_stats
+    @staticmethod
+    def get_user_net_stats(owner):
+        global monitor_vnodes
+        try:
+            res = monitor_vnodes[owner]['net_stats']
+        except Exception as err:
+            logger.warning(traceback.format_exc())
+            logger.warning(err)
+            res = {}
+        return res
+
     def get_basic_info(self):
         global monitor_vnodes
         try:
