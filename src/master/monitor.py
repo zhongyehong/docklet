@@ -2,6 +2,7 @@ import threading, time, traceback
 from utils import env
 from utils.log import logger
 from httplib2 import Http
+from urllib.parse import urlencode
 
 # major dict to store the monitoring data
 # only use on Master

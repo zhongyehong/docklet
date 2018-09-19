@@ -121,7 +121,7 @@ def config():
 
 
 @app.route("/workspace/create/", methods=['GET'])
-@activated_required
+#@activated_required
 def addCluster():
     return addClusterView.as_view()
 
