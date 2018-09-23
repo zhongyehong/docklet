@@ -620,7 +620,7 @@ def user_quotainfo_monitor(user, beans, form, issue):
         return json.dumps({'success':'true', 'createdvnodes':res})
     elif issue == 'net_stats':
         logger.info("handle request: monitor/user/net_stats/")
-        res = G_historymgr.get_user_net_stats(user)
+        res = monitor.Container_Fetcher.get_user_net_stats(user)
         return json.dumps({'success':'true', 'net_stats':res})
     else:
         return json.dumps({'success':'false', 'message':"Unspported Method!"})
