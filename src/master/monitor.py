@@ -2,6 +2,7 @@ import threading, time, traceback
 from utils import env
 from utils.log import logger
 from httplib2 import Http
+from urllib.parse import urlencode
 
 # major dict to store the monitoring data
 # only use on Master
@@ -146,6 +147,18 @@ class Container_Fetcher:
         global monitor_vnodes
         try:
             res = monitor_vnodes[self.owner][self.con_id]['net_stats']
+        except Exception as err:
+            logger.warning(traceback.format_exc())
+            logger.warning(err)
+            res = {}
+        return res
+
+    # get users' net_stats
+    @staticmethod
+    def get_user_net_stats(owner):
+        global monitor_vnodes
+        try:
+            res = monitor_vnodes[owner]['net_stats']
         except Exception as err:
             logger.warning(traceback.format_exc())
             logger.warning(err)

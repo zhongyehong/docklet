@@ -50,14 +50,14 @@
                        <form action="/beans/apply/" method="POST" id="beansapplyForm">
                           <div class="form-group">
                             <label>Number</label><small class="font-bold"> How many beans do you need?</small>
-                            <input type="number" class="form-control" placeholder="100-5000" name="number" id="number" min="100" max="5000"/>
+                            <input type="number" class="form-control" placeholder="100-5000" name="number" id="number" min="100" max="5000" required />
                           </div>
                           <div class="form-group">
                             <label>Reason</label>
                             <textarea class="form-control" name="reason" cols="28" rows="5" onKeyDown="textCounter(reason,remLen,300);" onKeyUp="textCounter(reason,remLen,300);" placeholder="Please describe what you will do in your workspace with the beans."></textarea>
 			     You could only input <input name="remLen" type="text" value="300" size="3" readonly="readonly"> more characters.
                           </div>
-                     
+
                      <div class="modal-footer">
                          <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
                          <button type="submit" class="btn btn-primary">Submit</button>
@@ -104,10 +104,14 @@
 <script src="http://cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.js"></script>
 <script src="http://cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.js"></script>
 <script src="http://cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
+<script src="https://cdn.bootcss.com/jquery-validate/1.17.0/jquery.validate.js"></script>
 
 <script>
          $(document).ready(function() {
             $(".table-image").DataTable();
+         });
+         $().ready(function() {
+             $("#beansapplyForm").validate();
          });
 function textCounter(field,countfield,maxlimit)
 {
@@ -116,7 +120,7 @@ function textCounter(field,countfield,maxlimit)
    else
        countfield.value = maxlimit - field.value.length;
 }
+
  </script>
 
 {% endblock %}
-
