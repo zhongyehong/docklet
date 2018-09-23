@@ -122,14 +122,14 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
             image['type'] = 'base'
         image['owner'] = request.cluster.image.owner
         username = request.username
-        lxcname = '%s-batch-%s-%s' % (username,taskid,str(instanceid))
+        token = request.token
+        lxcname = '%s-batch-%s-%s-%s' % (username,taskid,str(instanceid),token)
         instance_type =  request.cluster.instance
         outpath = [request.parameters.stdoutRedirectPath,request.parameters.stderrRedirectPath]
         for i in range(len(outpath)):
             if outpath[i] == "":
                 outpath[i] = "/root/nfs/"
         timeout = request.timeout
-        token = request.token
 
         # acquire ip
         [status, ip] = self.acquire_ip()
@@ -146,7 +146,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
 
         if not os.path.isdir("%s/global/users/%s" % (self.fspath,username)):
             path = env.getenv('DOCKLET_LIB')
-            subprocess.call([path+"/userinit.sh", username])
+            subprocess.call([path+"/master/userinit.sh", username])
             logger.info("user %s directory not found, create it" % username)
             sys_run("mkdir -p /var/lib/lxc/%s" % lxcname)
             logger.info("generate config file for %s" % lxcname)
@@ -211,7 +211,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
             return [False,msg]
         logger.info("Succeed to moving output_tmp to nfs/%s" % tmpfilename)
 
-        if "/root/nfs/"+tmpfilename == filepath:
+        if os.path.abspath("/root/nfs/"+tmpfilename) == os.path.abspath(filepath):
             return [True,""]
         ret = subprocess.run(cmd % ("/root/nfs/"+tmpfilename,filepath),stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
         if ret.returncode != 0:

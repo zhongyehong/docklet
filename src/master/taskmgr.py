@@ -5,9 +5,7 @@ import random
 import json
 
 # must import logger after initlogging, ugly
-# from utils.log import initlogging
-# initlogging("docklet-taskmgr")
-# from utils.log import logger
+from utils.log import logger
 
 # grpc
 from concurrent import futures
@@ -42,13 +40,12 @@ class TaskMgr(threading.Thread):
     # load task information from etcd
     # initial a task queue and task schedueler
     # taskmgr: a taskmgr instance
-    def __init__(self, nodemgr, monitor_fetcher, logger, worker_timeout=60, scheduler_interval=2):
+    def __init__(self, nodemgr, monitor_fetcher, scheduler_interval=2, external_logger=None):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.jobmgr = None
         self.task_queue = []
 
-        self.heart_beat_timeout = worker_timeout # (s)
         self.scheduler_interval = scheduler_interval
         self.logger = logger
 
@@ -109,7 +106,6 @@ class TaskMgr(threading.Thread):
 
         instance['status'] = report.instanceStatus
         instance['error_msg'] = report.errmsg
-        instance['last_update_time'] = time.time()
 
         if report.instanceStatus == COMPLETED:
             self.check_task_completed(task)
@@ -174,7 +170,6 @@ class TaskMgr(threading.Thread):
 
         instance = task.instance_list[instance_id]
         instance['status'] = RUNNING
-        instance['last_update_time'] = time.time()
         instance['try_count'] += 1
         instance['token'] = task.info.token
         instance['worker'] = worker_ip
@@ -209,12 +204,12 @@ class TaskMgr(threading.Thread):
                         return task, index, worker
                 # find timeout instance
                 elif instance['status'] == RUNNING:
-                    if time.time() - instance['last_update_time'] > self.heart_beat_timeout:
+                    if not self.is_alive(instance['worker']):
                         instance['status'] = FAILED
                         instance['token'] = ''
                         self.cpu_usage[instance['worker']] -= task.info.cluster.instance.cpu
 
-                        self.logger.warning('[task_scheduler] worker timeout task [%s] instance [%d]' % (task.info.id, index))
+                        self.logger.warning('[task_scheduler] worker dead, retry task [%s] instance [%d]' % (task.info.id, index))
                         if worker is not None:
                             return task, index, worker
 
@@ -241,8 +236,8 @@ class TaskMgr(threading.Thread):
                 continue
             if task.info.cluster.instance.memory > worker_info['memory']:
                 continue
-            if task.info.cluster.instance.disk > worker_info['disk']:
-                continue
+            # if task.info.cluster.instance.disk > worker_info['disk']:
+            #     continue
             if task.info.cluster.instance.gpu > worker_info['gpu']:
                 continue
             return worker_ip
@@ -257,6 +252,11 @@ class TaskMgr(threading.Thread):
         node_ips = self.nodemgr.get_nodeips()
         all_nodes = [(node_ip, self.get_worker_resource_info(node_ip)) for node_ip in node_ips]
         return all_nodes
+
+            
+    def is_alive(self, worker):
+        nodes = self.nodemgr.get_nodeips()
+        return worker in nodes
 
 
     def get_worker_resource_info(self, worker_ip):
@@ -288,32 +288,34 @@ class TaskMgr(threading.Thread):
     # called when jobmgr assign task to taskmgr
     def add_task(self, username, taskid, json_task):
         # decode json string to object defined in grpc
-        json_task = json.loads(json_task)
+        self.logger.info('[taskmgr add_task] receive task %s' % taskid)
+        # json_task = json.loads(json_task)
         task = Task(TaskInfo(
             id = taskid,
             username = username,
-            instanceCount = json_task['instanceCount'],
-            maxRetryCount = json_task['maxRetryCount'],
-            timeout = json_task['timeout'],
+            instanceCount = int(json_task['instCount']),
+            maxRetryCount = int(json_task['retryCount']),
+            timeout = int(json_task['expTime']),
             parameters = Parameters(
                 command = Command(
-                    commandLine = json_task['parameters']['command']['commandLine'],
-                    packagePath = json_task['parameters']['command']['packagePath'],
-                    envVars = json_task['parameters']['command']['envVars']),
-                stderrRedirectPath = json_task['parameters']['stderrRedirectPath'],
-                stdoutRedirectPath = json_task['parameters']['stdoutRedirectPath']),
+                    commandLine = json_task['command'],
+                    packagePath = json_task['srcAddr'],
+                    envVars = {}),
+                stderrRedirectPath = json_task['stdErrRedPth'],
+                stdoutRedirectPath = json_task['stdOutRedPth']),
             cluster = Cluster(
                 image = Image(
-                    name = json_task['cluster']['image']['name'],
-                    type = json_task['cluster']['image']['type'],
-                    owner = json_task['cluster']['image']['owner']),
+                    name = 'base', #json_task['cluster']['image']['name'],
+                    type = Image.BASE, #json_task['cluster']['image']['type'],
+                    owner = 'base'), #json_task['cluster']['image']['owner']),
                 instance = Instance(
-                    cpu = json_task['cluster']['instance']['cpu'],
-                    memory = json_task['cluster']['instance']['memory'],
-                    disk = json_task['cluster']['instance']['disk'],
-                    gpu = json_task['cluster']['instance']['gpu']))))
-        task.info.cluster.mount.extend([Mount(localPath=mount['localPath'], remotePath=mount['remotePath'])
-                                 for mount in json_task['cluster']['mount']])
+                    cpu = int(json_task['cpuSetting']),
+                    memory = int(json_task['memorySetting']),
+                    disk = int(json_task['diskSetting']),
+                    gpu = int(json_task['gpuSetting'])))))
+        task.info.cluster.mount.extend([Mount(localPath=json_task['mapping'][mapping_key]['mappingLocalDir'], 
+                                              remotePath=json_task['mapping'][mapping_key]['mappingRemoteDir'])
+                                        for mapping_key in json_task['mapping']])
         self.task_queue.append(task)
 
 
@@ -324,3 +326,4 @@ class TaskMgr(threading.Thread):
             if task.info.id == taskid:
                 return task
         return None
+        

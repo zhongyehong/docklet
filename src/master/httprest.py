@@ -725,12 +725,82 @@ def resetall_system(user, beans, form):
 @app.route("/batch/job/add/", methods=['POST'])
 @login_required
 def add_job(user,beans,form):
-    pass
+    global G_jobmgr
+    job_data = form.to_dict()
+    job_info = {
+        'tasks': {}
+    }
+    message = {
+        'success': 'true',
+        'message': 'add batch job success'
+    }
+    for key in job_data:
+        key_arr = key.split('_')
+        value = job_data[key]
+        if key_arr[0] != 'dependency' and value == '':
+            message['success'] = 'false'
+            message['message'] = 'value of %s is null' % key
+        elif len(key_arr) == 1:
+            job_info[key_arr[0]] = value
+        elif len(key_arr) == 2:
+            key_prefix, task_idx = key_arr[0], key_arr[1]
+            task_idx = 'task_' + task_idx
+            if task_idx in job_info["tasks"]:
+                job_info["tasks"][task_idx][key_prefix] = value
+            else:
+                tmp_dict = {
+                    key_prefix: value
+                }
+                job_info["tasks"][task_idx] = tmp_dict
+        elif len(key_arr) == 3:
+            key_prefix, task_idx, mapping_idx = key_arr[0], key_arr[1], key_arr[2]
+            task_idx = 'task_' + task_idx
+            mapping_idx = 'mapping_' + mapping_idx
+            if task_idx in job_info["tasks"]:
+                if "mapping" in job_info["tasks"][task_idx]:
+                    if mapping_idx in job_info["tasks"][task_idx]["mapping"]:
+                        job_info["tasks"][task_idx]["mapping"][mapping_idx][key_prefix] = value
+                    else:
+                        tmp_dict = {
+                            key_prefix: value
+                        }
+                        job_info["tasks"][task_idx]["mapping"][mapping_idx] = tmp_dict
+                else:
+                    job_info["tasks"][task_idx]["mapping"] = {
+                        mapping_idx: {
+                            key_prefix: value
+                        }
+                    }
+            else:
+                tmp_dict = {
+                    "mapping":{
+                        mapping_idx: {
+                            key_prefix: value
+                        }
+                    }
+                }
+                job_info["tasks"][task_idx] = tmp_dict
+    logger.debug('batch job adding info %s' % json.dumps(job_info, indent=4))
+    [status, msg] = G_jobmgr.add_job(user, job_info)
+    if status:
+        return json.dumps(message)
+    else:
+        logger.debug('fail to add batch job: %s' % msg)
+        message["success"] = "false"
+        message["message"] = msg
+        return json.dumps(message)
+    return json.dumps(message)
 
 @app.route("/batch/job/list/", methods=['POST'])
 @login_required
 def list_job(user,beans,form):
-    pass
+    global G_jobmgr
+    result = {
+        'status': 'true',
+        'data': G_jobmgr.list_jobs(user)
+    }
+    return json.dumps(result)
+
 
 @app.route("/batch/job/info/", methods=['POST'])
 @login_required
@@ -931,5 +1001,11 @@ if __name__ == '__main__':
     logger.info("master_collector started")
     # server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
     logger.info("starting master server")
+
+    G_taskmgr = taskmgr.TaskMgr(G_nodemgr, monitor.Fetcher)
+    G_jobmgr = jobmgr.JobMgr(G_taskmgr)
+    G_taskmgr.set_jobmgr(G_jobmgr)
+    G_taskmgr.start()
+    G_jobmgr.start()
 
     app.run(host = masterip, port = masterport, threaded=True)

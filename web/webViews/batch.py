@@ -1,5 +1,6 @@
 from flask import session, redirect, request
 from webViews.view import normalView
+from webViews.log import logger
 from webViews.checkname import checkname
 from webViews.dockletrequest import dockletRequest
 
@@ -8,8 +9,12 @@ class batchJobListView(normalView):
 
     @classmethod
     def get(self):
+        masterips = dockletRequest.post_to_all()
+        result = dockletRequest.post("/batch/job/list/",{},masterips[0].split("@")[0])
+        job_list = result.get("data")
+        logger.debug("job_list: %s" % job_list)
         if True:
-            return self.render(self.template_path)
+            return self.render(self.template_path, job_list=job_list)
         else:
             return self.error()
 
@@ -40,7 +45,9 @@ class addBatchJobView(normalView):
 
     @classmethod
     def post(self):
-        if True:
-            return self.render(self.template_path)
+        masterip = self.masterip
+        result = dockletRequest.post("/batch/job/add/", self.job_data, masterip)
+        if result.get('success', None) == "true":
+            return redirect('/batch_jobs/')
         else:
             return self.error()

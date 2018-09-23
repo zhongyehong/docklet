@@ -94,7 +94,7 @@ class SimulatedJobMgr(threading.Thread):
 		task['timeout'] = timeout
 		task['parameters'] = {}
 		task['parameters']['command'] = {}
-		task['parameters']['command']['commandLine'] = ''
+		task['parameters']['command']['commandLine'] = 'ls'
 		task['parameters']['command']['packagePath'] = ''
 		task['parameters']['command']['envVars'] = {'a':'1'}
 		task['parameters']['stderrRedirectPath'] = ''
@@ -111,7 +111,7 @@ class SimulatedJobMgr(threading.Thread):
 		task['cluster']['instance']['gpu'] = 0
 		task['cluster']['mount'] = [{'remotePath':'', 'localPath':''}]
 
-		taskmgr.add_task('user', taskid, json.dumps(task))
+		taskmgr.add_task('root', taskid, json.dumps(task))
 
 
 class SimulatedLogger():
@@ -135,11 +135,25 @@ def test():
 	jobmgr = SimulatedJobMgr()
 	jobmgr.start()
 
-	taskmgr = master.taskmgr.TaskMgr(SimulatedNodeMgr(), SimulatedMonitorFetcher, SimulatedLogger(), worker_timeout=10, scheduler_interval=2)
+	taskmgr = master.taskmgr.TaskMgr(SimulatedNodeMgr(), SimulatedMonitorFetcher, scheduler_interval=2, external_logger=SimulatedLogger())
 	taskmgr.set_jobmgr(jobmgr)
 	taskmgr.start()
 
 	add('task_0', instance_count=2, retry_count=2, timeout=60, cpu=2, memory=2048, disk=2048)
+
+
+def test2():
+	global jobmgr
+	global taskmgr
+	jobmgr = SimulatedJobMgr()
+	jobmgr.start()
+
+	taskmgr = master.taskmgr.TaskMgr(SimulatedNodeMgr(), SimulatedMonitorFetcher, scheduler_interval=2, external_logger=SimulatedLogger())
+	taskmgr.set_jobmgr(jobmgr)
+	taskmgr.start()
+
+	add('task_0', instance_count=2, retry_count=2, timeout=60, cpu=2, memory=2048, disk=2048)
+
 
 
 def add(taskid, instance_count, retry_count, timeout, cpu, memory, disk):

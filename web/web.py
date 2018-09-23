@@ -130,12 +130,11 @@ def batch_job():
 def create_batch_job():
     return createBatchJobView().as_view()
 
-@app.route("/batch_job/add/", methods=['POST'])
+@app.route("/batch_job/<masterip>/add/", methods=['POST'])
 @login_required
-def add_batch_job():
-    #TODO get form parameters of a job description
-    job_data = {}
-    job_data["job_name"] = request.form["job_name"]
+def add_batch_job(masterip):
+    addBatchJobView.masterip = masterip
+    addBatchJobView.job_data = request.form
     return addBatchJobView().as_view()
 
 @app.route("/batch_job/state/", methods=['GET'])
