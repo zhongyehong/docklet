@@ -87,9 +87,10 @@ def login():
     logger.info("handle request : user login")
     user = request.form.get("user", None)
     key = request.form.get("key", None)
+    userip = request.form.get("ip", "")
     if user == None or key == None:
         return json.dumps({'success': 'false', 'message':'user or key is null'})
-    auth_result = G_usermgr.auth(user,key)
+    auth_result = G_usermgr.auth(user,key,userip)
     if auth_result['success'] == 'false':
         logger.info("%s login failed" % user)
         return json.dumps({'success':'false', 'message':'auth failed'})
@@ -100,8 +101,9 @@ def login():
 def external_login():
     global G_usermgr
     logger.info("handle request : external user login")
+    userip = request.form.get("ip", "")
     try:
-        result = G_usermgr.auth_external(request.form)
+        result = G_usermgr.auth_external(request.form,userip)
         return json.dumps(result)
     except:
         result = {'success':'false', 'reason':'Something wrong happened when auth an external account'}
@@ -517,6 +519,9 @@ def billing_beans():
 def beans_apply(cur_user,user,form,issue):
     global G_applicationmgr
     if issue == 'apply':
+        if not cur_user.status == 'normal':
+            return json.dumps({'success':'false', 'message':'Fail to apply for beans because your account is locked/not activated. Please:'+
+            '\n 1. Complete your information and activate your account. \n Or: \n 2.Contact administor for further information'})
         number = form.get("number",None)
         reason = form.get("reason",None)
         if number is None or reason is None:

@@ -144,7 +144,7 @@ def state_batch_job():
     return stateBatchJobView().as_view()
 
 @app.route("/workspace/create/", methods=['GET'])
-@activated_required
+#@activated_required
 def addCluster():
     return addClusterView.as_view()
 

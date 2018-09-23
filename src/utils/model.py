@@ -43,7 +43,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'+fsdir+'/global/sys/UserTabl
 app.config['SQLALCHEMY_BINDS'] = {
     'history': 'sqlite:///'+fsdir+'/global/sys/HistoryTable.db',
     'beansapplication': 'sqlite:///'+fsdir+'/global/sys/BeansApplication.db',
-    'system': 'sqlite:///'+fsdir+'/global/sys/System.db'
+    'system': 'sqlite:///'+fsdir+'/global/sys/System.db',
+    'login': 'sqlite:///'+fsdir+'/global/sys/Login.db'
     }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 try:
@@ -97,7 +98,7 @@ class User(db.Model):
         self.department = department
         self.truename = truename
         self.tel = tel
-        self.beans = 1000
+        self.beans = 150
         if (date != None):
             self.register_date = date
         else:
@@ -204,6 +205,21 @@ class UserNotificationPair(db.Model):
 
     def __repr__(self):
         return '<UserName: %r, NotifyId: %r>' % (self.userName, self.notifyId)
+
+class LoginMsg(db.Model):
+    __bind_key__ = 'login'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(10))
+    userip = db.Column(db.String(20))
+    time = db.Column(db.DateTime)
+
+    def __init__(self, username, userip):
+        self.username = username
+        self.userip = userip
+        self.time = datetime.now()
+
+    def __repr__(self):
+        return '<id=%d, username=%s, userip=%s, time=%s>' % (self.id,self.username,self.userip,self.time.strftime("%Y-%m-%d %H:%M:%S"))
 
 class VNode(db.Model):
     __bind_key__ = 'history'
