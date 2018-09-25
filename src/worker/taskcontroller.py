@@ -66,6 +66,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         self.report_interval = 2
 
         self.lock = threading.Lock()
+        self.mount_lock = threading.Lock()
         self.cons_gateway = env.getenv('BATCH_GATEWAY')
         self.cons_ips = env.getenv('BATCH_NET')
         logger.info("Batch gateway ip address %s" % self.cons_gateway)
@@ -100,6 +101,51 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         logger.info(str(self.free_ips))
         self.lock.release()
 
+    @staticmethod
+    def execute_cmd(cmd):
+        ret = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+        if ret.returncode != 0:
+            msg = ret.stdout.decode(encoding="utf-8")
+            logger.error(msg)
+            return [False,msg]
+        else:
+            return [True,""]
+
+    #mount_oss
+    def mount_oss(self, datapath, mount_info):
+        self.mount_lock.acquire()
+        try:
+            pwdfile = open("/etc/passwd-ossfs","w")
+            for mount in mount_info:
+                pwdfile.write(mount.remotePath+":"+mount.accessKey+":"+mount.secretKey+"\n")
+            pwdfile.close()
+        except Exception as err:
+            logger.error(traceback.format_exc())
+            msg = "Fail to write passwd-ossfs %s" % (lxcname)
+            logger.error(msg)
+            self.mount_lock.release()
+            return [False,msg]
+
+        cmd = "chmod 640 /etc/passwd-ossfs"
+        [success1, msg] = self.execute_cmd(cmd)
+        for mount in mount_info:
+            mountpath = datapath+"/"+mount.remotePath
+            logger.info("Mount oss %s %s" % (mount.remotePath, mountpath))
+            if not os.path.isdir(mountpath):
+                os.makedirs(mountpath)
+            cmd = "ossfs %s %s -ourl=%s" % (mount.remotePath, mountpath, mount.endpoint)
+            [success, msg] = self.execute_cmd(cmd)
+        self.mount_lock.release()
+
+    #umount oss
+    def umount_oss(self, datapath, mount_info):
+        for mount in mount_info:
+            mountpath = datapath + "/" + mount.remotePath
+            logger.info("UMount oss %s %s" % (mount.remotePath, mountpath))
+            cmd = "fusermount -u %s" % (mountpath)
+            [success, msg] = self.execute_cmd(cmd)
+            [success, msg] = self.execute_cmd("rm -rf %s" % mountpath)
+
     def process_task(self, request, context):
         logger.info('excute task with parameter: ' + str(request))
         taskid = request.id
@@ -125,6 +171,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         token = request.token
         lxcname = '%s-batch-%s-%s-%s' % (username,taskid,str(instanceid),token)
         instance_type =  request.cluster.instance
+        mount_list = request.cluster.mount
         outpath = [request.parameters.stdoutRedirectPath,request.parameters.stderrRedirectPath]
         for i in range(len(outpath)):
             if outpath[i] == "":
@@ -173,6 +220,12 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
 
         conffile = open("/var/lib/lxc/%s/config" % lxcname, 'w')
         conffile.write(conftext)
+
+        #mount oss
+        self.mount_oss("%s/global/users/%s/data" % (self.fspath,username), mount_list)
+        mount_str = "lxc.mount.entry = %s/global/users/%s/data/%s %s/root/nfs/%s none bind,rw,create=dir 0 0"
+        for mount in mount_list:
+            conffile.write("\n"+ mount_str % (self.fspath, username, mount.remotePath, rootfs, mount.remotePath))
         conffile.close()
 
         container = lxc.Container(lxcname)
@@ -183,9 +236,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         else:
             logger.info('start container %s success' % lxcname)
 
-        #mount oss here
-
-        thread = threading.Thread(target = self.excute_task, args=(taskid,instanceid,envs,lxcname,pkgpath,command,timeout,outpath,ip,token))
+        thread = threading.Thread(target = self.execute_task, args=(username,taskid,instanceid,envs,lxcname,pkgpath,command,timeout,outpath,ip,token,mount_list))
         thread.setDaemon(True)
         thread.start()
 
@@ -221,7 +272,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         logger.info("Succeed to moving nfs/%s to %s" % (tmpfilename,filepath))
         return [True,""]
 
-    def excute_task(self,taskid,instanceid,envs,lxcname,pkgpath,command,timeout,outpath,ip,token):
+    def execute_task(self,username,taskid,instanceid,envs,lxcname,pkgpath,command,timeout,outpath,ip,token,mount_info):
         lxcfspath = "/var/lib/lxc/"+lxcname+"/rootfs/"
         scriptname = "batch_job.sh"
         try:
@@ -279,8 +330,6 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
                         logger.info("Task(%s-%s-%s) failed." % (str(taskid),str(instanceid),token))
                         self.add_msg(taskid,instanceid,rpc_pb2.FAILED,token,"")
 
-        #umount oss here
-
         container = lxc.Container(lxcname)
         if container.stop():
             logger.info("stop container %s success" % lxcname)
@@ -295,6 +344,9 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
 
         logger.info("release ip address %s" % ip)
         self.release_ip(ip)
+
+        #umount oss
+        self.umount_oss("%s/global/users/%s/data" % (self.fspath,username), mount_info)
 
     def add_msg(self,taskid,instanceid,status,token,errmsg):
         self.msgslock.acquire()
