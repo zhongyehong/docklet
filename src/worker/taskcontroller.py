@@ -108,7 +108,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         try:
             for mount in mount_info:
                 provider = mount.provider
-                mounter = getattr(ossmounter,provider,None)
+                mounter = getattr(ossmounter,provider+"OssMounter",None)
                 if mounter is None:
                     self.mount_lock.release()
                     return [False, provider + " doesn't exist!"]
@@ -119,7 +119,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         except Exception as err:
             self.mount_lock.release()
             logger.error(traceback.format_exc())
-            return [False,msg]
+            return [False,""]
 
         self.mount_lock.release()
         return [True,""]
@@ -129,7 +129,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         try:
             for mount in mount_info:
                 provider = mount.provider
-                mounter = getattr(ossmounter,provider,None)
+                mounter = getattr(ossmounter,provider+"OssMounter",None)
                 if mounter is None:
                     return [False, provider + " doesn't exist!"]
                 [success, msg] = mounter.umount_oss(datapath,mount)
@@ -137,7 +137,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
                     return [False, msg]
         except Exception as err:
             logger.error(traceback.format_exc())
-            return [False,msg]
+            return [False,""]
 
     def process_task(self, request, context):
         logger.info('excute task with parameter: ' + str(request))

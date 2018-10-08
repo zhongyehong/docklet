@@ -46,7 +46,7 @@ class aliyunOssMounter(OssMounter):
         logger.info("Mount oss %s %s" % (mount_info.remotePath, mountpath))
         if not os.path.isdir(mountpath):
             os.makedirs(mountpath)
-        cmd = "ossfs %s %s -ourl=%s" % (mount_info.remotePath, mountpath, mount_info.endpoint)
+        cmd = "ossfs %s %s -ourl=%s" % (mount_info.remotePath, mountpath, mount_info.other)
         [success, msg] = OssMounter.execute_cmd(cmd)
         return [True,""]
 
@@ -55,6 +55,6 @@ class aliyunOssMounter(OssMounter):
         mountpath = datapath + "/" + mount_info.remotePath
         logger.info("UMount oss %s %s" % (mount_info.remotePath, mountpath))
         cmd = "fusermount -u %s" % (mountpath)
-        [success, msg] = self.execute_cmd(cmd)
-        [success, msg] = self.execute_cmd("rm -rf %s" % mountpath)
+        [success, msg] = OssMounter.execute_cmd(cmd)
+        [success, msg] = OssMounter.execute_cmd("rm -rf %s" % mountpath)
         return [True,""]
