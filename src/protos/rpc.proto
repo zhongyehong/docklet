@@ -82,11 +82,12 @@ message Image {
 }
 
 message Mount {
-	string localPath = 1;	// 本地路径
-	string remotePath = 2;	// 远程路径
-	string endpoint = 3;
+	string provider = 1;
+	string localPath = 2;	// 本地路径
+	string remotePath = 3;	// 远程路径
 	string accessKey = 4;
 	string secretKey = 5;
+	string other = 6;
 }
 
 message Instance {
