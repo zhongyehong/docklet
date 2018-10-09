@@ -215,8 +215,8 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         conffile.write(conftext)
 
         #mount oss
-        self.mount_oss("%s/global/users/%s/data" % (self.fspath,username), mount_list)
-        mount_str = "lxc.mount.entry = %s/global/users/%s/data/%s %s/root/nfs/%s none bind,rw,create=dir 0 0"
+        self.mount_oss("%s/global/users/%s/oss" % (self.fspath,username), mount_list)
+        mount_str = "lxc.mount.entry = %s/global/users/%s/oss/%s %s/root/oss/%s none bind,rw,create=dir 0 0"
         for mount in mount_list:
             conffile.write("\n"+ mount_str % (self.fspath, username, mount.remotePath, rootfs, mount.remotePath))
         conffile.close()
@@ -339,7 +339,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         self.release_ip(ip)
 
         #umount oss
-        self.umount_oss("%s/global/users/%s/data" % (self.fspath,username), mount_info)
+        self.umount_oss("%s/global/users/%s/oss" % (self.fspath,username), mount_info)
 
     def add_msg(self,taskid,instanceid,status,token,errmsg):
         self.msgslock.acquire()
