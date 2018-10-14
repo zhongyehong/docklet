@@ -579,7 +579,9 @@ def vnodes_monitor(user, beans, form, con_id, issue):
     logger.info("handle request: monitor/vnodes")
     res = {}
     fetcher = monitor.Container_Fetcher(con_id)
-    if issue == 'cpu_use':
+    if issue == 'info':
+        res = fetcher.get_info()
+    elif issue == 'cpu_use':
         res['cpu_use'] = fetcher.get_cpu_use()
     elif issue == 'mem_use':
         res['mem_use'] = fetcher.get_mem_use()
