@@ -8,21 +8,6 @@ var egress_rate_limit = 0;
 
 function processMemData(data)
 {
-    if(is_running)
-    {
-	    mem_usedp = data.monitor.mem_use.usedp;
-	    var usedp = data.monitor.mem_use.usedp;
-	    var unit = data.monitor.mem_use.unit;
-	    var quota = data.monitor.mem_use.quota.memory/1024.0;
-	    var val = data.monitor.mem_use.val;
-	    var out = "("+val+unit+"/"+quota.toFixed(2)+"MiB)";
-	    $("#con_mem").html((usedp/0.01).toFixed(2)+"%<br/>"+out);
-    }
-    else
-    {
-        mem_usedp = 0;
-        $("#con_mem").html("--");
-    }
 }
 function getMemY()
 {
@@ -30,24 +15,6 @@ function getMemY()
 }
 function processCpuData(data)
 {
-    if(is_running)
-    {
-	    cpu_usedp = data.monitor.cpu_use.usedp;
-	    var val = (data.monitor.cpu_use.val).toFixed(2);
-	    var unit = data.monitor.cpu_use.unit;
-        var quota = data.monitor.cpu_use.quota.cpu;
-        var quotaout = "("+quota;
-        if(quota == 1)
-            quotaout += " Core)";
-        else
-            quotaout += " Cores)";
-	    $("#con_cpu").html(val +" "+ unit+"<br/>"+quotaout);
-    }
-    else
-    {
-        cpu_usedp = 0;
-        $("#con_cpu").html("--");
-    }
 }
 function getCpuY()
 {
@@ -194,19 +161,6 @@ var node_name = $("#node_name").html();
 var masterip = $("#masterip").html();
 var url = "http://" + host + "/monitor/" + masterip + "/vnodes/" + node_name;
 
-function processDiskData()
-{
-    $.post(url+"/disk_use/",{},function(data){
-        var diskuse = data.monitor.disk_use;
-        var usedp = diskuse.percent;
-        var total = diskuse.total/1024.0/1024.0;
-        var used = diskuse.used/1024.0/1024.0;
-        var detail = "("+used.toFixed(2)+"MiB/"+total.toFixed(2)+"MiB)";
-        $("#con_disk").html(usedp+"%<br/>"+detail);
-    },"json");
-}
-setInterval(processDiskData,1000);
-
 function num2human(data)
 {
    units=['','K','M','G','T'];
@@ -222,9 +176,9 @@ function num2human(data)
    return tempdata.toFixed(2) + units[4];
 }
 
-function processBasicInfo()
+function processInfo()
 {
-    $.post(url+"/basic_info/",{},function(data){
+    $.post(url+"/info/",{},function(data){
         basic_info = data.monitor.basic_info;
         state = basic_info.State;
         if(state == 'STOPPED')
@@ -246,8 +200,46 @@ function processBasicInfo()
         $("#con_time").html(hour+"h "+min+"m "+secs+"s");
         $("#con_billing").html("<a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>"+basic_info.billing+" <img src='/static/img/bean.png' /></a>");
         $("#con_billingthishour").html("<a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>"+basic_info.billing_this_hour.total+" <img src='/static/img/bean.png' /></a>");
-    },"json");
-    $.post(url+"/net_stats/",{},function(data){
+
+        if(is_running)
+        {
+    	    cpu_usedp = data.monitor.cpu_use.usedp;
+    	    var val = (data.monitor.cpu_use.val).toFixed(2);
+    	    var unit = data.monitor.cpu_use.unit;
+            var quota = data.monitor.cpu_use.quota.cpu;
+            var quotaout = "("+quota;
+            if(quota == 1)
+                quotaout += " Core)";
+            else
+                quotaout += " Cores)";
+    	    $("#con_cpu").html(val +" "+ unit+"<br/>"+quotaout);
+
+          mem_usedp = data.monitor.mem_use.usedp;
+          var usedp = data.monitor.mem_use.usedp;
+          unit = data.monitor.mem_use.unit;
+          var quota = data.monitor.mem_use.quota.memory/1024.0;
+          val = data.monitor.mem_use.val;
+          var out = "("+val+unit+"/"+quota.toFixed(2)+"MiB)";
+          $("#con_mem").html((usedp/0.01).toFixed(2)+"%<br/>"+out);
+        }
+        else
+        {
+            cpu_usedp = 0;
+            $("#con_cpu").html("--");
+
+            mem_usedp = 0;
+            $("#con_mem").html("--");
+        }
+
+        //processDiskData
+        var diskuse = data.monitor.disk_use;
+        var usedp = diskuse.percent;
+        var total = diskuse.total/1024.0/1024.0;
+        var used = diskuse.used/1024.0/1024.0;
+        var detail = "("+used.toFixed(2)+"MiB/"+total.toFixed(2)+"MiB)";
+        $("#con_disk").html(usedp+"%<br/>"+detail);
+
+        //processNetStats
         var net_stats = data.monitor.net_stats;
         var in_rate = parseInt(net_stats.bytes_recv_per_sec);
         var out_rate = parseInt(net_stats.bytes_sent_per_sec);
@@ -280,7 +272,7 @@ function plot_net(host,monitorurl)
    },"json");
 }
 
-setInterval(processBasicInfo,1000);
-plot_graph($("#mem-chart"),url + "/mem_use/",processMemData,getMemY);
-plot_graph($("#cpu-chart"),url + "/cpu_use/",processCpuData,getCpuY);
+setInterval(processInfo,1000);
+plot_graph($("#mem-chart"),url + "/mem_use/",processMemData,getMemY,false);
+plot_graph($("#cpu-chart"),url + "/cpu_use/",processCpuData,getCpuY,false);
 plot_net(host, url + "/net_stats/");
