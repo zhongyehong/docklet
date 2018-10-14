@@ -8,21 +8,6 @@ var egress_rate_limit = 0;
 
 function processMemData(data)
 {
-    if(is_running)
-    {
-	    mem_usedp = data.monitor.mem_use.usedp;
-	    var usedp = data.monitor.mem_use.usedp;
-	    var unit = data.monitor.mem_use.unit;
-	    var quota = data.monitor.mem_use.quota.memory/1024.0;
-	    var val = data.monitor.mem_use.val;
-	    var out = "("+val+unit+"/"+quota.toFixed(2)+"MiB)";
-	    $("#con_mem").html((usedp/0.01).toFixed(2)+"%<br/>"+out);
-    }
-    else
-    {
-        mem_usedp = 0;
-        $("#con_mem").html("--");
-    }
 }
 function getMemY()
 {
@@ -30,24 +15,6 @@ function getMemY()
 }
 function processCpuData(data)
 {
-    if(is_running)
-    {
-	    cpu_usedp = data.monitor.cpu_use.usedp;
-	    var val = (data.monitor.cpu_use.val).toFixed(2);
-	    var unit = data.monitor.cpu_use.unit;
-        var quota = data.monitor.cpu_use.quota.cpu;
-        var quotaout = "("+quota;
-        if(quota == 1)
-            quotaout += " Core)";
-        else
-            quotaout += " Cores)";
-	    $("#con_cpu").html(val +" "+ unit+"<br/>"+quotaout);
-    }
-    else
-    {
-        cpu_usedp = 0;
-        $("#con_cpu").html("--");
-    }
 }
 function getCpuY()
 {
@@ -234,6 +201,36 @@ function processInfo()
         $("#con_billing").html("<a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>"+basic_info.billing+" <img src='/static/img/bean.png' /></a>");
         $("#con_billingthishour").html("<a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>"+basic_info.billing_this_hour.total+" <img src='/static/img/bean.png' /></a>");
 
+        if(is_running)
+        {
+    	    cpu_usedp = data.monitor.cpu_use.usedp;
+    	    var val = (data.monitor.cpu_use.val).toFixed(2);
+    	    var unit = data.monitor.cpu_use.unit;
+            var quota = data.monitor.cpu_use.quota.cpu;
+            var quotaout = "("+quota;
+            if(quota == 1)
+                quotaout += " Core)";
+            else
+                quotaout += " Cores)";
+    	    $("#con_cpu").html(val +" "+ unit+"<br/>"+quotaout);
+
+          mem_usedp = data.monitor.mem_use.usedp;
+          var usedp = data.monitor.mem_use.usedp;
+          unit = data.monitor.mem_use.unit;
+          var quota = data.monitor.mem_use.quota.memory/1024.0;
+          val = data.monitor.mem_use.val;
+          var out = "("+val+unit+"/"+quota.toFixed(2)+"MiB)";
+          $("#con_mem").html((usedp/0.01).toFixed(2)+"%<br/>"+out);
+        }
+        else
+        {
+            cpu_usedp = 0;
+            $("#con_cpu").html("--");
+
+            mem_usedp = 0;
+            $("#con_mem").html("--");
+        }
+
         //processDiskData
         var diskuse = data.monitor.disk_use;
         var usedp = diskuse.percent;
@@ -276,6 +273,6 @@ function plot_net(host,monitorurl)
 }
 
 setInterval(processInfo,1000);
-plot_graph($("#mem-chart"),url + "/mem_use/",processMemData,getMemY);
-plot_graph($("#cpu-chart"),url + "/cpu_use/",processCpuData,getCpuY);
+plot_graph($("#mem-chart"),url + "/mem_use/",processMemData,getMemY,false);
+plot_graph($("#cpu-chart"),url + "/cpu_use/",processCpuData,getCpuY,false);
 plot_net(host, url + "/net_stats/");
