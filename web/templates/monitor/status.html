@@ -314,16 +314,15 @@ function num2human(data)
    function update(url,index)
    {
 
-       $.post(url+"/basic_info/",{},function(data){
+       $.post(url+"/info/",{},function(data){
 
-       		$.post(url+"/disk_use/",{},function(data){
-                var diskuse = data.monitor.disk_use;
+            var diskuse = data.monitor.disk_use;
 		       	var usedp = diskuse.percent;
-                var total = diskuse.total/1024.0/1024.0;
-                var used = diskuse.used/1024.0/1024.0;
-			    var detail = "("+used.toFixed(2)+"MiB/"+total.toFixed(2)+"MiB)";
+            var total = diskuse.total/1024.0/1024.0;
+            var used = diskuse.used/1024.0/1024.0;
+			      var detail = "("+used.toFixed(2)+"MiB/"+total.toFixed(2)+"MiB)";
 		       	$("#"+index+"_disk").html(usedp+"%<br/>"+detail);
-		       	},"json");
+
             var total = parseInt(data.monitor.basic_info.RunningTime);
             var hour = Math.floor(total / 3600);
             var min = Math.floor(total % 3600 / 60);
@@ -364,7 +363,7 @@ function num2human(data)
             $("#"+index+"_billing_disk_c").html(data.monitor.basic_info.c_disk)
             $("#"+index+"_billing_port_d").html(data.monitor.basic_info.d_port)
 
-		var state = data.monitor.basic_info.State;
+		    var state = data.monitor.basic_info.State;
 		    if(state == 'RUNNING')
        		{
            	    var tmp = $("#"+index+"_state");
@@ -387,7 +386,6 @@ function num2human(data)
 		    return;
        		}
 
-       		$.post(url+"/cpu_use/",{},function(data){
 		       	var usedp = data.monitor.cpu_use.usedp;
                 var quota = data.monitor.cpu_use.quota.cpu;
                 var quotaout = "("+quota;
@@ -396,16 +394,13 @@ function num2human(data)
                 else
                     quotaout += " Cores)";
 		       	$("#"+index+"_cpu").html((usedp/0.01).toFixed(2)+"%<br/>"+quotaout);
-		       	},"json");
 
-       		$.post(url+"/mem_use/",{},function(data){
 		       	var usedp = data.monitor.mem_use.usedp;
 			var unit = data.monitor.mem_use.unit;
 			var quota = data.monitor.mem_use.quota.memory/1024.0;
 			var val = data.monitor.mem_use.val;
 			var out = "("+val+unit+"/"+quota.toFixed(2)+"MiB)";
 		       	$("#"+index+"_mem").html((usedp/0.01).toFixed(2)+"%<br/>"+out);
-		       	},"json");
 
        		},"json");
    }

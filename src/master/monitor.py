@@ -111,6 +111,15 @@ class Container_Fetcher:
         self.con_id = container_name
         return
 
+    def get_info(self):
+        res = {}
+        res['cpu_use'] = self.get_cpu_use()
+        res['mem_use'] = self.get_mem_use()
+        res['disk_use'] = self.get_disk_use()
+        res['net_stats'] = self.get_net_stats()
+        res['basic_info'] = self.get_basic_info()
+        return res
+
     def get_cpu_use(self):
         global monitor_vnodes
         try:
