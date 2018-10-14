@@ -10,13 +10,13 @@ def run():
     channel = grpc.insecure_channel('localhost:50051')
     stub = rpc_pb2_grpc.WorkerStub(channel)
 
-    comm = rpc_pb2.Command(commandLine="echo \"stestsfdsf\\ntewtgsdgfdsgret\newarsafsda\" > /root/oss/test-for-docklet/test.txt;ls /root/oss/test-for-docklet", packagePath="/root", envVars={'test1':'10','test2':'20'}) # | awk '{print \"test\\\"\\n\"}'
-    paras = rpc_pb2.Parameters(command=comm, stderrRedirectPath="/root/nfs/", stdoutRedirectPath="/root/oss/test-for-docklet")
+    comm = rpc_pb2.Command(commandLine="echo \"stestsfdsf\\ntewtgsdgfdsgret\newarsafsda\" > /root/test.txt;ls /root", packagePath="/root", envVars={'test1':'10','test2':'20'}) # | awk '{print \"test\\\"\\n\"}'
+    paras = rpc_pb2.Parameters(command=comm, stderrRedirectPath="/root/nfs/", stdoutRedirectPath="")
 
     img = rpc_pb2.Image(name="base", type=rpc_pb2.Image.BASE, owner="docklet")
     inst = rpc_pb2.Instance(cpu=2, memory=2000, disk=500, gpu=0)
     mnt = rpc_pb2.Mount(localPath="",provider='aliyun',remotePath="test-for-docklet",other="oss-cn-beijing.aliyuncs.com",accessKey="LTAIdl7gmmIhfqA9",secretKey="")
-    clu = rpc_pb2.Cluster(image=img, instance=inst, mount=[mnt])
+    clu = rpc_pb2.Cluster(image=img, instance=inst, mount=[])
 
     task = rpc_pb2.TaskInfo(id="test",username="root",instanceid=1,instanceCount=1,maxRetryCount=1,parameters=paras,cluster=clu,timeout=5,token="test")
 

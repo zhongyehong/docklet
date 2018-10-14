@@ -262,6 +262,7 @@ class Container_Collector(threading.Thread):
         global pid2name
         global laststopcpuval
         global laststopruntime
+        is_batch = container_name.split('-')[1] == 'batch'
         # collect basic information, such as running time,state,pid,ip,name
         container = lxc.Container(container_name)
         basic_info = {}
@@ -286,7 +287,8 @@ class Container_Collector(threading.Thread):
             containerpids.append(container_pid_str)
             pid2name[container_pid_str] = container_name
         running_time = self.get_proc_etime(container.init_pid)
-        running_time += laststopruntime[container_name]
+        if not is_batch:
+            running_time += laststopruntime[container_name]
         basic_info['PID'] = container_pid_str
         basic_info['IP'] = container.get_ips()[0]
         basic_info['RunningTime'] = running_time
@@ -326,7 +328,8 @@ class Container_Collector(threading.Thread):
         cpu_use = {}
         lastval = 0
         try:
-            lastval = laststopcpuval[container_name]
+            if not is_batch:
+                lastval = laststopcpuval[container_name]
         except:
             logger.warning(traceback.format_exc())
         cpu_val += lastval
@@ -369,7 +372,7 @@ class Container_Collector(threading.Thread):
 
         # deal with network used data
         containerids = re.split("-",container_name)
-        if len(containerids) >= 3:
+        if not is_batch and len(containerids) >= 3:
             workercinfo[container_name]['net_stats'] = self.net_stats[containerids[1] + '-' + containerids[2]]
             #logger.info(workercinfo[container_name]['net_stats'])
 
@@ -378,7 +381,7 @@ class Container_Collector(threading.Thread):
         lasttime = lastbillingtime[container_name]
         #logger.info(lasttime)
         # process real billing if running time reach an hour
-        if not int(running_time/self.billingtime) == lasttime:
+        if not is_batch and not int(running_time/self.billingtime) == lasttime:
             #logger.info("billing:"+str(float(cpu_val)))
             lastbillingtime[container_name] = int(running_time/self.billingtime)
             self.billing_increment(container_name)
