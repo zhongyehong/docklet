@@ -47,6 +47,8 @@ class NodeMgr(object):
         # get allnodes
         self.allnodes = self._nodelist_etcd("allnodes")
         self.runnodes = []
+        self.batchnodes = []
+        self.allrunnodes = []
         [status, runlist] = self.etcd.listdir("machines/runnodes")
         for node in runlist:
             nodeip = node['key'].rsplit('/',1)[1]
@@ -140,6 +142,14 @@ class NodeMgr(object):
                     #print(etcd_runip)
                     #print(self.rpcs)
             self.runnodes = etcd_runip
+            self.batchnodes = self.runnodes.copy()
+            self.allrunnodes = self.runnodes.copy()
+            [status, batchlist] = self.etcd.listdir("machines/batchnodes")
+            if status:
+                for node in batchlist:
+                    nodeip = node['key'].rsplit('/', 1)[1]
+                    self.batchnodes.append(nodeip)
+                    self.allrunnodes.append(nodeip)
 
     def recover_node(self,ip,tasks):
         logger.info("now recover for worker:%s" % ip)
@@ -152,14 +162,19 @@ class NodeMgr(object):
 
     # get all run nodes' IP addr
     def get_nodeips(self):
-        return self.runnodes
+        return self.allrunnodes
+    
+    def get_batch_nodeips(self):
+        return self.batchnodes
 
+    def get_base_nodeips(self):
+        return self.runnodes
 
     def get_allnodes(self):
         return self.allnodes
 
     def ip_to_rpc(self,ip):
-        if ip in self.runnodes:
+        if ip in self.allrunnodes:
             return xmlrpc.client.ServerProxy("http://%s:%s" % (ip, env.getenv("WORKER_PORT")))
         else:
             logger.info('Worker %s is not connected, create rpc client failed, push task into queue')

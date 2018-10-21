@@ -262,13 +262,13 @@ class TaskMgr(threading.Thread):
         # if self.all_nodes is not None and time.time() - self.last_nodes_info_update_time < self.nodes_info_update_interval:
         #     return self.all_nodes
         # get running nodes
-        node_ips = self.nodemgr.get_nodeips()
+        node_ips = self.nodemgr.get_batch_nodeips()
         all_nodes = [(node_ip, self.get_worker_resource_info(node_ip)) for node_ip in node_ips]
         return all_nodes
 
             
     def is_alive(self, worker):
-        nodes = self.nodemgr.get_nodeips()
+        nodes = self.nodemgr.get_batch_nodeips()
         return worker in nodes
 
 
