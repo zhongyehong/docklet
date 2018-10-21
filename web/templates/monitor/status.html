@@ -124,13 +124,13 @@
                      <div class="box-body table-responsive">
 
                              {% for container in clusterinfo['containers'] %}
-                                  <div class="modal inmodal" id='DetailModal_{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}' tabindex="-1" role="dialog" aria-hidden="true">
+                                  <div class="modal inmodal" id='DetailModal_{{master.split("@")[1]}}_{{ container['containername'] }}' tabindex="-1" role="dialog" aria-hidden="true">
                                     <div class="modal-dialog">
                                       <div class="modal-content animated fadeIn">
                                         <div class="modal-header">
                                           <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
                                           <h4 class="modal-title">{{ container['containername'] }} Billing Detail</h4>
-                                          <small class="font-bold">The Detail of the Billing In This Hour<br>Billing = cpu(s) / <span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_cpu_a'>?</span> + mem(MiB) / <span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_mem_b'>?</span> + Disk(MiB) / <span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_disk_c'>?</span> + Ports / <span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_port_d'>?</span>, <a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>See User Guide</a></small>
+                                          <small class="font-bold">The Detail of the Billing In This Hour<br>Billing = cpu(s) / <span id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_cpu_a'>?</span> + mem(MiB) / <span id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_mem_b'>?</span> + Disk(MiB) / <span id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_disk_c'>?</span> + Ports / <span id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_port_d'>?</span>, <a target='_blank' title='How to figure out it?' href='https://unias.github.io/docklet/book/en/billing/billing.html'>See User Guide</a></small>
                                         </div>
                                         <div class="modal-body">
                                           <table class="table table-bordered">
@@ -144,27 +144,27 @@
                                             <tbody>
                                               <tr>
                                                 <td>Cpu</td>
-                                                <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_cpu_use'>--</td>
-                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_cpu'>--</span></td>
+                                                <td id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_cpu_use'>--</td>
+                                                <td><span id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_cpu'>--</span></td>
                                               </tr>
                                               <tr>
                                                 <td>Memory</td>
-                                                <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_mem_use'>--</td>
-                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_mem'>--</span></td>
+                                                <td id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_mem_use'>--</td>
+                                                <td><span id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_mem'>--</span></td>
                                               </tr>
                                               <tr>
                                                 <td>Disk</td>
-                                                <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_disk_use'>--</td>
-                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_disk'>--</span></td>
+                                                <td id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_disk_use'>--</td>
+                                                <td><span id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_disk'>--</span></td>
                                               </tr>
                                               <tr>
                                                 <td>Ports</td>
-                                                <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_port_use'>--</td>
-                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_port'>--</span></td>
+                                                <td id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_port_use'>--</td>
+                                                <td><span id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_port'>--</span></td>
                                               </tr>
                                               <tr>
                                                 <td colspan="2">Total</td>
-                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_total'>--</span></td>
+                                                <td><span id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_total'>--</span></td>
                                               </tr>
                                             </tbody>
                                           </table>
@@ -176,7 +176,7 @@
                                     </div>
                                   </div>
 
-                                  <div class="modal inmodal" id='HistoryDetailModal_{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}' tabindex="-1" role="dialog" aria-hidden="true">
+                                  <div class="modal inmodal" id='HistoryDetailModal_{{master.split("@")[1]}}_{{ container['containername'] }}' tabindex="-1" role="dialog" aria-hidden="true">
                                     <div class="modal-dialog">
                                       <div class="modal-content animated fadeIn">
                                         <div class="modal-header">
@@ -194,23 +194,23 @@
                                             <tbody>
                                               <tr>
                                                 <td>Cpu</td>
-                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_history_cpu'>--</span></td>
+                                                <td><span id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_history_cpu'>--</span></td>
                                               </tr>
                                               <tr>
                                                 <td>Memory</td>
-                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_history_mem'>--</span></td>
+                                                <td><span id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_history_mem'>--</span></td>
                                               </tr>
                                               <tr>
                                                 <td>Disk</td>
-                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_history_disk'>--</span></td>
+                                                <td><span id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_history_disk'>--</span></td>
                                               </tr>
                                               <tr>
                                                 <td>Ports</td>
-                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_history_port'>--</span></td>
+                                                <td><span id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_history_port'>--</span></td>
                                               </tr>
                                               <tr>
                                                 <td>Total</td>
-                                                <td><span id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing_history_total'>--</span></td>
+                                                <td><span id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing_history_total'>--</span></td>
                                               </tr>
                                             </tbody>
                                           </table>
@@ -246,16 +246,16 @@
                                  <td>{{ container['ip'] }}</td>
 
                                  {% if clusterinfo['status'] == 'stopped' %}
-				 <td><div id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_state' class="label label-danger">Stopped</div></td>
+				 <td><div id='{{master.split("@")[1]}}_{{ container['containername'] }}_state' class="label label-danger">Stopped</div></td>
                                  {% else %}
-                                 <td><div id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_state' class="label label-primary">Running</div></td>
+                                 <td><div id='{{master.split("@")[1]}}_{{ container['containername'] }}_state' class="label label-primary">Running</div></td>
                                  {% endif %}
-				 <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_time'>--</td>
-                                 <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_cpu'>--</td>
-                                 <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_mem'>--</td>
-                                 <td id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_disk'>--</td>
-                                 <td><a role="button" id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billing' data-toggle="modal" data-target='#HistoryDetailModal_{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}'>--</a> <img src='/static/img/bean.png' /></td>
-                                 <td ><a role="button" id='{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}_billingthishour' data-toggle="modal" data-target='#DetailModal_{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}'>--</a> <img src='/static/img/bean.png' /></td>
+				 <td id='{{master.split("@")[1]}}_{{ container['containername'] }}_time'>--</td>
+                                 <td id='{{master.split("@")[1]}}_{{ container['containername'] }}_cpu'>--</td>
+                                 <td id='{{master.split("@")[1]}}_{{ container['containername'] }}_mem'>--</td>
+                                 <td id='{{master.split("@")[1]}}_{{ container['containername'] }}_disk'>--</td>
+                                 <td><a role="button" id='{{master.split("@")[1]}}_{{ container['containername'] }}_billing' data-toggle="modal" data-target='#HistoryDetailModal_{{master.split("@")[1]}}_{{ container['containername'] }}'>--</a> <img src='/static/img/bean.png' /></td>
+                                 <td ><a role="button" id='{{master.split("@")[1]}}_{{ container['containername'] }}_billingthishour' data-toggle="modal" data-target='#DetailModal_{{master.split("@")[1]}}_{{ container['containername'] }}'>--</a> <img src='/static/img/bean.png' /></td>
 				                         <td><a class="btn btn-info btn-xs" href='/vclusters/{{master.split("@")[0]}}/{{ clustername }}/{{ container['containername'] }}/'>Realtime</a></td>
 			     </tr>
                              {% endfor %}
@@ -417,7 +417,7 @@ function num2human(data)
 	{% for container in clusterinfo['containers'] %}
 	//url = url0 + '{{ container['containername'] }}';
 	url = "http://" + host + "/monitor/" + '{{master.split("@")[0]}}' + "/vnodes/" + '{{container["containername"]}}' ;
-	update(url,'{{master.split("@")[1]}}_{{clustername}}_{{ loop.index }}');
+	update(url,'{{master.split("@")[1]}}_{{ container['containername'] }}');
 	{% endfor %}
 	{% endfor %}
 	{% endfor %}
