@@ -480,28 +480,31 @@ class NetworkMgr(object):
     def add_user(self, username, cidr, isshared = False):
         logger.info ("add user %s with cidr=%s" % (username, str(cidr)))
         self.user_locks.acquire()
-        if self.has_user(username):
-            self.user_locks.release()
-            return [False, "user already exists in users set"]
-        [status, result] = self.center.allocate(cidr)
-        self.dump_center()
-        if status == False:
-            self.user_locks.release()
-            return [False, result]
-        '''[status, vlanid] = self.acquire_vlanid(isshared)
-        if status:
-            vlanid = int(vlanid)
-        else:
-            self.center.free(result, cidr)
+        try:
+            if self.has_user(username):
+                return [False, "user already exists in users set"]
+            [status, result] = self.center.allocate(cidr)
             self.dump_center()
-            return [False, vlanid]'''
-        self.users[username] = UserPool(addr_cidr = result+"/"+str(cidr))
-        #logger.info("setup gateway for %s with %s and vlan=%s" % (username, self.users[username].get_gateway_cidr(), str(vlanid)))
-        #netcontrol.setup_gw('docklet-br', username, self.users[username].get_gateway_cidr(), str(vlanid))
-        self.dump_user(username)
-        del self.users[username]
-        self.user_locks.release()
-        return [True, 'add user success']
+            if status == False:
+                return [False, result]
+            '''[status, vlanid] = self.acquire_vlanid(isshared)
+            if status:
+                vlanid = int(vlanid)
+            else:
+                self.center.free(result, cidr)
+                self.dump_center()
+                return [False, vlanid]'''
+            self.users[username] = UserPool(addr_cidr = result+"/"+str(cidr))
+            #logger.info("setup gateway for %s with %s and vlan=%s" % (username, self.users[username].get_gateway_cidr(), str(vlanid)))
+            #netcontrol.setup_gw('docklet-br', username, self.users[username].get_gateway_cidr(), str(vlanid))
+            self.dump_user(username)
+            del self.users[username]
+            return [True, 'add user success']
+        except Exception as ex:
+            logger.error(str(ex))
+            return [False, str(ex)]
+        finally:
+            self.user_locks.release()
 
     def del_usrgwbr(self, username, uid, nodemgr):
         if username not in self.usrgws.keys():
@@ -521,21 +524,25 @@ class NetworkMgr(object):
 
     def del_user(self, username):
         self.user_locks.acquire()
-        if not self.has_user(username):
+        try:
+            if not self.has_user(username):
+                return [False, username+" not in users set"]
+            self.load_user(username)
+            [addr, cidr] = self.users[username].info.split('/')
+            logger.info ("delete user %s with cidr=%s" % (username, int(cidr)))
+            self.center.free(addr, int(cidr))
+            self.dump_center()
+            #if not isshared:
+                #self.release_vlanid(self.users[username].vlanid)
+            #netcontrol.del_gw('docklet-br', username)
+            self.etcd.deldir("network/users/"+username)
+            del self.users[username]
+            return [True, 'delete user success']
+        except Exception as ex:
+            logger.error(str(ex))
+            return [False, str(ex)]
+        finally:
             self.user_locks.release()
-            return [False, username+" not in users set"]
-        self.load_user(username)
-        [addr, cidr] = self.users[username].info.split('/')
-        logger.info ("delete user %s with cidr=%s" % (username, int(cidr)))
-        self.center.free(addr, int(cidr))
-        self.dump_center()
-        #if not isshared:
-            #self.release_vlanid(self.users[username].vlanid)
-        #netcontrol.del_gw('docklet-br', username)
-        self.etcd.deldir("network/users/"+username)
-        del self.users[username]
-        self.user_locks.release()
-        return [True, 'delete user success']
 
     def check_usergw(self, input_rate_limit, output_rate_limit, username, uid, nodemgr, distributedgw=False):
         logger.info("Check %s(%s) user gateway."%(username, str(uid)))

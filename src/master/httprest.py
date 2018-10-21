@@ -125,31 +125,35 @@ def create_cluster(user, beans, form):
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
     G_ulockmgr.acquire(user)
-    image = {}
-    image['name'] = form.get("imagename", None)
-    image['type'] = form.get("imagetype", None)
-    image['owner'] = form.get("imageowner", None)
-    user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
-    user_info = json.dumps(user_info)
-    logger.info ("handle request : create cluster %s with image %s " % (clustername, image['name']))
-    setting = {
-            'cpu': form.get('cpuSetting'),
-            'memory': form.get('memorySetting'),
-            'disk': form.get('diskSetting')
-            }
-    res = post_to_user("/user/usageInc/", {'token':form.get('token'), 'setting':json.dumps(setting)})
-    status = res.get('success')
-    result = res.get('result')
-    if not status:
+    try:
+        image = {}
+        image['name'] = form.get("imagename", None)
+        image['type'] = form.get("imagetype", None)
+        image['owner'] = form.get("imageowner", None)
+        user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
+        user_info = json.dumps(user_info)
+        logger.info ("handle request : create cluster %s with image %s " % (clustername, image['name']))
+        setting = {
+                'cpu': form.get('cpuSetting'),
+                'memory': form.get('memorySetting'),
+                'disk': form.get('diskSetting')
+                }
+        res = post_to_user("/user/usageInc/", {'token':form.get('token'), 'setting':json.dumps(setting)})
+        status = res.get('success')
+        result = res.get('result')
+        if not status:
+            return json.dumps({'success':'false', 'action':'create cluster', 'message':result})
+        [status, result] = G_vclustermgr.create_cluster(clustername, user, image, user_info, setting)
+        if status:
+            return json.dumps({'success':'true', 'action':'create cluster', 'message':result})
+        else:
+            post_to_user("/user/usageRecover/", {'token':form.get('token'), 'setting':json.dumps(setting)})
+            return json.dumps({'success':'false', 'action':'create cluster', 'message':result})
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message': str(ex)})
+    finally:
         G_ulockmgr.release(user)
-        return json.dumps({'success':'false', 'action':'create cluster', 'message':result})
-    [status, result] = G_vclustermgr.create_cluster(clustername, user, image, user_info, setting)
-    G_ulockmgr.release(user)
-    if status:
-        return json.dumps({'success':'true', 'action':'create cluster', 'message':result})
-    else:
-        post_to_user("/user/usageRecover/", {'token':form.get('token'), 'setting':json.dumps(setting)})
-        return json.dumps({'success':'false', 'action':'create cluster', 'message':result})
 
 @app.route("/cluster/scaleout/", methods=['POST'])
 @login_required
@@ -162,31 +166,35 @@ def scaleout_cluster(user, beans, form):
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
     G_ulockmgr.acquire(user)
-    logger.info("handle request : scale out %s" % clustername)
-    image = {}
-    image['name'] = form.get("imagename", None)
-    image['type'] = form.get("imagetype", None)
-    image['owner'] = form.get("imageowner", None)
-    user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
-    user_info = json.dumps(user_info)
-    setting = {
-            'cpu': form.get('cpuSetting'),
-            'memory': form.get('memorySetting'),
-            'disk': form.get('diskSetting')
-            }
-    res = post_to_user("/user/usageInc/", {'token':form.get('token'), 'setting':json.dumps(setting)})
-    status = res.get('success')
-    result = res.get('result')
-    if not status:
+    try:
+        logger.info("handle request : scale out %s" % clustername)
+        image = {}
+        image['name'] = form.get("imagename", None)
+        image['type'] = form.get("imagetype", None)
+        image['owner'] = form.get("imageowner", None)
+        user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
+        user_info = json.dumps(user_info)
+        setting = {
+                'cpu': form.get('cpuSetting'),
+                'memory': form.get('memorySetting'),
+                'disk': form.get('diskSetting')
+                }
+        res = post_to_user("/user/usageInc/", {'token':form.get('token'), 'setting':json.dumps(setting)})
+        status = res.get('success')
+        result = res.get('result')
+        if not status:
+            return json.dumps({'success':'false', 'action':'scale out', 'message': result})
+        [status, result] = G_vclustermgr.scale_out_cluster(clustername, user, image, user_info, setting)
+        if status:
+            return json.dumps({'success':'true', 'action':'scale out', 'message':result})
+        else:
+            post_to_user("/user/usageRecover/", {'token':form.get('token'), 'setting':json.dumps(setting)})
+            return json.dumps({'success':'false', 'action':'scale out', 'message':result})
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message': str(ex)})
+    finally:
         G_ulockmgr.release(user)
-        return json.dumps({'success':'false', 'action':'scale out', 'message': result})
-    [status, result] = G_vclustermgr.scale_out_cluster(clustername, user, image, user_info, setting)
-    G_ulockmgr.release(user)
-    if status:
-        return json.dumps({'success':'true', 'action':'scale out', 'message':result})
-    else:
-        post_to_user("/user/usageRecover/", {'token':form.get('token'), 'setting':json.dumps(setting)})
-        return json.dumps({'success':'false', 'action':'scale out', 'message':result})
 
 @app.route("/cluster/scalein/", methods=['POST'])
 @login_required
@@ -197,17 +205,22 @@ def scalein_cluster(user, beans, form):
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
     G_ulockmgr.acquire(user)
-    logger.info("handle request : scale in %s" % clustername)
-    containername = form.get("containername", None)
-    [status, usage_info] = G_vclustermgr.get_clustersetting(clustername, user, containername, False)
-    if status:
-        post_to_user("/user/usageRelease/", {'token':form.get('token'), 'cpu':usage_info['cpu'], 'memory':usage_info['memory'],'disk':usage_info['disk']})
-    [status, result] = G_vclustermgr.scale_in_cluster(clustername, user, containername)
-    G_ulockmgr.release(user)
-    if status:
-        return json.dumps({'success':'true', 'action':'scale in', 'message':result})
-    else:
-        return json.dumps({'success':'false', 'action':'scale in', 'message':result})
+    try:
+        logger.info("handle request : scale in %s" % clustername)
+        containername = form.get("containername", None)
+        [status, usage_info] = G_vclustermgr.get_clustersetting(clustername, user, containername, False)
+        if status:
+            post_to_user("/user/usageRelease/", {'token':form.get('token'), 'cpu':usage_info['cpu'], 'memory':usage_info['memory'],'disk':usage_info['disk']})
+        [status, result] = G_vclustermgr.scale_in_cluster(clustername, user, containername)
+        if status:
+            return json.dumps({'success':'true', 'action':'scale in', 'message':result})
+        else:
+            return json.dumps({'success':'false', 'action':'scale in', 'message':result})
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message': str(ex)})
+    finally:
+        G_ulockmgr.release(user)
 
 @app.route("/cluster/start/", methods=['POST'])
 @login_required
@@ -219,14 +232,19 @@ def start_cluster(user, beans, form):
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
     G_ulockmgr.acquire(user)
-    user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
-    logger.info ("handle request : start cluster %s" % clustername)
-    [status, result] = G_vclustermgr.start_cluster(clustername, user, user_info)
-    G_ulockmgr.release(user)
-    if status:
-        return json.dumps({'success':'true', 'action':'start cluster', 'message':result})
-    else:
-        return json.dumps({'success':'false', 'action':'start cluster', 'message':result})
+    try:
+        user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
+        logger.info ("handle request : start cluster %s" % clustername)
+        [status, result] = G_vclustermgr.start_cluster(clustername, user, user_info)
+        if status:
+            return json.dumps({'success':'true', 'action':'start cluster', 'message':result})
+        else:
+            return json.dumps({'success':'false', 'action':'start cluster', 'message':result})
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message': str(ex)})
+    finally:
+        G_ulockmgr.release(user)
 
 @app.route("/cluster/stop/", methods=['POST'])
 @login_required
@@ -237,13 +255,18 @@ def stop_cluster(user, beans, form):
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
     G_ulockmgr.acquire(user)
-    logger.info ("handle request : stop cluster %s" % clustername)
-    [status, result] = G_vclustermgr.stop_cluster(clustername, user)
-    G_ulockmgr.release(user)
-    if status:
-        return json.dumps({'success':'true', 'action':'stop cluster', 'message':result})
-    else:
-        return json.dumps({'success':'false', 'action':'stop cluster', 'message':result})
+    try:
+        logger.info ("handle request : stop cluster %s" % clustername)
+        [status, result] = G_vclustermgr.stop_cluster(clustername, user)
+        if status:
+            return json.dumps({'success':'true', 'action':'stop cluster', 'message':result})
+        else:
+            return json.dumps({'success':'false', 'action':'stop cluster', 'message':result})
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message': str(ex)})
+    finally:
+        G_ulockmgr.release(user)
 
 @app.route("/cluster/delete/", methods=['POST'])
 @login_required
@@ -254,18 +277,23 @@ def delete_cluster(user, beans, form):
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
     G_ulockmgr.acquire(user)
-    logger.info ("handle request : delete cluster %s" % clustername)
-    user_info = post_to_user("/user/selfQuery/" , {'token':form.get("token")})
-    user_info = json.dumps(user_info)
-    [status, usage_info] = G_vclustermgr.get_clustersetting(clustername, user, "all", True)
-    if status:
-        post_to_user("/user/usageRelease/", {'token':form.get('token'), 'cpu':usage_info['cpu'], 'memory':usage_info['memory'],'disk':usage_info['disk']})
-    [status, result] = G_vclustermgr.delete_cluster(clustername, user, user_info)
-    G_ulockmgr.release(user)
-    if status:
-        return json.dumps({'success':'true', 'action':'delete cluster', 'message':result})
-    else:
-        return json.dumps({'success':'false', 'action':'delete cluster', 'message':result})
+    try:
+        logger.info ("handle request : delete cluster %s" % clustername)
+        user_info = post_to_user("/user/selfQuery/" , {'token':form.get("token")})
+        user_info = json.dumps(user_info)
+        [status, usage_info] = G_vclustermgr.get_clustersetting(clustername, user, "all", True)
+        if status:
+            post_to_user("/user/usageRelease/", {'token':form.get('token'), 'cpu':usage_info['cpu'], 'memory':usage_info['memory'],'disk':usage_info['disk']})
+        [status, result] = G_vclustermgr.delete_cluster(clustername, user, user_info)
+        if status:
+            return json.dumps({'success':'true', 'action':'delete cluster', 'message':result})
+        else:
+            return json.dumps({'success':'false', 'action':'delete cluster', 'message':result})
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message': str(ex)})
+    finally:
+        G_ulockmgr.release(user)
 
 @app.route("/cluster/info/", methods=['POST'])
 @login_required
@@ -302,16 +330,20 @@ def stopall_cluster():
     if user is None:
         return json.dumps({'success':'false', 'message':'User is required!'})
     G_ulockmgr.acquire(user)
-    logger.info ("handle request : stop all clusters for %s" % user)
-    [status, clusterlist] = G_vclustermgr.list_clusters(user)
-    if status:
-        for cluster in clusterlist:
-            G_vclustermgr.stop_cluster(cluster,user)
+    try:
+        logger.info ("handle request : stop all clusters for %s" % user)
+        [status, clusterlist] = G_vclustermgr.list_clusters(user)
+        if status:
+            for cluster in clusterlist:
+                G_vclustermgr.stop_cluster(cluster,user)
+            return json.dumps({'success':'true', 'action':'stop all cluster'})
+        else:
+            return json.dumps({'success':'false', 'action':'stop all cluster', 'message':clusterlist})
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message': str(ex)})
+    finally:
         G_ulockmgr.release(user)
-        return json.dumps({'success':'true', 'action':'stop all cluster'})
-    else:
-        G_ulockmgr.release(user)
-        return json.dumps({'success':'false', 'action':'stop all cluster', 'message':clusterlist})
 
 @app.route("/cluster/flush/", methods=['POST'])
 @login_required
@@ -337,22 +369,25 @@ def save_cluster(user, beans, form):
     containername = form.get("containername", None)
     isforce = form.get("isforce", None)
     G_ulockmgr.acquire(user)
-    if not isforce == "true":
-        [status,message] = G_vclustermgr.image_check(user,imagename)
-        if not status:
-            G_ulockmgr.release(user)
-            return json.dumps({'success':'false','reason':'exists', 'message':message})
+    try:
+        if not isforce == "true":
+            [status,message] = G_vclustermgr.image_check(user,imagename)
+            if not status:
+                return json.dumps({'success':'false','reason':'exists', 'message':message})
 
-    user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
-    [status,message] = G_vclustermgr.create_image(user,clustername,containername,imagename,description,user_info["data"]["groupinfo"]["image"])
-    if status:
+        user_info = post_to_user("/user/selfQuery/", {'token':form.get("token")})
+        [status,message] = G_vclustermgr.create_image(user,clustername,containername,imagename,description,user_info["data"]["groupinfo"]["image"])
+        if status:
+            logger.info("image has been saved")
+            return json.dumps({'success':'true', 'action':'save'})
+        else:
+            logger.debug(message)
+            return json.dumps({'success':'false', 'reason':'exceed', 'message':message})
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message': str(ex)})
+    finally:
         G_ulockmgr.release(user)
-        logger.info("image has been saved")
-        return json.dumps({'success':'true', 'action':'save'})
-    else:
-        G_ulockmgr.release(user)
-        logger.debug(message)
-        return json.dumps({'success':'false', 'reason':'exceed', 'message':message})
 
 
 @app.route("/image/list/", methods=['POST'])
@@ -387,9 +422,14 @@ def share_image(user, beans, form):
     global G_imagemgr
     image = form.get('image')
     G_ulockmgr.acquire(user)
-    G_imagemgr.shareImage(user,image)
-    G_ulockmgr.release(user)
-    return json.dumps({'success':'true', 'action':'share'})
+    try:
+        G_imagemgr.shareImage(user,image)
+        return json.dumps({'success':'true', 'action':'share'})
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message': str(ex)})
+    finally:
+        G_ulockmgr.release(user)
 
 @app.route("/image/unshare/", methods=['POST'])
 @login_required
@@ -397,9 +437,14 @@ def unshare_image(user, beans, form):
     global G_imagemgr
     image = form.get('image', None)
     G_ulockmgr.acquire(user)
-    G_imagemgr.unshareImage(user,image)
-    G_ulockmgr.release(user)
-    return json.dumps({'success':'true', 'action':'unshare'})
+    try:
+        G_imagemgr.unshareImage(user,image)
+        return json.dumps({'success':'true', 'action':'unshare'})
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message': str(ex)})
+    finally:
+        G_ulockmgr.release(user)
 
 @app.route("/image/delete/", methods=['POST'])
 @login_required
@@ -407,9 +452,14 @@ def delete_image(user, beans, form):
     global G_imagemgr
     image = form.get('image', None)
     G_ulockmgr.acquire(user)
-    G_imagemgr.removeImage(user,image)
-    G_ulockmgr.release(user)
-    return json.dumps({'success':'true', 'action':'delete'})
+    try:
+        G_imagemgr.removeImage(user,image)
+        return json.dumps({'success':'true', 'action':'delete'})
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message': str(ex)})
+    finally:
+        G_ulockmgr.release(user)
 
 @app.route("/image/copy/", methods=['POST'])
 @login_required
@@ -420,9 +470,14 @@ def copy_image(user, beans, form):
     target = form.get('target',None)
     token = form.get('token',None)
     G_ulockmgr.acquire(user)
-    res = G_imagemgr.copyImage(user,image,token,target)
-    G_ulockmgr.release(user)
-    return json.dumps(res)
+    try:
+        res = G_imagemgr.copyImage(user,image,token,target)
+        return json.dumps(res)
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message': str(ex)})
+    finally:
+        G_ulockmgr.release(user)
 
 @app.route("/image/copytarget/", methods=['POST'])
 @login_required
@@ -435,11 +490,12 @@ def copytarget_image(user, beans, form):
     try:
         G_ulockmgr.acquire(user)
         res = G_imagemgr.updateinfo(user,imagename,description)
+        return json.dumps({'success':'true', 'action':'copy image to target.'})
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message':str(ex)})
+    finally:
         G_ulockmgr.release(user)
-    except Exception as e:
-        logger.error(e)
-        return json.dumps({'success':'false', 'message':str(e)})
-    return json.dumps({'success':'true', 'action':'copy image to target.'})
 
 @app.route("/cloud/setting/get/", methods=['POST'])
 @login_required
@@ -503,12 +559,17 @@ def add_port_mapping(user, beans, form):
         return json.dumps({'success':'false', 'message': 'Illegal form.'})
     user_info = post_to_user("/user/selfQuery/", data = {"token": form.get("token")})
     G_ulockmgr.acquire(user)
-    [status, message] = G_vclustermgr.add_port_mapping(user,clustername,node_name,node_ip,node_port,user_info['data']['groupinfo'])
-    G_ulockmgr.release(user)
-    if status is True:
-        return json.dumps({'success':'true', 'action':'addproxy'})
-    else:
-        return json.dumps({'success':'false', 'message': message})
+    try:
+        [status, message] = G_vclustermgr.add_port_mapping(user,clustername,node_name,node_ip,node_port,user_info['data']['groupinfo'])
+        if status is True:
+            return json.dumps({'success':'true', 'action':'addproxy'})
+        else:
+            return json.dumps({'success':'false', 'message': message})
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message':str(ex)})
+    finally:
+        G_ulockmgr.release(user)
 
 @app.route("/port_mapping/delete/", methods=['POST'])
 @login_required
@@ -522,12 +583,17 @@ def delete_port_mapping(user, beans, form):
     if node_name is None or clustername is None:
         return json.dumps({'success':'false', 'message': 'Illegal form.'})
     G_ulockmgr.acquire(user)
-    [status, message] = G_vclustermgr.delete_port_mapping(user,clustername,node_name,node_port)
-    G_ulockmgr.release(user)
-    if status is True:
-        return json.dumps({'success':'true', 'action':'addproxy'})
-    else:
-        return json.dumps({'success':'false', 'message': message})
+    try:
+        [status, message] = G_vclustermgr.delete_port_mapping(user,clustername,node_name,node_port)
+        if status is True:
+            return json.dumps({'success':'true', 'action':'addproxy'})
+        else:
+            return json.dumps({'success':'false', 'message': message})
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message':str(ex)})
+    finally:
+        G_ulockmgr.release(user)
 
 @app.route("/monitor/hosts/<com_id>/<issue>/", methods=['POST'])
 @login_required
