@@ -8,7 +8,7 @@ from utils import env
 
 
 class SimulatedNodeMgr():
-	def get_nodeips(self):
+	def get_batch_nodeips(self):
 		return ['0.0.0.0']
 
 

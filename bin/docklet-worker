@@ -105,6 +105,8 @@ pre_start () {
 
 do_start() {
     pre_start
+
+    DAEMON_OPTS=$1
     log_daemon_msg "Starting $DAEMON_NAME in $FS_PREFIX"
     #python3 $DAEMON
     start-stop-daemon --start --oknodo --background --pidfile $PIDFILE --make-pidfile --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON -- $DAEMON_OPTS
@@ -178,7 +180,7 @@ do_stop_meter() {
 
 case "$1" in
     start)
-        do_start
+        do_start "normal-worker"
         do_start_batch
         do_start_proxy
         ;;
@@ -197,11 +199,12 @@ case "$1" in
         ;;
 
     start_batch)
-        pre_start
+	do_start "batch-worker"
         do_start_batch
         ;;
 
     stop_batch)
+	do_stop
         do_stop_batch
         ;;
 
@@ -222,7 +225,7 @@ case "$1" in
         do_stop
         do_stop_batch
         do_stop_proxy
-        do_start
+        do_start "normal-worker"
         do_start_batch
         do_start_proxy
         ;;

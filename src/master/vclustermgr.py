@@ -118,7 +118,7 @@ class VclusterMgr(object):
             return [False, "cluster:%s already exists" % clustername]
         clustersize = int(self.defaultsize)
         logger.info ("starting cluster %s with %d containers for %s" % (clustername, int(clustersize), username))
-        workers = self.nodemgr.get_nodeips()
+        workers = self.nodemgr.get_base_nodeips()
         image_json = json.dumps(image)
         groupname = json.loads(user_info)["data"]["group"]
         groupquota = json.loads(user_info)["data"]["groupinfo"]
@@ -202,7 +202,7 @@ class VclusterMgr(object):
     def scale_out_cluster(self,clustername,username, image,user_info, setting):
         if not self.is_cluster(clustername,username):
             return [False, "cluster:%s not found" % clustername]
-        workers = self.nodemgr.get_nodeips()
+        workers = self.nodemgr.get_base_nodeips()
         if (len(workers) == 0):
             logger.warning("no workers to start containers, scale out failed")
             return [False, "no workers are running"]

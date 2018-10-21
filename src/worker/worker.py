@@ -57,17 +57,23 @@ class Worker(object):
 
         self.etcd = etcdclient
         self.master = self.etcd.getkey("service/master")[1]
-        self.mode=None
+        self.mode = None
+        self.workertype = "normal"
+        self.key=""
 
-        # waiting state is preserved for compatible.
-        self.etcd.setkey("machines/runnodes/"+self.addr, "waiting")
-        # get this node's key to judge how to init.
-        [status, key] = self.etcd.getkey("machines/runnodes/"+self.addr)
-        if status:
-            self.key = generatekey("machines/allnodes/"+self.addr)
-        else:
-            logger.error("get key failed. %s" % 'machines/runnodes/'+self.addr)
-            sys.exit(1)
+        if len(sys.argv) > 1 and sys.argv[1] == "batch-worker":
+            self.workertype = "batch"
+
+        if self.workertype == "normal":
+            # waiting state is preserved for compatible.
+            self.etcd.setkey("machines/runnodes/"+self.addr, "waiting")
+            # get this node's key to judge how to init.
+            [status, key] = self.etcd.getkey("machines/runnodes/"+self.addr)
+            if status:
+                self.key = generatekey("machines/allnodes/"+self.addr)
+            else:
+                logger.error("get key failed. %s" % 'machines/runnodes/'+self.addr)
+                sys.exit(1)
 
         # check token to check global directory
         [status, token_1] = self.etcd.getkey("token")
@@ -87,7 +93,8 @@ class Worker(object):
             if node['key'] == self.key:
                 value = 'init-recovery'
                 break
-        logger.info("worker start in "+value+" mode")
+
+        logger.info("worker start in "+value+" mode, worker type is"+self.workertype)
 
         Containers = container.Container(self.addr, etcdclient)
         if value == 'init-new':
@@ -193,7 +200,8 @@ class Worker(object):
         self.hosts_collector.start()
         logger.info("Monitor Collector has been started.")
         # worker change it state itself. Independedntly from master.
-        self.etcd.setkey("machines/runnodes/"+self.addr, "work")
+        if self.workertype == "normal":
+            self.etcd.setkey("machines/runnodes/"+self.addr, "work")
         publicIP = env.getenv("PUBLIC_IP")
         self.etcd.setkey("machines/publicIP/"+self.addr,publicIP)
         self.thread_sendheartbeat = threading.Thread(target=self.sendheartbeat)
@@ -204,17 +212,22 @@ class Worker(object):
 
     # send heardbeat package to keep alive in etcd, ttl=2s
     def sendheartbeat(self):
-        while(True):
-            # check send heartbeat package every 1s
-            time.sleep(2)
-            [status, value] = self.etcd.getkey("machines/runnodes/"+self.addr)
-            if status:
-                # master has know the worker so we start send heartbeat package
-                if value=='ok':
-                    self.etcd.setkey("machines/runnodes/"+self.addr, "ok", ttl = 3)
-            else:
-                logger.error("get key %s failed, master may be crashed" % self.addr)
-                self.etcd.setkey("machines/runnodes/"+self.addr, "ok", ttl = 60)
+        if self.workertype == "normal":
+            while(True):
+                # check send heartbeat package every 1s
+                time.sleep(2)
+                [status, value] = self.etcd.getkey("machines/runnodes/"+self.addr)
+                if status:
+                    # master has know the worker so we start send heartbeat package
+                    if value=='ok':
+                        self.etcd.setkey("machines/runnodes/"+self.addr, "ok", ttl = 3)
+                else:
+                    logger.error("get key %s failed, master may be crashed" % self.addr)
+                    self.etcd.setkey("machines/runnodes/"+self.addr, "ok", ttl = 60)
+        elif self.workertype == "batch":
+            while(True):
+                time.sleep(2)
+                self.etcd.setkey("machines/batchnodes/"+self.addr, "ok", ttl = 60)
 
 
 if __name__ == '__main__':
