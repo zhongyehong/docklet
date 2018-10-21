@@ -890,7 +890,7 @@ def info_task(user,beans,form):
 
 @app.route("/batch/vnodes/list/", methods=['POST'])
 @login_required
-def info_task(user,beans,form):
+def batch_vnodes_list(user,beans,form):
     global G_taskmgr
     result = {
         'status': 'true',

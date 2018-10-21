@@ -99,7 +99,7 @@ class TaskMgr(threading.Thread):
             self.logger.warning('[on_task_report] wrong token')
             return
         username = task.info.username
-        container_name = username + '-batch-' + task.info.id + '-' + report.instance_id + '-' + report.token
+        container_name = username + '-batch-' + task.info.id + '-' + str(report.instanceid) + '-' + report.token
         self.user_containers[username].remove(container_name)
 
         if instance['status'] != RUNNING:
@@ -180,7 +180,7 @@ class TaskMgr(threading.Thread):
 
         self.cpu_usage[worker_ip] += task.info.cluster.instance.cpu
         username = task.info.username
-        container_name = task.info.username + '-batch-' + task.info.id + '-' + instance_id + '-' + task.info.token
+        container_name = task.info.username + '-batch-' + task.info.id + '-' + str(instance_id) + '-' + task.info.token
         if not username in self.user_containers.keys():
             self.user_containers[username] = []
         self.user_containers[username].append(container_name)
