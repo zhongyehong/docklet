@@ -21,7 +21,6 @@ class statusView(normalView):
         print(quotainfo)'''
         allcontainers = {}
         if (result):
-            containers = {}
             for master in allclusters:
                 allcontainers[master] = {}
                 for cluster in allclusters[master]:
@@ -32,6 +31,18 @@ class statusView(normalView):
                     else:
                         self.error()
                     allcontainers[master][cluster] = message
+                message = dockletRequest.post('/batch/vnodes/list/', data, master.split("@")[0])
+                message = message.get('data')
+                containers = []
+                for m in message:
+                    container = {}
+                    container['containername'] = m
+                    container['ip'] = '--'
+                    containers.append(container)
+                tmp = {}
+                tmp['containers'] = containers
+                tmp['status'] = 'running'
+                allcontainers[master]['Batch_Job'] = tmp
             return self.render(self.template_path,  quotas = quotas, quotanames = quotanames, allcontainers = allcontainers, user = session['username'])
         else:
             self.error()
