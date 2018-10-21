@@ -240,21 +240,38 @@ function processInfo()
         $("#con_disk").html(usedp+"%<br/>"+detail);
 
         //processNetStats
-        var net_stats = data.monitor.net_stats;
-        var in_rate = parseInt(net_stats.bytes_recv_per_sec);
-        var out_rate = parseInt(net_stats.bytes_sent_per_sec);
-        ingress_rate = in_rate;
-        egress_rate = out_rate;
-        $("#net_in_rate").html(num2human(in_rate)+"Bps");
-        $("#net_out_rate").html(num2human(out_rate)+"Bps");
-        $("#net_in_bytes").html(num2human(net_stats.bytes_recv)+"B");
-        $("#net_out_bytes").html(num2human(net_stats.bytes_sent)+"B");
-        $("#net_in_packs").html(net_stats.packets_recv);
-        $("#net_out_packs").html(net_stats.packets_sent);
-        $("#net_in_err").html(net_stats.errout);
-        $("#net_out_err").html(net_stats.errin);
-        $("#net_in_drop").html(net_stats.dropout);
-        $("#net_out_drop").html(net_stats.dropin);
+	      var net_stats = data.monitor.net_stats;
+				if(!$.isEmptyObject(net_stats))
+				{
+	        var in_rate = parseInt(net_stats.bytes_recv_per_sec);
+	        var out_rate = parseInt(net_stats.bytes_sent_per_sec);
+	        ingress_rate = in_rate;
+	        egress_rate = out_rate;
+	        $("#net_in_rate").html(num2human(in_rate)+"Bps");
+	        $("#net_out_rate").html(num2human(out_rate)+"Bps");
+	        $("#net_in_bytes").html(num2human(net_stats.bytes_recv)+"B");
+	        $("#net_out_bytes").html(num2human(net_stats.bytes_sent)+"B");
+	        $("#net_in_packs").html(net_stats.packets_recv);
+	        $("#net_out_packs").html(net_stats.packets_sent);
+	        $("#net_in_err").html(net_stats.errout);
+	        $("#net_out_err").html(net_stats.errin);
+	        $("#net_in_drop").html(net_stats.dropout);
+	        $("#net_out_drop").html(net_stats.dropin);
+				}
+				else {
+					ingress_rate = 0;
+					egress_rate = 0;
+					$("#net_in_rate").html("--");
+					$("#net_out_rate").html("--");
+					$("#net_in_bytes").html("--");
+					$("#net_out_bytes").html("--");
+					$("#net_in_packs").html("--");
+					$("#net_out_packs").html("--");
+					$("#net_in_err").html("--");
+					$("#net_out_err").html("--");
+					$("#net_in_drop").html("--");
+					$("#net_out_drop").html("--");
+				}
     },"json");
 }
 
