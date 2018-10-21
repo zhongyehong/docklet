@@ -32,6 +32,12 @@ class statusView(normalView):
                     else:
                         self.error()
                     allcontainers[master][cluster] = message
+                message = dockletRequest.post('/batch/vnodes/list/', data, master.split("@")[0])
+                message = message.get('data')
+                tmp = {}
+                tmp['containers'] = message
+                tmp['status'] = 'running'
+                allcontainers[master]['Batch_Job'] = message
             return self.render(self.template_path,  quotas = quotas, quotanames = quotanames, allcontainers = allcontainers, user = session['username'])
         else:
             self.error()

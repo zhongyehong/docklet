@@ -822,6 +822,16 @@ def info_job(user,beans,form):
 def info_task(user,beans,form):
     pass
 
+@app.route("/batch/vnodes/list/", methods=['POST'])
+@login_required
+def info_task(user,beans,form):
+    global G_taskmgr
+    result = {
+        'status': 'true',
+        'data': G_taskmgr.get_user_batch_containers(user)
+    }
+    return json.dumps(result)
+
 # @app.route("/inside/cluster/scaleout/", methods=['POST'])
 # @inside_ip_required
 # def inside_cluster_scalout(cur_user, cluster_info, form):

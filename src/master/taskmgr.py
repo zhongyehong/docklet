@@ -45,6 +45,7 @@ class TaskMgr(threading.Thread):
         self.thread_stop = False
         self.jobmgr = None
         self.task_queue = []
+        self.user_containers = {}
 
         self.scheduler_interval = scheduler_interval
         self.logger = logger
@@ -97,6 +98,9 @@ class TaskMgr(threading.Thread):
         if instance['token'] != report.token:
             self.logger.warning('[on_task_report] wrong token')
             return
+        username = task.info.username
+        container_name = username + '-batch-' + task.info.id + '-' + report.instance_id + '-' + report.token
+        self.user_containers[username].remove(container_name)
 
         if instance['status'] != RUNNING:
             self.logger.error('[on_task_report] receive task report when instance is not running')
@@ -175,6 +179,11 @@ class TaskMgr(threading.Thread):
         instance['worker'] = worker_ip
 
         self.cpu_usage[worker_ip] += task.info.cluster.instance.cpu
+        username = task.info.username
+        container_name = task.info.username + '-batch-' + task.info.id + '-' + instance_id + '-' + task.info.token
+        if not username in self.user_containers.keys():
+            self.user_containers[username] = []
+        self.user_containers[username].append(container_name)
 
         try:
             self.logger.info('[task_processor] processing task [%s] instance [%d]' % (task.info.id, task.info.instanceid))
@@ -187,6 +196,7 @@ class TaskMgr(threading.Thread):
             self.logger.error('[task_processor] rpc error message: %s' % e)
             instance['status'] = FAILED
             instance['try_count'] -= 1
+            self.user_containers[username].remove(container_name)
 
 
     # return task, worker
@@ -235,7 +245,7 @@ class TaskMgr(threading.Thread):
                     return task, len(task.instance_list) - 1, worker
 
             self.check_task_completed(task)
-            
+
         return None, None, None
 
     def find_proper_worker(self, task):
@@ -266,7 +276,7 @@ class TaskMgr(threading.Thread):
         all_nodes = [(node_ip, self.get_worker_resource_info(node_ip)) for node_ip in node_ips]
         return all_nodes
 
-            
+
     def is_alive(self, worker):
         nodes = self.nodemgr.get_batch_nodeips()
         return worker in nodes
@@ -332,7 +342,7 @@ class TaskMgr(threading.Thread):
                     disk = int(json_task['diskSetting']),
                     gpu = int(json_task['gpuSetting'])))))
         if 'mapping' in json_task:
-            task.info.cluster.mount.extend([Mount(localPath=json_task['mapping'][mapping_key]['mappingLocalDir'], 
+            task.info.cluster.mount.extend([Mount(localPath=json_task['mapping'][mapping_key]['mappingLocalDir'],
                                                   remotePath=json_task['mapping'][mapping_key]['mappingRemoteDir'])
                                             for mapping_key in json_task['mapping']])
         self.task_queue.append(task)
@@ -346,3 +356,9 @@ class TaskMgr(threading.Thread):
                 return task
         return None
 
+    # get names of all the batch containers of the user
+    def get_user_batch_containers(self,username):
+        if not username in self.user_containers.keys():
+            return []
+        else:
+            return self.user_containers[username]
