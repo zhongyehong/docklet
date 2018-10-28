@@ -295,7 +295,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
             if p.poll() is None:
                 p.kill()
                 logger.info("Running time(%d) is out. Task(%s-%s-%s) will be killed." % (timeout,str(taskid),str(instanceid),token))
-                self.add_msg(taskid,instanceid,rpc_pb2.TIMEOUT,token,"Running time is out.")
+                self.add_msg(taskid,username,instanceid,rpc_pb2.TIMEOUT,token,"Running time is out.")
             else:
                 out,err = p.communicate()
                 logger.info(out)
@@ -314,14 +314,14 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
                     else:
                         msg = msg2
                     logger.info("Output error on Task(%s-%s-%s)." % (str(taskid),str(instanceid),token))
-                    self.add_msg(taskid,instanceid,rpc_pb2.OUTPUTERROR,token,msg)
+                    self.add_msg(taskid,username,instanceid,rpc_pb2.OUTPUTERROR,token,msg)
                 else:
                     if p.poll() == 0:
                         logger.info("Task(%s-%s-%s) completed." % (str(taskid),str(instanceid),token))
-                        self.add_msg(taskid,instanceid,rpc_pb2.COMPLETED,token,"")
+                        self.add_msg(taskid,username,instanceid,rpc_pb2.COMPLETED,token,"")
                     else:
                         logger.info("Task(%s-%s-%s) failed." % (str(taskid),str(instanceid),token))
-                        self.add_msg(taskid,instanceid,rpc_pb2.FAILED,token,"")
+                        self.add_msg(taskid,username,instanceid,rpc_pb2.FAILED,token,"")
 
         container = lxc.Container(lxcname)
         if container.stop():
@@ -341,10 +341,16 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         #umount oss
         self.umount_oss("%s/global/users/%s/oss" % (self.fspath,username), mount_info)
 
-    def add_msg(self,taskid,instanceid,status,token,errmsg):
+    def stop_tasks(self, request, context):
+        for msg in request.taskmsgs:
+            lxcname = '%s-batch-%s-%s-%s' % (msg.username,msg.taskid,str(msg.instanceid),msg.token)
+            subprocess.run("lxc-stop -k -n %s" % lxcname, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+        return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
+
+    def add_msg(self,taskid,username,instanceid,status,token,errmsg):
         self.msgslock.acquire()
         try:
-            self.taskmsgs.append(rpc_pb2.TaskMsg(taskid=str(taskid),instanceid=int(instanceid),instanceStatus=status,token=token,errmsg=errmsg))
+            self.taskmsgs.append(rpc_pb2.TaskMsg(taskid=str(taskid),username=username,instanceid=int(instanceid),instanceStatus=status,token=token,errmsg=errmsg))
         except Exception as err:
             logger.error(traceback.format_exc())
         self.msgslock.release()

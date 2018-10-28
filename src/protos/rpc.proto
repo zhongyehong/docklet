@@ -1,11 +1,12 @@
 syntax = "proto3";
 
 service Master {
-	rpc report (ReportMsg) returns (Reply) {};
+	rpc report (ReportMsg) returns (Reply) {}
 }
 
 service Worker {
 	rpc process_task (TaskInfo) returns (Reply) {}
+	rpc stop_tasks (ReportMsg) returns (Reply) {}
 }
 
 message Reply {
@@ -24,10 +25,11 @@ message ReportMsg {
 
 message TaskMsg {
 	string taskid = 1;
-	int32 instanceid = 2;
-	Status instanceStatus = 3; // 任务状态
-	string token = 4;
-	string errmsg = 5;
+	string username = 2;
+	int32 instanceid = 3;
+	Status instanceStatus = 4; // 任务状态
+	string token = 5;
+	string errmsg = 6;
 }
 
 enum Status {
