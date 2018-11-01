@@ -45,6 +45,8 @@ class TaskMgr(threading.Thread):
         self.thread_stop = False
         self.jobmgr = None
         self.task_queue = []
+        self.lazy_delete_list = []
+        self.task_queue_lock = threading.Lock()
         self.user_containers = {}
 
         self.scheduler_interval = scheduler_interval
@@ -62,9 +64,19 @@ class TaskMgr(threading.Thread):
         # self.nodes_info_update_interval = 30 # (s)
 
 
+    def queue_lock(self, f):
+        def new_f(*args, **kwargs):
+            self.task_queue_lock.acquire()
+            result = f(args, kwargs)
+            self.task_queue_lock.release()
+            return result
+        return new_f
+
+
     def run(self):
         self.serve()
         while not self.thread_stop:
+            self.clean_up_finished_task()
             task, instance_id, worker = self.task_scheduler()
             if task is not None and worker is not None:
                 self.task_processor(task, instance_id, worker)
@@ -150,7 +162,7 @@ class TaskMgr(threading.Thread):
         else:
             self.jobmgr.report(task)
         self.logger.info('task %s completed' % task.info.id)
-        self.task_queue.remove(task)
+        self.lazy_delete_list.append(task)
 
 
     def task_failed(self, task):
@@ -161,8 +173,14 @@ class TaskMgr(threading.Thread):
         else:
             self.jobmgr.report(task)
         self.logger.info('task %s failed' % task.info.id)
-        self.task_queue.remove(task)
+        self.lazy_delete_list.append(task)
 
+
+    @queue_lock
+    def clean_up_finished_task(self):
+        while self.lazy_delete_list:
+            task = self.lazy_delete_list.pop(0)
+            self.task_queue.remove(task)
 
 
     def task_processor(self, task, instance_id, worker_ip):
@@ -217,6 +235,8 @@ class TaskMgr(threading.Thread):
         #                 self.logger.info('[task_scheduler]     %s: %d' % (key, worker_info[key]))
 
         for task in self.task_queue:
+            if task in self.lazy_delete_list:
+                continue
             worker = self.find_proper_worker(task)
 
             for index, instance in enumerate(task.instance_list):
@@ -259,8 +279,9 @@ class TaskMgr(threading.Thread):
                 continue
             if task.info.cluster.instance.memory > worker_info['memory']:
                 continue
-            # if task.info.cluster.instance.disk > worker_info['disk']:
-            #     continue
+            # try not to assign non-gpu task to a worker with gpu
+            if task.info.cluster.instance.gpu == 0 and worker_info['gpu'] > 0:
+                continue
             if task.info.cluster.instance.gpu > worker_info['gpu']:
                 continue
             return worker_ip
@@ -289,7 +310,7 @@ class TaskMgr(threading.Thread):
         info['cpu'] = len(worker_info['cpuconfig'])
         info['memory'] = (worker_info['meminfo']['buffers'] + worker_info['meminfo']['cached'] + worker_info['meminfo']['free']) / 1024 # (Mb)
         info['disk'] = sum([disk['free'] for disk in worker_info['diskinfo']]) / 1024 / 1024 # (Mb)
-        info['gpu'] = 0 # not support yet
+        info['gpu'] = len(worker_info['gpuinfo'])
         return info
 
 
@@ -350,6 +371,7 @@ class TaskMgr(threading.Thread):
 
     # user: username
     # get the information of a task, including the status, task description and other information
+    @queue_lock
     def get_task(self, taskid):
         for task in self.task_queue:
             if task.info.id == taskid:
