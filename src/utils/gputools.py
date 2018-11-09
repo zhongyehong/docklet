@@ -1,5 +1,8 @@
 import lxc
 import subprocess
+import os
+import signal
+from utils.log import logger
 
 
 # Note: keep physical device id always the same as the virtual device id
@@ -37,64 +40,79 @@ def remove_device(container_name, device_path):
 # +-----------------------------------------------------------------------------+
 #
 def nvidia_smi():
-	try:
-		ret = subprocess.run(['nvidia-smi'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
-		return ret.stdout.decode('utf-8').split('\n')
-	except subprocess.CalledProcessError:
-		return None
+    try:
+        ret = subprocess.run(['nvidia-smi'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+        return ret.stdout.decode('utf-8').split('\n')
+    except subprocess.CalledProcessError:
+        return None
 
 
 def get_gpu_driver_version():
-	output = nvidia_smi()
-	if not output:
-		return None
-	else:
-		return output[2].split()[-2]
+    output = nvidia_smi()
+    if not output:
+        return None
+    else:
+        return output[2].split()[-2]
 
 
 def get_gpu_status():
-	output = nvidia_smi()
-	if not output:
-		return []
-	interval_index = [index for index in range(len(output)) if len(output[index].strip()) == 0][0]
-	status_list = []
-	for index in range(7, interval_index, 3):
-		status = {}
-		status['id'] = output[index].split()[1]
-		sp = output[index+1].split()
-		status['fan'] = sp[1]
-		status['memory'] = sp[8]
-		status['memory_max'] = sp[10]
-		status['util'] = sp[12]
-		status_list.append(status)
-	return status_list
+    output = nvidia_smi()
+    if not output:
+        return []
+    interval_index = [index for index in range(len(output)) if len(output[index].strip()) == 0][0]
+    status_list = []
+    for index in range(7, interval_index, 3):
+        status = {}
+        status['id'] = output[index].split()[1]
+        sp = output[index+1].split()
+        status['fan'] = sp[1]
+        status['memory'] = sp[8]
+        status['memory_max'] = sp[10]
+        status['util'] = sp[12]
+        status_list.append(status)
+    return status_list
 
 
 def get_gpu_processes():
-	output = nvidia_smi()
-	if not output:
-		return []
-	interval_index = [index for index in range(len(output)) if len(output[index].strip()) == 0][0]
-	process_list = []
-	for index in range(interval_index + 5, len(output)):
-		sp = output[index].split()
-		if len(sp) != 7:
-			break
-		process = {}
-		process['gpu'] = sp[1]
-		process['pid'] = sp[2]
-		process['name'] = sp[4]
-		process['memory'] = sp[5]
-		process['container'] = get_container_name_by_pid(sp[2])
-		process_list.append(process)
-	return process_list
+    output = nvidia_smi()
+    if not output:
+        return []
+    interval_index = [index for index in range(len(output)) if len(output[index].strip()) == 0][0]
+    process_list = []
+    for index in range(interval_index + 5, len(output)):
+        sp = output[index].split()
+        if len(sp) != 7:
+            break
+        process = {}
+        process['gpu'] = sp[1]
+        process['pid'] = sp[2]
+        process['name'] = sp[4]
+        process['memory'] = sp[5]
+        process['container'] = get_container_name_by_pid(sp[2])
+        process_list.append(process)
+    return process_list
 
 
 def get_container_name_by_pid(pid):
-	with open('/proc/%s/cgroup' % pid) as f:
-		content = f.readlines()[0].strip().split('/')
-		if content[1] != 'lxc':
-			return 'host'
-		else:
-			return content[2]
-	return None
+    with open('/proc/%s/cgroup' % pid) as f:
+        content = f.readlines()[0].strip().split('/')
+        if content[1] != 'lxc':
+            return 'host'
+        else:
+            return content[2]
+    return None
+
+
+def clean_up_processes_in_gpu(gpu_id):
+    logger.info('[gputools] start clean up processes in gpu %d' % gpu_id)
+    processes = get_gpu_processes()
+    for process in [p for p in processes if p['gpu'] == gpu_id]:
+        logger.info('[gputools] find process %d running in gpu %d' % (process['pid'], process['gpu']))
+        if process['container'] == 'host':
+            logger.warning('[gputools] find process of host, ignored')
+        else:
+            logger.warning('[gputools] find process of container [%s], killed' % process['container'])
+            try:
+                os.kill(process['pid'], signal.SIGKILL)
+            except OSError:
+                continue

@@ -19,7 +19,7 @@ Design:Monitor mainly consists of three parts: Collectors, Master_Collector and 
 
 import subprocess,re,os,psutil,math,sys
 import time,threading,json,traceback,platform
-from utils import env, etcdlib
+from utils import env, etcdlib, gputools
 import lxc
 import xmlrpc.client
 from datetime import datetime
@@ -481,6 +481,10 @@ class Collector(threading.Thread):
                     info[idx][key] = val
         return [cpuset, info]
 
+    # collect gpu used information
+    def collect_gpuinfo(self):
+        return gputools.get_gpu_status()
+
     # collect disk used information
     def collect_diskinfo(self):
         global workercinfo
@@ -537,6 +541,7 @@ class Collector(threading.Thread):
             [cpuinfo,cpuconfig] = self.collect_cpuinfo()
             workerinfo['cpuinfo'] = cpuinfo
             workerinfo['cpuconfig'] = cpuconfig
+            workerinfo['gpuinfo'] = self.collect_gpuinfo()
             workerinfo['diskinfo'] = self.collect_diskinfo()
             workerinfo['running'] = True
             #time.sleep(self.interval)
