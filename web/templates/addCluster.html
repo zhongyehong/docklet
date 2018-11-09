@@ -81,7 +81,7 @@
 							<td>{{image['name']}}</td>
 							<td>private</td>
 							<td>{{user}}</td>
-							<td><a href="/image/{{masterips[0].split("@")[1]}}/description/{{image['name']}}_{{user}}_private/" target="_blank">{{image['description']}}</a></td>
+							<td><a href="/image/{{masterips[0].split("@")[0]}}/description/{{image['name']}}_{{user}}_private/" target="_blank">{{image['description']}}</a></td>
 							<td><div class="i-checks"><label><input type="radio" name="image" value="{{image['name']}}_{{user}}_private"></label></div></td>
 						    </tr>
 						    {% endfor %}
@@ -91,7 +91,7 @@
 								<td>{{image['name']}}</td>
 								<td>public</td>
 								<td>{{p_user}}</td>
-								<td><a href="/image/{{masterips[0].split("@")[1]}}/description/{{image['name']}}_{{p_user}}_public/" target="_blank">{{image['description']}}</a></td>
+								<td><a href="/image/{{masterips[0].split("@")[0]}}/description/{{image['name']}}_{{p_user}}_public/" target="_blank">{{image['description']}}</a></td>
 								<td><div class="i-checks"><label><input type="radio" name="image" value="{{image['name']}}_{{p_user}}_public"></label></div></td>
 						    	</tr>
 							{% endfor %}
