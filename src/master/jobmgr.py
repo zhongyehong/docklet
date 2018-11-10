@@ -11,6 +11,7 @@ class BatchJob(object):
         self.task_finished = []
         self.job_id = None
         self.job_name = job_info['jobName']
+        self.job_priority = int(job_info['jobPriority'])
         self.status = 'pending'
         self.create_time = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())
         self.top_sort()
@@ -83,7 +84,6 @@ class JobMgr(threading.Thread):
     # user: username
     # job_data: a json string
     # user submit a new job, add this job to queue and database
-    # call add_task to add task information
     def add_job(self, user, job_info):
         try:
             job = BatchJob(user, job_info)
@@ -137,7 +137,8 @@ class JobMgr(threading.Thread):
         if not task_info:
             return False
         else:
-            self.taskmgr.add_task(job.user, task_name, task_info)
+            task_priority = self.job_priority
+            self.taskmgr.add_task(job.user, task_name, task_info, task_priority)
             return True
 
     # this is a thread to schedule the jobs
