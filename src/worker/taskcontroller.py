@@ -84,7 +84,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         self.gpu_status = {}
         gpus = gputools.get_gpu_status()
         for gpu in gpus:
-            gpu_status[gpu['id']] = ""
+            self.gpu_status[gpu['id']] = ""
 
         self.start_report()
         logger.info('TaskController init success')
