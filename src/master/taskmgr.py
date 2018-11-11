@@ -374,8 +374,8 @@ class TaskMgr(threading.Thread):
                     commandLine = json_task['command'],
                     packagePath = json_task['srcAddr'],
                     envVars = {}),
-                stderrRedirectPath = json_task['stdErrRedPth'],
-                stdoutRedirectPath = json_task['stdOutRedPth']),
+                stderrRedirectPath = json_task.get('stdErrRedPth',""),
+                stdoutRedirectPath = json_task.get('stdOutRedPth',"")),
             cluster = Cluster(
                 image = Image(
                     name = json_task['image'].split('_')[0], #json_task['cluster']['image']['name'],

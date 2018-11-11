@@ -544,7 +544,7 @@ class Collector(threading.Thread):
             workerinfo['gpuinfo'] = self.collect_gpuinfo()
             workerinfo['diskinfo'] = self.collect_diskinfo()
             workerinfo['running'] = True
-            #time.sleep(self.interval)
+            time.sleep(self.interval)
             if self.test:
                 break
             #   print(self.etcdser.getkey('/meminfo/total'))

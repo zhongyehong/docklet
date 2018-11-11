@@ -45,6 +45,8 @@ def nvidia_smi():
         return ret.stdout.decode('utf-8').split('\n')
     except subprocess.CalledProcessError:
         return None
+    except Exception as e:
+        return None
 
 
 def get_gpu_driver_version():
