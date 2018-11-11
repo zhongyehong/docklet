@@ -62,7 +62,7 @@ class BatchJob(object):
                 task_name = self.user + '_' + self.job_id + '_' + task_idx
                 return task_name, self.raw_job_info["tasks"][task_idx]
         return '', None
-    
+
     # a task has finished
     def finish_task(self, task_idx):
         pass
@@ -137,7 +137,7 @@ class JobMgr(threading.Thread):
         if not task_info:
             return False
         else:
-            task_priority = self.job_priority
+            task_priority = job.job_priority
             self.taskmgr.add_task(job.user, task_name, task_info, task_priority)
             return True
 
@@ -155,4 +155,3 @@ class JobMgr(threading.Thread):
     # a task has finished
     def report(self, task):
         pass
-
