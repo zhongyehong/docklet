@@ -109,7 +109,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         self.lock.release()
 
     def add_gpu_device(self, lxcname, gpu_need):
-        if gpu_need < 0:
+        if gpu_need < 1:
             return [True, ""]
         self.gpu_lock.acquire()
         use_gpus = []
@@ -122,11 +122,11 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         for gpuid in use_gpus:
             self.gpu_status[gpuid] = lxcname
         try:
-            gputools.add_device_node(lxcname, "/dev/nvidiactl")
-            gputools.add_device_node(lxcname, "/dev/nvidia-uvm")
+            gputools.add_device(lxcname, "/dev/nvidiactl")
+            gputools.add_device(lxcname, "/dev/nvidia-uvm")
             for gpuid in use_gpus:
-                gputools.add_device_node(lxcname,"/dev/nvidia"+str(gpuid))
-                logger.info("Add gpu:"+str(gpuid) +" to lxc:"str(lxcname))
+                gputools.add_device(lxcname,"/dev/nvidia"+str(gpuid))
+                logger.info("Add gpu:"+str(gpuid) +" to lxc:"+str(lxcname))
         except Exception as e:
             logger.error(traceback.format_exc())
             for gpuid in use_gpus:
@@ -275,11 +275,11 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         #add GPU
         [success, msg] = self.add_gpu_device(lxcname,gpu_need)
         if not success:
-            logger.error("Fail to add gpu device.")
+            logger.error("Fail to add gpu device. " + msg)
             container.stop()
             self.release_ip(ip)
             self.imgmgr.deleteFS(lxcname)
-            return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED,message="Fail to add gpu device.")
+            return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED,message="Fail to add gpu device. " + msg)
 
         thread = threading.Thread(target = self.execute_task, args=(username,taskid,instanceid,envs,lxcname,pkgpath,command,timeout,outpath,ip,token,mount_list))
         thread.setDaemon(True)
@@ -304,6 +304,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         if ret.returncode != 0:
             msg = "Fail to move output_tmp.txt to nfs/%s" % tmpfilename
             logger.error(msg)
+            logger.error(ret.stdout)
             return [False,msg]
         logger.info("Succeed to moving output_tmp to nfs/%s" % tmpfilename)
 
@@ -397,6 +398,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
     def stop_tasks(self, request, context):
         for msg in request.taskmsgs:
             lxcname = '%s-batch-%s-%s-%s' % (msg.username,msg.taskid,str(msg.instanceid),msg.token)
+            logger.info("Stop the task with lxc:"+lxcname)
             subprocess.run("lxc-stop -k -n %s" % lxcname, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
         return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
 

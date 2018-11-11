@@ -10,7 +10,7 @@ def run():
     channel = grpc.insecure_channel('localhost:50051')
     stub = rpc_pb2_grpc.WorkerStub(channel)
 
-    comm = rpc_pb2.Command(commandLine="echo \"stestsfdsf\\ntewtgsdgfdsgret\newarsafsda\" > /root/test.txt;ls /root;sleep 100", packagePath="/root", envVars={'test1':'10','test2':'20'}) # | awk '{print \"test\\\"\\n\"}'
+    comm = rpc_pb2.Command(commandLine="echo \"stestsfdsf\\ntewtgsdgfdsgret\newarsafsda\" > /root/test.txt;ls /root;sleep 2", packagePath="/root", envVars={'test1':'10','test2':'20'}) # | awk '{print \"test\\\"\\n\"}'
     paras = rpc_pb2.Parameters(command=comm, stderrRedirectPath="/root/nfs/", stdoutRedirectPath="")
 
     img = rpc_pb2.Image(name="base", type=rpc_pb2.Image.BASE, owner="docklet")
@@ -35,5 +35,5 @@ def stop_task():
 
 if __name__ == '__main__':
     run()
-    time.sleep(2)
-    stop_task()
+    #time.sleep(4)
+    #stop_task()
