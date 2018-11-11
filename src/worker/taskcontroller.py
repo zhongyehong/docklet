@@ -135,6 +135,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
             return [False, "Error occurs when adding gpu device."]
 
         self.gpu_lock.release()
+        return [True, ""]
 
     def release_gpu_device(self, lxcname):
         self.gpu_lock.acquire()
