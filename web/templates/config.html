@@ -80,6 +80,7 @@
 										<th>ImageName</th>
 										<th>Type</th>
 										<th>Owner</th>
+                    <th>Size</th>
 										<th>Choose</th>
 									</tr>
 								</thead>
@@ -88,6 +89,7 @@
 										<td>base</td>
 										<td>public</td>
 										<td>docklet</td>
+                    <td>--</td>
 										<td><input type="radio" name="image" value="base_base_base" checked="checked"></td>
 									</tr>
 									{% for image in allimages[master]['private'] %}
@@ -95,6 +97,7 @@
 										<td>{{image['name']}}</td>
 										<td>private</td>
 										<td>{{mysession['username']}}</td>
+                    <td>{{image['size_format']}}</td>
 										<td><input type="radio" name="image" value="{{image['name']}}_{{mysession['username']}}_private"></td>
 									</tr>
 									{% endfor %}
@@ -104,6 +107,7 @@
 											<td>{{image['name']}}</td>
 											<td>public</td>
 											<td>{{p_user}}</td>
+                      <td>{{image['size_format']}}</td>
 											<td><input type="radio" name="image" value="{{image['name']}}_{{p_user}}_public"></td>
 										</tr>
 										{% endfor %}
@@ -327,6 +331,7 @@
                              <th>Type</th>
 			     <th>Owner</th>
 			     <th>CreateTime</th>
+           <th>Size</th>
 			     <th>Description</th>
 			     <th>Location</th>
 			     <th>Status</th>
@@ -339,6 +344,7 @@
 				<td>public</td>
 				<td>docklet</td>
 				<td>2015-01-01 00:00:00</td>
+        <td>--</td>
 				<td>A Base Image For You</td>
 				<td>--</td>
 				<td></td>
@@ -351,6 +357,7 @@
 				<td>private</td>
 				<td>{{mysession['username']}}</td>
 				<td>{{image['time']}}</td>
+        <td>{{image['size_format']}}</td>
 				<td><a href="/image/{{master.split("@")[0]}}/description/{{image['name']}}_{{mysession['username']}}_private/" target="_blank">{{image['description']}}</a></td>
 				<td>{{master.split("@")[1]}}</td>
 				{% if image['isshared'] == 'false' %}
@@ -414,6 +421,7 @@
 				<td>public</td>
 				<td>{{p_user}}</td>
 				<td>{{image['time']}}</td>
+        <td>{{image['size_format']}}</td>
 				<td><a href="/image/{{master.split("@")[0]}}/description/{{image['name']}}_{{p_user}}_public/" target="_blank">{{image['description']}}</a></td>
 				<td>{{master.split("@")[1]}}</td>
 				<td></td>

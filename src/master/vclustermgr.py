@@ -116,6 +116,8 @@ class VclusterMgr(object):
     def create_cluster(self, clustername, username, image, user_info, setting):
         if self.is_cluster(clustername, username):
             return [False, "cluster:%s already exists" % clustername]
+        if self.imgmgr.get_image_size(image) + 100 > int(setting["disk"]):
+            return [False, "the size of disk is not big enough for the image"]
         clustersize = int(self.defaultsize)
         logger.info ("starting cluster %s with %d containers for %s" % (clustername, int(clustersize), username))
         workers = self.nodemgr.get_nodeips()
@@ -202,6 +204,8 @@ class VclusterMgr(object):
     def scale_out_cluster(self,clustername,username, image,user_info, setting):
         if not self.is_cluster(clustername,username):
             return [False, "cluster:%s not found" % clustername]
+        if self.imgmgr.get_image_size(image) + 100 > int(setting["disk"]):
+            return [False, "the size of disk is not big enough for the image"]
         workers = self.nodemgr.get_nodeips()
         if (len(workers) == 0):
             logger.warning("no workers to start containers, scale out failed")
