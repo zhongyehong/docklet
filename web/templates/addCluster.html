@@ -64,6 +64,7 @@
 						    	<th>ImageName</th>
 							<th>Type</th>
 							<th>Owner</th>
+							<th>Size</th>
 							<th>Description</th>
 							<th>Choose</th>
 						    </tr>
@@ -73,16 +74,18 @@
 							<td>base</td>
 							<td>public</td>
 							<td>docklet</td>
+							<td>--</td>
 							<td>A base image for you</td>
-							<td><div class="i-checks"><label><input type="radio" name="image" value="base_base_base" checked="checked"></label></div></td>
+							<td><div class="i-checks"><label><input type="radio" name="image" value="base_base_base" checked="checked" onchange="setMinDiskSize(0)"></label></div></td>
 						    </tr>
 						    {% for image in images['private'] %}
 						    <tr>
 							<td>{{image['name']}}</td>
 							<td>private</td>
 							<td>{{user}}</td>
+							<td>{{image['size_format']}}</td>
 							<td><a href="/image/{{masterips[0].split("@")[0]}}/description/{{image['name']}}_{{user}}_private/" target="_blank">{{image['description']}}</a></td>
-							<td><div class="i-checks"><label><input type="radio" name="image" value="{{image['name']}}_{{user}}_private"></label></div></td>
+							<td><div class="i-checks"><label><input type="radio" name="image" value="{{image['name']}}_{{user}}_private" onchange="setMinDiskSize({{image['size_in_mb']}})"></label></div></td>
 						    </tr>
 						    {% endfor %}
 						    {% for p_user,p_images in images['public'].items() %}
@@ -91,8 +94,9 @@
 								<td>{{image['name']}}</td>
 								<td>public</td>
 								<td>{{p_user}}</td>
+								<td>{{image['size_format']}}</td>	
 								<td><a href="/image/{{masterips[0].split("@")[0]}}/description/{{image['name']}}_{{p_user}}_public/" target="_blank">{{image['description']}}</a></td>
-								<td><div class="i-checks"><label><input type="radio" name="image" value="{{image['name']}}_{{p_user}}_public"></label></div></td>
+								<td><div class="i-checks"><label><input type="radio" name="image" value="{{image['name']}}_{{p_user}}_public" onchange="setMinDiskSize({{image['size_in_mb']}})"></label></div></td>
 						    	</tr>
 							{% endfor %}
 						    {% endfor %}
@@ -125,7 +129,7 @@
                                     </div>
 				                    <div class="form-group">
                                         <label class="col-sm-2 control-label">DISK</label>
-                                        <div class="col-sm-3"><input type="number" class="form-control" name="diskSetting" id="diskSetting" value= {{defaultsetting['disk']}}  /> {{usage['disk']}} MB/{{quota['disk']}}MB
+                                        <div class="col-sm-3"><input type="number" class="form-control" name="diskSetting" id="diskSetting" value= {{defaultsetting['disk']}}  /> {{usage['disk']}} MB/{{quota['disk']}}MB (min value is the size of image + 100)
                                         </div>
                                     </div>
                                 </div>
@@ -167,6 +171,12 @@
 	<script src="http://cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.js"></script>
 	<script src="http://cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
 
+	<script type="text/javascript">
+		function setMinDiskSize(minSize) {
+			var disk = document.getElementById('diskSetting');
+			disk.setAttribute('min', minSize+100);
+		}
+	</script>
 
     <script type="text/javascript">
 		$("select#masterselector").change(function() {
