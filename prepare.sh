@@ -22,7 +22,7 @@ apt-get install -y python3-requests python3-suds
 apt-get install -y nodejs nodejs-legacy npm
 apt-get install -y etcd
 apt-get install -y glusterfs-client attr
-apt-get install -y nginx
+apt-get install -y nginx ossfs
 pip3 install grpcio grpcio-tools googleapis-common-protos
 
 #add ip forward
