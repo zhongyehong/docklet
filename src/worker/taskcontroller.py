@@ -287,7 +287,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
 
     def write_output(self,lxcname,tmplogpath,filepath):
         cmd = "lxc-attach -n " + lxcname + " -- mv %s %s"
-        if filepath == "" or filepath == "/root/nfs"+tmplogpath or os.path.abspath("/root/nfs/"+tmplogpath) == os.path.abspath(filepath):
+        if filepath == "" or filepath == "/root/nfs/batch_{jobid}/" or os.path.abspath("/root/nfs/"+tmplogpath) == os.path.abspath(filepath):
             return [True,""]
         ret = subprocess.run(cmd % ("/root/nfs/"+tmplogpath,filepath),stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
         if ret.returncode != 0:
@@ -350,10 +350,6 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
                 logger.info("Running time(%d) is out. Task(%s-%s-%s) will be killed." % (timeout,str(taskid),str(instanceid),token))
                 self.add_msg(taskid,username,instanceid,rpc_pb2.TIMEOUT,token,"Running time is out.")
             else:
-                if len(outpath[0]) > 0 and outpath[0][-1] == "/":
-                    outpath[0] += stdoutname
-                if len(outpath[1]) > 0 and outpath[1][-1] == "/":
-                    outpath[1] += stderrname
                 [success1,msg1] = self.write_output(lxcname,jobdir+"/"+stdoutname,outpath[0])
                 [success2,msg2] = self.write_output(lxcname,jobdir+"/"+stderrname,outpath[1])
                 if not success1 or not success2:
