@@ -31,9 +31,103 @@
 					 <p>
 					 <a href="/batch_job/create/"><button type="button" class="btn btn-primary btn-sm"><i class="fa fa-plus"></i> Create Batch Job</button></a>
 					 </p>
-
+                 {% for job_info in job_list %}
+                 <div class="modal inmodal" id='OutputModal_{{ job_info['job_id'] }}' tabindex="-1" role="dialog" aria-hidden="true">
+                   <div class="modal-dialog">
+                     <div class="modal-content animated fadeIn">
+                       <div class="modal-header">
+                         <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                         <h4 class="modal-title">Job:{{ job_info['job_name'] }}({{ job_info['job_id'] }}) Stdout and Stderr of tasks</h4>
+                       </div>
+                       <div class="modal-body">
+                         <table width="100%" cellspacing="0" class="table table-bordered table-striped table-hover table-output">
+                           <thead>
+                             <tr>
+                               <th>Task ID</th>
+                               <th>Instance ID</th>
+                               <th>Stdout</th>
+                               <th>Stderr</th>
+                             </tr>
+                           </thead>
+                           <tbody>
+                             <tr>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                             </tr>
+                             <tr>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                             </tr>
+                             <tr>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                             </tr>
+                             <tr>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                             </tr>
+                             <tr>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                             </tr>
+                             <tr>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                             </tr>
+                             <tr>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                             </tr>
+                             <tr>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                             </tr>
+                             <tr>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                             </tr>
+                             <tr>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                             </tr>
+                             <tr>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                               <td>10</td>
+                             </tr>
+                           </tbody>
+                         </table>
+                         <div class="modal-footer">
+                           <button type="button" class="btn btn-white" data-dismiss="modal">Close</button>
+                         </div>
+                       </div>
+                     </div>
+                   </div>
                  </div>
-                 <table class="table table-bordered">
+                 {% endfor %}
+                 <div class="table">
+                 <table width="100%" cellspacing="0" style="margin: 0 auto;" class="table table-striped table-bordered table-hover table-batch">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -42,31 +136,42 @@
                             <th>Tasks</th>
                             <th>Operations</th>
                             <th>Create Time</th>
-                        <tr>
+                            <th>Stdout and Stderr</th>
+                        </tr>
                     <thead>
                     <tbody>
                     {% for job_info in job_list %}
                         <tr>
-                            <th>{{ job_info['job_id'] }}</th> 
-                            <th>{{ job_info['job_name'] }}</th> 
-                            <th>
+                            <td>{{ job_info['job_id'] }}</td>
+                            <td>{{ job_info['job_name'] }}</td>
+                            <td>
                             {{ job_info['status'] }}
-                            </th> 
-                            <th>Tasks</th> 
-				            <th><button type="button" class="btn btn-xs btn-default">&nbsp;&nbsp;&nbsp;Stop&nbsp;&nbsp;&nbsp;</button></th>
-                            <th>{{ job_info['create_time'] }}</th> 
+                          </td>
+                            <td>Tasks</td>
+				            <td><button type="button" class="btn btn-xs btn-default">&nbsp;&nbsp;&nbsp;Stop&nbsp;&nbsp;&nbsp;</button></td>
+                            <td>{{ job_info['create_time'] }}</td>
+                            <td><a role="button" class="btn btn-info btn-xs" id='{{ job_info['job_id'] }}_output' data-toggle="modal" data-target='#OutputModal_{{ job_info['job_id'] }}'>Get Output</a></td>
                         </tr>
                     {% endfor %}
                     </tbody>
                  </table>
+                 </div>
+               </div>
              </div>
          </div>
 	</div>
 
 {% endblock %}
 {% block script_src %}
+<script src="//cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.min.js"></script>
+<script src="//cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.min.js"></script>
 
 <script type="text/javascript">
+$(document).ready(function() {
+   $(".table-batch").DataTable({"scrollX":true});
+   $(".table-output").DataTable({
+   "lengthChange":false});
+});
 function sendAdd(){
     document.getElementById("addForm").submit();
 }
