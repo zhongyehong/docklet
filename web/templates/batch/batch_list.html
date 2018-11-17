@@ -50,72 +50,16 @@
                              </tr>
                            </thead>
                            <tbody>
+                             {% for taskid in job_info['tasks'] %}
+                             {% for instid in range(job_info['tasks_instCount'][taskid]) %}
                              <tr>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
+                               <td>{{ taskid }}</td>
+                               <td>{{ instid }}</td>
+                               <td><a class="btn btn-info btn-xs" href='/batch_job/{{ job_info["job_id"] }}/{{ taskid }}/{{ instid }}/stdout/' target="_blank">Stdout</a></td>
+                               <td><a class="btn btn-info btn-xs" href='/batch_job/{{ job_info["job_id"] }}/{{ taskid }}/{{ instid }}/stdout/' target="_blank">Stderr</a></td>
                              </tr>
-                             <tr>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                             </tr>
-                             <tr>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                             </tr>
-                             <tr>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                             </tr>
-                             <tr>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                             </tr>
-                             <tr>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                             </tr>
-                             <tr>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                             </tr>
-                             <tr>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                             </tr>
-                             <tr>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                             </tr>
-                             <tr>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                             </tr>
-                             <tr>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                               <td>10</td>
-                             </tr>
+                             {% endfor %}
+                             {% endfor %}
                            </tbody>
                          </table>
                          <div class="modal-footer">

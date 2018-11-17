@@ -105,11 +105,17 @@ class JobMgr(threading.Thread):
             job = self.job_map[job_id]
             logger.debug('job_id: %s, user: %s' % (job_id, job.user))
             if job.user == user:
+                all_tasks = job.raw_job_info['tasks']
+                tasks_instCount = {}
+                for task in all_tasks.keys():
+                    tasks_instCount[task] = int(all_tasks[task]['instCount'])
                 res.append({
                     'job_name': job.job_name,
                     'job_id': job.job_id,
                     'status': job.status,
-                    'create_time': job.create_time
+                    'create_time': job.create_time,
+                    'tasks': list(all_tasks.keys()),
+                    'tasks_instCount': tasks_instCount
                 })
         return res
 
