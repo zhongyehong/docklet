@@ -872,8 +872,22 @@ def add_job(user,beans,form):
 def list_job(user,beans,form):
     global G_jobmgr
     result = {
-        'status': 'true',
+        'success': 'true',
         'data': G_jobmgr.list_jobs(user)
+    }
+    return json.dumps(result)
+
+@app.route("/batch/job/output/", methods=['POST'])
+@login_required
+def get_output(user,beans,form):
+    global G_jobmgr
+    jobid = form.get("jobid","")
+    taskid = form.get("taskid","")
+    instid = form.get("instid","")
+    issue = form.get("issue","")
+    result = {
+        'success': 'true',
+        'data': G_jobmgr.get_output(user,jobid,taskid,instid,issue)
     }
     return json.dumps(result)
 
@@ -893,7 +907,7 @@ def info_task(user,beans,form):
 def batch_vnodes_list(user,beans,form):
     global G_taskmgr
     result = {
-        'status': 'true',
+        'success': 'true',
         'data': G_taskmgr.get_user_batch_containers(user)
     }
     return json.dumps(result)

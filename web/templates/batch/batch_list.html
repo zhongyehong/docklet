@@ -55,8 +55,8 @@
                              <tr>
                                <td>{{ taskid }}</td>
                                <td>{{ instid }}</td>
-                               <td><a class="btn btn-info btn-xs" href='/batch_job/{{ job_info["job_id"] }}/{{ taskid }}/{{ instid }}/stdout/' target="_blank">Stdout</a></td>
-                               <td><a class="btn btn-info btn-xs" href='/batch_job/{{ job_info["job_id"] }}/{{ taskid }}/{{ instid }}/stdout/' target="_blank">Stderr</a></td>
+                               <td><a class="btn btn-info btn-xs" href='/batch_job/output/{{ job_info["job_id"] }}/{{ taskid }}/{{ instid }}/stdout/' target="_blank">Stdout</a></td>
+                               <td><a class="btn btn-info btn-xs" href='/batch_job/output/{{ job_info["job_id"] }}/{{ taskid }}/{{ instid }}/stderr/' target="_blank">Stderr</a></td>
                              </tr>
                              {% endfor %}
                              {% endfor %}

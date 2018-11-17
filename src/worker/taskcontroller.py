@@ -320,8 +320,8 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
             if not os.path.exists(logdir):
                 logger.info("Directory:%s not exists, create it." % logdir)
                 os.mkdir(logdir)
-            stdoutname = str(taskid)+"_"+str(instanceid)+"_"+token+"_stdout.txt"
-            stderrname = str(taskid)+"_"+str(instanceid)+"_"+token+"_stderr.txt"
+            stdoutname = str(taskid)+"_"+str(instanceid)+"_stdout.txt"
+            stderrname = str(taskid)+"_"+str(instanceid)+"_stderr.txt"
             try:
                 stdoutfile = open(logdir+"/"+stdoutname,"w")
                 stderrfile = open(logdir+"/"+stderrname,"w")
