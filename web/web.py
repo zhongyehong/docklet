@@ -36,6 +36,7 @@ from webViews.admin import *
 from webViews.monitor import *
 from webViews.beansapplication import *
 from webViews.cloud import *
+from webViews.reportbug import *
 from webViews.authenticate.auth import login_required, administration_required,activated_required
 from webViews.authenticate.register import registerView
 from webViews.authenticate.login import loginView, logoutView
@@ -113,12 +114,18 @@ def dashboard():
 
 @app.route("/document/", methods=['GET'])
 def redirect_dochome():
-    return redirect("http://unias.github.io/docklet/userguide")
+    return redirect("https://unias.github.io/docklet/userguide/")
 
 @app.route("/config/", methods=['GET'])
 @login_required
 def config():
     return configView.as_view()
+
+@app.route("/bug/report/", methods=['POST'])
+@login_required
+def reportBug():
+    reportBugView.bugmessage = request.form['bugmessage']
+    return reportBugView.as_view()
 
 @app.route("/batch_jobs/", methods=['GET'])
 @login_required
@@ -631,7 +638,6 @@ def adminpage():
 @administration_required
 def updatesettings():
     return updatesettingsView.as_view()
-
 
 @app.route('/index/', methods=['GET'])
 def jupyter_control():

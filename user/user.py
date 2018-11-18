@@ -34,6 +34,7 @@ from utils.model import User,db
 from httplib2 import Http
 from urllib.parse import urlencode
 from master.settings import settings
+from master.bugreporter import send_bug_mail
 
 external_login = env.getenv('EXTERNAL_LOGIN')
 if(external_login == 'TRUE'):
@@ -470,6 +471,13 @@ def query_self_notifications_infos(cur_user, user, form):
     global G_notificationmgr
     logger.info("handle request: notification/query/all/")
     result = G_notificationmgr.query_self_notifications_infos(cur_user=cur_user, form=form)
+    return json.dumps(result)
+
+@app.route("/bug/report/", methods=['POST']) 
+@login_required
+def report_bug(cur_user, user, form):
+    logger.info("handle request: bug/report")
+    result = send_bug_mail(user, form.get("bugmessage", None))
     return json.dumps(result)
 
 @app.route("/billing/beans/", methods=['POST'])

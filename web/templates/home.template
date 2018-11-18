@@ -38,12 +38,12 @@
 			<div class="container">
 				<div class="row" style="font-size:16px; color:white; padding:16px">
 					<div class="pull-right" >
-						<a class="linkbtn" href="http://docklet.unias.org/docklet-book/userguide/_book/">Document</a>
+						<a class="linkbtn" href="https://unias.github.io/docklet/userguide/">Document</a>
 						&centerdot;
 						<a class="linkbtn" href="/login/" >Sign In</a>
 					</div>
 					<div>
-						<a class="linkbtn" href="http://docklet.unias.org"><strong>Docklet Cloud OS</strong></a>
+						<a class="linkbtn" href="https://docklet.unias.org"><strong>Docklet Cloud OS</strong></a>
 					</div>
 				</div>
 			</div>
