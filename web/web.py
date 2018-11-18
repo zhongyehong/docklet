@@ -40,6 +40,7 @@ from webViews.reportbug import *
 from webViews.authenticate.auth import login_required, administration_required,activated_required
 from webViews.authenticate.register import registerView
 from webViews.authenticate.login import loginView, logoutView
+from webViews.batch import *
 import webViews.dockletrequest
 from webViews import cookie_tool
 import traceback
@@ -125,6 +126,37 @@ def config():
 def reportBug():
     reportBugView.bugmessage = request.form['bugmessage']
     return reportBugView.as_view()
+
+@app.route("/batch_jobs/", methods=['GET'])
+@login_required
+def batch_job():
+    return batchJobListView().as_view()
+
+@app.route("/batch_job/create/", methods=['GET'])
+@login_required
+def create_batch_job():
+    return createBatchJobView().as_view()
+
+@app.route("/batch_job/<masterip>/add/", methods=['POST'])
+@login_required
+def add_batch_job(masterip):
+    addBatchJobView.masterip = masterip
+    addBatchJobView.job_data = request.form
+    return addBatchJobView().as_view()
+
+@app.route("/batch_job/state/", methods=['GET'])
+@login_required
+def state_batch_job():
+    return stateBatchJobView().as_view()
+
+@app.route("/batch_job/output/<jobid>/<taskid>/<instid>/<issue>/", methods=['GET'])
+@login_required
+def output_batch_job(jobid, taskid, instid, issue):
+    outputBatchJobView.jobid = jobid
+    outputBatchJobView.taskid = taskid
+    outputBatchJobView.instid = instid
+    outputBatchJobView.issue = issue
+    return outputBatchJobView().as_view()
 
 @app.route("/workspace/create/", methods=['GET'])
 #@activated_required
