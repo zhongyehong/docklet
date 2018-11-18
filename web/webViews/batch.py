@@ -20,7 +20,7 @@ class batchJobListView(normalView):
 
 class createBatchJobView(normalView):
     template_path = "batch/batch_create.html"
-    
+
     @classmethod
     def get(self):
         masterips = dockletRequest.post_to_all()
@@ -49,5 +49,29 @@ class addBatchJobView(normalView):
         result = dockletRequest.post("/batch/job/add/", self.job_data, masterip)
         if result.get('success', None) == "true":
             return redirect('/batch_jobs/')
+        else:
+            return self.error()
+
+class outputBatchJobView(normalView):
+    #template_path = "batch/batch_output.html"
+    jobid = ""
+    taskid = ""
+    instid = ""
+    issue = ""
+
+    @classmethod
+    def get(self):
+        masterips = dockletRequest.post_to_all()
+        data = {
+            'jobid':self.jobid,
+            'taskid':self.taskid,
+            'instid':self.instid,
+            'issue':self.issue
+        }
+        result = dockletRequest.post("/batch/job/output/",data,masterips[0].split("@")[0])
+        output = result.get("data")
+        #logger.debug("job_list: %s" % job_list)
+        if result.get('success',"") == "true":
+            return "<pre>" + output + "</pre>"
         else:
             return self.error()

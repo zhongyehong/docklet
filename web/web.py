@@ -142,6 +142,15 @@ def add_batch_job(masterip):
 def state_batch_job():
     return stateBatchJobView().as_view()
 
+@app.route("/batch_job/output/<jobid>/<taskid>/<instid>/<issue>/", methods=['GET'])
+@login_required
+def output_batch_job(jobid, taskid, instid, issue):
+    outputBatchJobView.jobid = jobid
+    outputBatchJobView.taskid = taskid
+    outputBatchJobView.instid = instid
+    outputBatchJobView.issue = issue
+    return outputBatchJobView().as_view()
+
 @app.route("/workspace/create/", methods=['GET'])
 #@activated_required
 def addCluster():

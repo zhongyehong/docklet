@@ -1,7 +1,8 @@
-import time, threading, random, string
+import time, threading, random, string, os, traceback
 import master.monitor
 
 from utils.log import initlogging, logger
+from utils import env
 
 class BatchJob(object):
     def __init__(self, user, job_info):
@@ -75,6 +76,7 @@ class JobMgr(threading.Thread):
         self.job_queue = []
         self.job_map = {}
         self.taskmgr = taskmgr
+        self.fspath = env.getenv('FS_PREFIX')
 
     def run(self):
         while True:
@@ -105,11 +107,17 @@ class JobMgr(threading.Thread):
             job = self.job_map[job_id]
             logger.debug('job_id: %s, user: %s' % (job_id, job.user))
             if job.user == user:
+                all_tasks = job.raw_job_info['tasks']
+                tasks_instCount = {}
+                for task in all_tasks.keys():
+                    tasks_instCount[task] = int(all_tasks[task]['instCount'])
                 res.append({
                     'job_name': job.job_name,
                     'job_id': job.job_id,
                     'status': job.status,
-                    'create_time': job.create_time
+                    'create_time': job.create_time,
+                    'tasks': list(all_tasks.keys()),
+                    'tasks_instCount': tasks_instCount
                 })
         return res
 
@@ -155,3 +163,16 @@ class JobMgr(threading.Thread):
     # a task has finished
     def report(self, task):
         pass
+
+    def get_output(self, username, jobid, taskid, instid, issue):
+        filename = username + "_" + jobid + "_" + taskid + "_" + instid + "_" + issue + ".txt"
+        fpath = "%s/global/users/%s/data/batch_%s/%s" % (self.fspath,username,jobid,filename)
+        logger.info("Get output from:%s" % fpath)
+        try:
+            file = open(fpath)
+            output = file.read()
+        except Exception as err:
+            logger.error(traceback.format_exc())
+            return ""
+        else:
+            return output
