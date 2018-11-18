@@ -38,7 +38,8 @@ class dockletRequest():
                 'user',
                 'beans',
                 'notification',
-                'settings'
+                'settings',
+                'bug'
                 }
         if ":" not in endpoint:
             endpoint = "http://"+endpoint+":"+master_port

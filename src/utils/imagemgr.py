@@ -380,6 +380,29 @@ class ImageMgr():
             return ""
         return image.description
 
+    def get_image_size(self, image):
+        imagename = image['name']
+        imagetype = image['type']
+        imageowner = image['owner']
+        if imagename == "base" and imagetype == "base":
+            return 0
+        if imagetype == "private":
+            imgpath = self.imgpath + "private/" + user + "/"
+        else:
+            imgpath = self.imgpath + "public/" + imageowner + "/"
+        return os.stat(os.path.join(imgpath, imagename)).st_size // (1024*1024)
+
+
+    def format_size(self, size_in_byte):
+        if size_in_byte < 1024:
+            return str(size_in_byte) + "B"
+        elif size_in_byte < 1024*1024:
+            return str(size_in_byte//1024) + "KB"
+        elif size_in_byte < 1024*1024*1024:
+            return str(size_in_byte//(1024*1024)) + "MB"
+        else:
+            return str(size_in_byte//(1024*1024*1024)) + "GB"
+
     def list_images(self,user):
         images = {}
         images["private"] = []
@@ -398,6 +421,9 @@ class ImageMgr():
                 [time, description] = self.get_image_info(user, imagename, "private")
                 fimage["time"] = time
                 fimage["description"] = description
+                fimage["size"] = os.stat(os.path.join(imgpath, image)).st_size
+                fimage["size_format"] = self.format_size(fimage["size"])
+                fimage["size_in_mb"] = fimage["size"] // (1024*1024)
                 images["private"].append(fimage)
         except Exception as e:
             logger.error(e)
@@ -423,6 +449,9 @@ class ImageMgr():
                         [time, description] = self.get_image_info(public_user, imagename, "public")
                         fimage["time"] = time
                         fimage["description"] = description
+                        fimage["size"] = os.stat(os.path.join(imgpath, image)).st_size
+                        fimage["size_format"] = self.format_size(fimage["size"])
+                        fimage["size_in_mb"] = fimage["size"] // (1024*1024)
                         images["public"][public_user].append(fimage)
                 except Exception as e:
                     logger.error(e)

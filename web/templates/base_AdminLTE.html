@@ -109,6 +109,23 @@
             </ul>
           </li>
           <!-- Control Sidebar Toggle Button -->
+          <li class="dropdown user user-menu">
+            <!-- Menu Toggle Button -->
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+		    <strong>Bug Report</strong>
+            </a>
+            <ul class="dropdown-menu">
+              <!-- The user image in the menu -->
+	      <form action="/bug/report/" method="POST">
+		<textarea id="bugmessage" name="bugmessage" style="width:250px; height:200px"></textarea>
+              	<li class="user-footer" style="background-color:#e6e6e6">
+              	  <div class="pull-right">
+              	    <button type="submit" class="btn btn-default btn-flat">Submit</a>
+              	  </div>
+              	</li>
+	      </form>
+            </ul>
+          </li>
           <li>
             <a href="/document/" target="_blank"><strong>Help</strong></a>
           </li>
@@ -223,10 +240,10 @@
   <footer class="main-footer">
     <!-- To the right -->
     <div class="pull-right hidden-xs">
-		    <i><a href="http://github.com/unias/docklet">Docklet {{ version }}</a></i>
+		    <i><a href="https://github.com/unias/docklet">Docklet {{ version }}</a></i>
     </div>
     <!-- Default to the left -->
-    <strong>Copyright</strong>&copy;&nbsp;2017 <a href="http://unias.github.io/docklet">UniAS</a>@<a href="http://www.sei.pku.edu.cn"> SEI, PKU</a>
+    <strong>Copyright</strong>&copy;&nbsp;2017 <a href="https://unias.github.io/docklet">UniAS</a>@<a href="http://www.sei.pku.edu.cn"> SEI, PKU</a>
 
   </footer>
 
