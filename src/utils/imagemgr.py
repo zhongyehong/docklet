@@ -387,10 +387,10 @@ class ImageMgr():
         if imagename == "base" and imagetype == "base":
             return 0
         if imagetype == "private":
-            imgpath = self.imgpath + "private/" + user + "/"
+            imgpath = self.imgpath + "private/" + imageowner + "/"
         else:
             imgpath = self.imgpath + "public/" + imageowner + "/"
-        return os.stat(os.path.join(imgpath, imagename)).st_size // (1024*1024)
+        return os.stat(os.path.join(imgpath, imagename+".tz")).st_size // (1024*1024)
 
 
     def format_size(self, size_in_byte):
