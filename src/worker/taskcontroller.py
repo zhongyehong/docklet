@@ -114,9 +114,10 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         self.gpu_lock.acquire()
         use_gpus = []
         for gpuid in self.gpu_status.keys():
-            if self.gpu_status[gpuid] == "":
+            if self.gpu_status[gpuid] == "" and gpu_need > 0:
                 use_gpus.append(gpuid)
-        if len(use_gpus) < gpu_need:
+                gpu_need -= 1
+        if gpu_need > 0:
             self.gpu_lock.release()
             return [False, "No free GPUs"]
         for gpuid in use_gpus:
@@ -180,6 +181,52 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         except Exception as err:
             logger.error(traceback.format_exc())
             return [False,""]
+    #accquire ip and create a container
+    def create_container(self,instanceid,username,image,lxcname,quota):
+        # acquire ip
+        [status, ip] = self.acquire_ip()
+        if not status:
+            return [False, ip]
+
+        # prepare image and filesystem
+        status = self.imgmgr.prepareFS(username,image,lxcname,str(quota.disk))
+        if not status:
+            self.release_ip(ip)
+            return [False, "Create container for batch failed when preparing filesystem"]
+
+        rootfs = "/var/lib/lxc/%s/rootfs" % lxcname
+
+        if not os.path.isdir("%s/global/users/%s" % (self.fspath,username)):
+            path = env.getenv('DOCKLET_LIB')
+            subprocess.call([path+"/master/userinit.sh", username])
+            logger.info("user %s directory not found, create it" % username)
+            sys_run("mkdir -p /var/lib/lxc/%s" % lxcname)
+            logger.info("generate config file for %s" % lxcname)
+
+        def config_prepare(content):
+            content = content.replace("%ROOTFS%",rootfs)
+            content = content.replace("%HOSTNAME%","batch-%s" % str(instanceid))
+            content = content.replace("%CONTAINER_MEMORY%",str(quota.memory))
+            content = content.replace("%CONTAINER_CPU%",str(quota.cpu*100000))
+            content = content.replace("%FS_PREFIX%",self.fspath)
+            content = content.replace("%LXCSCRIPT%",env.getenv("LXC_SCRIPT"))
+            content = content.replace("%USERNAME%",username)
+            content = content.replace("%LXCNAME%",lxcname)
+            content = content.replace("%IP%",ip)
+            content = content.replace("%GATEWAY%",self.cons_gateway)
+            return content
+
+        logger.info(self.confpath)
+        conffile = open(self.confpath+"/container.batch.conf", 'r')
+        conftext = conffile.read()
+        conffile.close()
+
+        conftext = config_prepare(conftext)
+
+        conffile = open("/var/lib/lxc/%s/config" % lxcname, 'w')
+        conffile.write(conftext)
+        conffile.close()
+        return [True, ip]
 
     def process_task(self, request, context):
         logger.info('excute task with parameter: ' + str(request))
@@ -210,52 +257,16 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         outpath = [request.parameters.stdoutRedirectPath,request.parameters.stderrRedirectPath]
         timeout = request.timeout
         gpu_need = int(request.cluster.instance.gpu)
+        reused = request.reused
 
-        # acquire ip
-        [status, ip] = self.acquire_ip()
-        if not status:
+        #create container
+        [success, ip] = self.create_container(instanceid, username, image, lxcname, instance_type)
+        if not success:
             return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED, message=ip)
-
-        # prepare image and filesystem
-        status = self.imgmgr.prepareFS(username,image,lxcname,str(instance_type.disk))
-        if not status:
-            self.release_ip(ip)
-            return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED, message="Create container for batch failed when preparing filesystem")
-
-        rootfs = "/var/lib/lxc/%s/rootfs" % lxcname
-
-        if not os.path.isdir("%s/global/users/%s" % (self.fspath,username)):
-            path = env.getenv('DOCKLET_LIB')
-            subprocess.call([path+"/master/userinit.sh", username])
-            logger.info("user %s directory not found, create it" % username)
-            sys_run("mkdir -p /var/lib/lxc/%s" % lxcname)
-            logger.info("generate config file for %s" % lxcname)
-
-        def config_prepare(content):
-            content = content.replace("%ROOTFS%",rootfs)
-            content = content.replace("%HOSTNAME%","batch-%s" % str(instanceid))
-            content = content.replace("%CONTAINER_MEMORY%",str(instance_type.memory))
-            content = content.replace("%CONTAINER_CPU%",str(instance_type.cpu*100000))
-            content = content.replace("%FS_PREFIX%",self.fspath)
-            content = content.replace("%LXCSCRIPT%",env.getenv("LXC_SCRIPT"))
-            content = content.replace("%USERNAME%",username)
-            content = content.replace("%LXCNAME%",lxcname)
-            content = content.replace("%IP%",ip)
-            content = content.replace("%GATEWAY%",self.cons_gateway)
-            return content
-
-        logger.info(self.confpath)
-        conffile = open(self.confpath+"/container.batch.conf", 'r')
-        conftext = conffile.read()
-        conffile.close()
-
-        conftext = config_prepare(conftext)
-
-        conffile = open("/var/lib/lxc/%s/config" % lxcname, 'w')
-        conffile.write(conftext)
 
         #mount oss
         self.mount_oss("%s/global/users/%s/oss" % (self.fspath,username), mount_list)
+        conffile = open("/var/lib/lxc/%s/config" % lxcname, 'a+')
         mount_str = "lxc.mount.entry = %s/global/users/%s/oss/%s %s/root/oss/%s none bind,rw,create=dir 0 0"
         for mount in mount_list:
             conffile.write("\n"+ mount_str % (self.fspath, username, mount.remotePath, rootfs, mount.remotePath))
