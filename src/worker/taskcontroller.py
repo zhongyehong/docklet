@@ -114,9 +114,10 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         self.gpu_lock.acquire()
         use_gpus = []
         for gpuid in self.gpu_status.keys():
-            if self.gpu_status[gpuid] == "":
+            if self.gpu_status[gpuid] == "" and gpu_need > 0:
                 use_gpus.append(gpuid)
-        if len(use_gpus) < gpu_need:
+                gpu_need -= 1
+        if gpu_need > 0:
             self.gpu_lock.release()
             return [False, "No free GPUs"]
         for gpuid in use_gpus:
