@@ -180,7 +180,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         except Exception as err:
             logger.error(traceback.format_exc())
             return [False,""]
-
+    #accquire ip and create a container
     def create_container(self,instanceid,username,image,lxcname,quota):
         # acquire ip
         [status, ip] = self.acquire_ip()
@@ -256,6 +256,7 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
         outpath = [request.parameters.stdoutRedirectPath,request.parameters.stderrRedirectPath]
         timeout = request.timeout
         gpu_need = int(request.cluster.instance.gpu)
+        reused = request.reused
 
         #create container
         [success, ip] = self.create_container(instanceid, username, image, lxcname, instance_type)

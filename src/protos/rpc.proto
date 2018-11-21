@@ -51,6 +51,7 @@ message TaskInfo {
 	Cluster cluster = 7;		// 集群配置
 	int32 timeout = 8;			// 超时阈值
 	string token = 9;
+	bool reused = 10;			//是否重用
 }
 
 message Parameters {
