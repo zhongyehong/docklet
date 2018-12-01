@@ -158,6 +158,18 @@ def output_batch_job(jobid, taskid, instid, issue):
     outputBatchJobView.issue = issue
     return outputBatchJobView().as_view()
 
+@app.route("/batch/job/output/<masterip>/<jobid>/<taskid>/<instid>/<issue>/", methods=['POST'])
+@login_required
+def output_batch_job_request(masterip, jobid, taskid, instid, issue):
+    data = {
+        'jobid':jobid,
+        'taskid':taskid,
+        'instid':instid,
+        'issue':issue
+    }
+    result = dockletRequest.post("/batch/job/output/",data,masterip)
+    return json.dumps(result)
+
 @app.route("/workspace/create/", methods=['GET'])
 #@activated_required
 def addCluster():
