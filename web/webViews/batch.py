@@ -53,7 +53,7 @@ class addBatchJobView(normalView):
             return self.error()
 
 class outputBatchJobView(normalView):
-    #template_path = "batch/batch_output.html"
+    template_path = "batch/batch_output.html"
     jobid = ""
     taskid = ""
     instid = ""
@@ -72,6 +72,7 @@ class outputBatchJobView(normalView):
         output = result.get("data")
         #logger.debug("job_list: %s" % job_list)
         if result.get('success',"") == "true":
-            return "<pre>" + output + "</pre>"
+            return self.render(self.template_path, masterip=masterips[0].split("@")[0], jobid=self.jobid,
+                               taskid=self.taskid, instid=self.instid, issue=self.issue, output=output)
         else:
             return self.error()

@@ -1,5 +1,6 @@
 import time, threading, random, string, os, traceback
 import master.monitor
+import subprocess
 
 from utils.log import initlogging, logger
 from utils import env
@@ -169,10 +170,11 @@ class JobMgr(threading.Thread):
         fpath = "%s/global/users/%s/data/batch_%s/%s" % (self.fspath,username,jobid,filename)
         logger.info("Get output from:%s" % fpath)
         try:
-            file = open(fpath)
-            output = file.read()
+            ret = subprocess.run('tail -n 100 ' + fpath,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
+            if ret.returncode != 0:
+                raise IOError(ret.stdout.decode(encoding="utf-8"))
         except Exception as err:
             logger.error(traceback.format_exc())
             return ""
         else:
-            return output
+            return ret.stdout.decode(encoding="utf-8")
