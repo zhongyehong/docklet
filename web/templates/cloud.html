@@ -55,6 +55,7 @@
          </div>
          <div class="box-body table-responsive">
 		 <form action="/cloud/{{master.split("@")[0]}}/setting/modify/" method="POST">
+       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 			 <textarea id="setting" name="setting" class="form-control" rows="20">{{ info['result'] }}</textarea>
 			 <button type="submit" class="btn btn-primary">Save</button>
 		 </form>

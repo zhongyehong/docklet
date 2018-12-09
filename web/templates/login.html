@@ -32,6 +32,7 @@
     <p class="login-box-msg">An easy and quick way to launch your DISTRIBUTED applications!</p>
 
     <form action="" method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="form-group has-feedback">
         <input type="text" class="form-control" placeholder="Username" name="username">
         <span class="glyphicon glyphicon-user form-control-feedback"></span>

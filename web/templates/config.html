@@ -74,6 +74,7 @@
                                            <div class="modal-body">
                                                 <div class="form-group">
 							<form action="/workspace/{{master.split("@")[0]}}/scaleout/{{ clustername }}/" method="POST" >
+                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <table class="table table-striped table-bordered table-hover table-image">
 								<thead>
 									<tr>
@@ -199,6 +200,7 @@
                                            <div class="modal-body">
                                                 <div class="form-group">
 							<form action="/workspace/{{master.split("@")[0]}}/save/{{ clustername }}/{{ container['containername'] }}/" method="POST" id="saveImage">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                   <label>Image Name</label>
 						  <input type="text" placeholder="Enter Image Name" class="form-control" name="ImageName" id="ImageName"/>
 						  <br/>
@@ -249,6 +251,7 @@
                                                </div>
                                                <div class="modal-body">
                                                       <form action="/port_mapping/add/{{master.split("@")[0]}}/" method="POST" id="AddportsmappingForm">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                         <div class="form-group">
                                                           <label>Cluster Name</label>
                                                           <input type = "text" value="{{ clustername }}" class="form-control" name="clustername" readonly="readonly">
@@ -376,6 +379,7 @@
                                                </div>
                                                <div class="modal-body">
 						       <form action="/image/{{master.split("@")[0]}}/copy/{{image['name']}}/" method="POST" id="CopyImageForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 				<table class="table table-striped table-bordered table-hover table-image">
 									<thead>
 										<tr>

@@ -23,6 +23,7 @@ apt-get install -y nodejs nodejs-legacy npm
 apt-get install -y etcd
 apt-get install -y glusterfs-client attr
 apt-get install -y nginx
+pip3 install Flask-WTF
 
 #add ip forward
 echo "net.ipv4.ip_forward=1" >>/etc/sysctl.conf
