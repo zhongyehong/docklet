@@ -31,15 +31,20 @@
   <div class="login-box-body">
     <p class="login-box-msg">An easy and quick way to launch your DISTRIBUTED applications!</p>
 
-    <form action="" method="POST">
+    <form action="" method="POST" id="loginForm">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="form-group has-feedback">
-        <input type="text" class="form-control" placeholder="Username" name="username">
         <span class="glyphicon glyphicon-user form-control-feedback"></span>
+        <input type="text" class="form-control" placeholder="Username" name="username" required>
       </div>
       <div class="form-group has-feedback">
-        <input type="password" class="form-control" placeholder="Password" name="password">
         <span class="glyphicon glyphicon-lock form-control-feedback"></span>
+        <input type="password" class="form-control" placeholder="Password" name="password" required>
+      </div>
+      <div class="row">
+        <div class="col-xs-12">
+          <p style="text-align:center;font-weight:800;color:red;">{{ loginMsg }}</p>
+        </div>
       </div>
       <div class="row">
         <div class="col-xs-12">
@@ -74,6 +79,12 @@
 <script src="//cdn.bootcss.com/jquery/2.2.1/jquery.min.js"></script>
 <!-- Bootstrap 3.3.5 -->
 <script src="//cdn.bootcss.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<script src="//cdn.bootcss.com/jquery-validate/1.17.0/jquery.validate.js"></script>
+<script>
+$().ready(function() {
+    $("#loginForm").validate();
+});
+</script>
 
 </body>
 </html>

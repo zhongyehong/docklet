@@ -209,9 +209,9 @@ class userManager:
         password = hashlib.sha512(password.encode('utf-8')).hexdigest()
         user = User.query.filter_by(username = username).first()
         if (user == None):
-            return {"success":'false', "reason": "User did not exist"}
+            return {"success":'false', "reason": "User does not exist!"}
         if (user.password != password):
-            return {"success":'false', "reason": "Wrong password"}
+            return {"success":'false', "reason": "Wrong password!"}
         result = {
             "success": 'true',
             "data":{
@@ -230,7 +230,7 @@ class userManager:
         user = User.query.filter_by(username = username).first()
         pamresult = PAM.authenticate(username, password)
         if (pamresult == False or (user != None and user.auth_method != 'pam')):
-            return {"success":'false', "reason": "Wrong password or wrong login method"}
+            return {"success":'false', "reason": "Wrong password or wrong login method!"}
         if (user == None):
             newuser = self.newuser();
             newuser.username = username
@@ -328,12 +328,12 @@ class userManager:
         '''
         user = User.query.filter_by(username = username).first()
         result = {}
-        if (user == None or user.auth_method =='pam'):
-            result = self.auth_pam(username, password)
-        elif (user.auth_method == 'local'):
+        if (user == None or user.auth_method =='local'):
             result = self.auth_local(username, password)
+        elif (user.auth_method == 'pam'):
+            result = self.auth_pam(username, password)
         else:
-            result  = {'success':'false', 'reason':'auth_method error'}
+            result  = {'success':'false', 'reason':'auth_method error!'}
 
         if result['success'] == 'true':
             loginmsg = LoginMsg(result['data']['username'],userip)
