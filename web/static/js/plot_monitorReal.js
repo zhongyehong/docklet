@@ -4,7 +4,7 @@ var total = 0;
 var idle = 0;
 var disk_usedp = 0;
 var count = 0;
-var Ki = 1024; 
+var Ki = 1024;
 var is_running = true;
 
 function processMemData(data)
@@ -15,7 +15,7 @@ function processMemData(data)
 	    total = data.monitor.meminfo.total;
 	    var used2 = ((data.monitor.meminfo.used)/Ki).toFixed(2);
 	    var total2 = ((data.monitor.meminfo.total)/Ki).toFixed(2);
-	    var free2 = ((data.monitor.meminfo.free)/Ki).toFixed(2);	
+	    var free2 = ((data.monitor.meminfo.free)/Ki).toFixed(2);
 	    $("#mem_used").html(used2);
 	    $("#mem_total").html(total2);
 	    $("#mem_free").html(free2);
@@ -32,7 +32,7 @@ function getMemY()
 {
 	if(total == 0)
 		return 0;
-	else 
+	else
 		return (used/total)*100;
 }
 function processCpuData(data)
@@ -101,8 +101,8 @@ function plot_graph(container,url,processData,getY) {
     //
 
     var data = [];
-    
-   
+
+
 
     function getBaseData() {
 
@@ -211,7 +211,7 @@ var host = window.location.host;
 
 var com_ip = $("#com_ip").html();
 var masterip = $("#masterip").html();
-var url = "http://" + host + "/monitor/" + masterip + "/hosts/"+com_ip;
+var url = "//" + host + "/monitor/" + masterip + "/hosts/"+com_ip;
 
 function processStatus()
 {
@@ -229,4 +229,3 @@ plot_graph($("#mem-chart"), url + "/meminfo/" ,processMemData,getMemY);
 plot_graph($("#cpu-chart"), url +  "/cpuinfo/",processCpuData,getCpuY);
 //plot_graph($("#disk-chart"), url + "/diskinfo",processDiskData,getDiskY);
 $.post(url+"/diskinfo/",{},processDiskData,"json");
-
