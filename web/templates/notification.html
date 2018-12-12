@@ -111,6 +111,7 @@
                                             </div>
                                             <div class="modal-body">
                                                 <form id="modifyNotificationForm_{{ notify['id'] }}" action="/notification/modify/" method="post">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                     <div class="form-group">
                                                         <label>Title</label>
                                                         <input type="text" class="form-control" name="title" value="{{ notify['title'] }}">
@@ -184,6 +185,7 @@
                                             <div class="modal-body">
                                                 <strong class="text-center">Are you sure to do this?</strong>
                                                 <form id="deleteNotificationForm_{{ notify['id'] }}" style="display: none" action="/notification/delete/" method="post">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                     <input type="text" class="form-control" name="notify_id" style="display: none" value="{{ notify['id'] }}">
                                                 </form>
                                             </div>

@@ -23,6 +23,7 @@
 {% block content %}
 <div class="box-body text-center p-md">
 	<form action="/workspace/{{masterip}}/save/{{ clustername }}/{{ containername }}/force/" method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">  
 	<label>Image:</label>
 	<input type="text" name="ImageName" id="ImageName" readonly="true" value="{{ image }}"/>
 	<label> exists, are you sure to overwrite it?</label>

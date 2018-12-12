@@ -156,10 +156,9 @@
    function updateAll()
    {
         var host = window.location.host;
-      	//  var url0 = "http://" + host + "/monitor/hosts/";
    {% for master in allmachines %}
    {% for phym in allmachines[master] %}
-   	url = "http://" + host + "/monitor/" + '{{master.split("@")[0]}}' + "/hosts/" + '{{phym["ip"]}}';
+   	url = "//" + host + "/monitor/" + '{{master.split("@")[0]}}' + "/hosts/" + '{{phym["ip"]}}';
         // url = url0 + '{{ phym['ip'] }}';
 	update(url,'{{master.split("@")[1]}}_{{ loop.index }}');
    {% endfor %}

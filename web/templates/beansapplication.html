@@ -48,6 +48,7 @@
                      </div>
                      <div class="modal-body">
                        <form action="/beans/apply/" method="POST" id="beansapplyForm">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                           <div class="form-group">
                             <label>Number</label><small class="font-bold"> How many beans do you need?</small>
                             <input type="number" class="form-control" placeholder="100-5000" name="number" id="number" min="100" max="5000" required />
@@ -101,9 +102,9 @@
 
 {% block script_src %}
 
-<script src="http://cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.js"></script>
-<script src="http://cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.js"></script>
-<script src="http://cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
+<script src="//cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.js"></script>
+<script src="//cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.js"></script>
+<script src="//cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
 <script src="https://cdn.bootcss.com/jquery-validate/1.17.0/jquery.validate.js"></script>
 
 <script>

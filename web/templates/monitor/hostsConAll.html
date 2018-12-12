@@ -133,10 +133,8 @@
    function updateAll()
    {
         var host = window.location.host;
-     //   var url0 = "http://" + host + "/monitor/vnodes/";
-
 	{% for container in containerslist %}
-	url =  "http://" + host + "/monitor/" + '{{masterip}}' + "/vnodes/" + '{{container["Name"]}}';
+	url =  "//" + host + "/monitor/" + '{{masterip}}' + "/vnodes/" + '{{container["Name"]}}';
         //url = url0 + '{{ container['Name'] }}';
 	update(url,'{{ container['Name'] }}');
 	{% endfor %}
@@ -144,7 +142,7 @@
 		var info = data.monitor.concpuinfo;
 		for(container in info)
         {
-		    $("#"+container+"_cpupercent").html(info[container]);		       	
+		    $("#"+container+"_cpupercent").html(info[container]);
         }
 		},"json");*/
    }

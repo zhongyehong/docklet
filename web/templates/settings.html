@@ -51,6 +51,7 @@
                        <div class="modal-body">
 
                             <form action="/group/add/" method="POST" id="addGroupForm">
+                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <div class="form-group">
                                     <label>Name</label>
                                     <input type="text" placeholder="Enter Name" class="form-control" name="groupname"/>
@@ -87,6 +88,7 @@
                        <div class="modal-body">
 
                             <form action="/quota/add/" method="POST" id="addQuotaForm">
+                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <div class="form-group">
                                     <label>Name</label>
                                     <input type="text" placeholder="Enter Name" class="form-control" name="quotaname"/>
@@ -121,6 +123,7 @@
                        </div>
                        <div class="modal-body">
                             <form action="/quota/chdefault/" method="POST" id="chDefaultForm">
+                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <div class="form-group">
                                     <label>Default Group</label>
                                     <select class="form-control" name="defaultgroup" value={{ defaultgroup }} />
@@ -176,6 +179,7 @@
                                     <small class="font-bold">Modify a group in Docklet</small>
                                 </div>
                                 <form action="/group/modify/{{group['name']}}/" method="POST" >
+                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <div class="modal-body">
                                       <div class="form-group">
                                           <label>Name</label>
@@ -276,6 +280,7 @@
          </div>
          <div class="box-body">
              <form id="chlxcsetting" class="form-horizontal" action="/quota/chlxcsetting/" method="POST">
+               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                  <div class="form-group">
                      <label class="control-label col-sm-2">CPU</label>
                      <div class="col-sm-8"><input type="number" class="form-control" name="lxcCpu" id="lxcCpu" value={{lxcsetting['cpu']}} />CORE</div>
@@ -305,6 +310,7 @@
           </div>
           <div class="box-body">
           <form role="form" action="/settings/update/" method="POST" >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="box-body">
               <div class="form-group">
                 <label for="ADMIN_EMAIL_ADDRESS">Admin Email Address</label>
@@ -415,6 +421,7 @@
                                     <h4>Sure to set <strong> {{ parm["parm"] }} </strong>to <strong>{{ history }} </strong>?</h4>
                                 </div>
                                 <form action="/system/modify/" method="POST">
+                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <div style="display:none">
                                       <input type="text" placeholder="" class="" name="field" value={{field}} />
                                       </div>
@@ -473,6 +480,7 @@
                                     <small class="font-bold">Modify a parameter in Docklet</small>
                                 </div>
                                 <form action="/system/modify/" method="POST" >
+                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                   <div style="display:none">
                                       <input type="text" placeholder="" class="" name="field" value={{field}} />
                                       </div>
@@ -515,6 +523,7 @@
                                     <h4>Sure to set <strong> {{ parm["parm"] }} </strong> to <strong> {{ parm["default"] }} </strong> ?</h4>
                                 </div>
                                 <form action="/system/modify/" method="POST">
+                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <div style="display:none">
                                       <input type="text" placeholder="" class="" name="field" value={{field}} />
                                       </div>
@@ -574,7 +583,7 @@
 {% block script_src %}
 <script src="//cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.min.js"></script>
 <script src="//cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.min.js"></script>
-<script src="http://cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
+<script src="//cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
 
 <script type="text/javascript">
     $(document).ready(function() {

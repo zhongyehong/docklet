@@ -55,6 +55,7 @@
          </div>
          <div class="box-body table-responsive">
 		 <form action="/cloud/{{master.split("@")[0]}}/setting/modify/" method="POST">
+       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 			 <textarea id="setting" name="setting" class="form-control" rows="20">{{ info['result'] }}</textarea>
 			 <button type="submit" class="btn btn-primary">Save</button>
 		 </form>
@@ -69,5 +70,5 @@
 {% block script_src %}
 <script src="//cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.min.js"></script>
 <script src="//cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.min.js"></script>
-<script src="http://cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
+<script src="https://cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
 {% endblock %}

@@ -159,7 +159,7 @@ var host = window.location.host;
 
 var node_name = $("#node_name").html();
 var masterip = $("#masterip").html();
-var url = "http://" + host + "/monitor/" + masterip + "/vnodes/" + node_name;
+var url = "//" + host + "/monitor/" + masterip + "/vnodes/" + node_name;
 
 function num2human(data)
 {
@@ -260,7 +260,7 @@ function processInfo()
 
 function plot_net(host,monitorurl)
 {
-  var url = "http://" + host + "/user/selfQuery/";
+  var url = "//" + host + "/user/selfQuery/";
 
    $.post(url,{},function(data){
       ingress_rate_limit = parseInt(data.groupinfo.input_rate_limit);

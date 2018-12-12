@@ -29,6 +29,7 @@
   <div class="login-box-body">
     <p class="login-box-msg">An easy and quick way to launch your DISTRIBUTED applications!</p>
             <form class="m-t" role="form" action="" id="activateForm" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-group">
                     <input type="email" class="form-control" placeholder="E-mail" required="" name="email" value="{{ info['e_mail'] }}">
                 </div>
