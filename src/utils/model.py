@@ -221,6 +221,20 @@ class LoginMsg(db.Model):
     def __repr__(self):
         return '<id=%d, username=%s, userip=%s, time=%s>' % (self.id,self.username,self.userip,self.time.strftime("%Y-%m-%d %H:%M:%S"))
 
+class LoginFailMsg(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(10), unique=True)
+    failcnt = db.Column(db.Integer)
+    bantime = db.Column(db.DateTime)
+
+    def __init__(self, username):
+        self.username = username
+        self.failcnt = 0
+        self.bantime = datetime.now()
+
+    def __repr__(self):
+        return '<id=%d, username=%s, failcnt=%d, bantime=%s>' % (self.id,self.username,self.failcnt,self.bantime.strftime("%Y-%m-%d %H:%M:%S"))
+
 class VNode(db.Model):
     __bind_key__ = 'history'
     name = db.Column(db.String(100), primary_key=True)
