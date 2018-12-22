@@ -48,7 +48,7 @@
     function updateOutput()
     {
       var host = window.location.host;
-      url = "http://" + host + "/batch/job/output/" + "{{ masterip }}" + "/" + "{{ jobid }}" + "/" + "{{ taskid }}" + "/" + "{{ instid }}" + "/" + "{{ issue }}" + "/";
+      url = "//" + host + "/batch/job/output/" + "{{ masterip }}" + "/" + "{{ jobid }}" + "/" + "{{ taskid }}" + "/" + "{{ instid }}" + "/" + "{{ issue }}" + "/";
       $.post(url,{},function(data){
         $("#output").html(data.data);
       },"json");
