@@ -42,6 +42,7 @@
                         <div class="box-body">
                 <form id="form" class="form-horizontal" action="/batch_job/{{masterips[0].split("@")[0]}}/add/" method="POST">
 
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="form-group"><label class="col-sm-2 control-label">Job Name</label>
                         <div class="col-sm-10"><input type="text" class="form-control" name="jobName" id="job_name"></div>
                     </div>
@@ -79,21 +80,19 @@
 {% endblock %}
 
 {% block script_src %}
-    <!-- Custom and plugin javascript -->
-    <script src="/static/js/inspinia.js"></script>
 
-    <script src="http://cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
 
     <!-- Steps -->
-    <script src="http://cdn.bootcss.com/jquery-steps/1.1.0/jquery.steps.min.js"></script>
+    <script src="//cdn.bootcss.com/jquery-steps/1.1.0/jquery.steps.min.js"></script>
 
     <!-- Jquery Validate -->
-    <script src="http://cdn.bootcss.com/jquery-validate/1.15.0/jquery.validate.min.js"></script>
+    <script src="//cdn.bootcss.com/jquery-validate/1.15.0/jquery.validate.min.js"></script>
 
 
-    <script src="http://cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.js"></script>
-    <script src="http://cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.js"></script>
-    <script src="http://cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
+    <script src="//cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.min.js"></script>
+    <script src="//cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.min.js"></script>
+    <script src="//cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
 
 
     <script type="text/javascript">

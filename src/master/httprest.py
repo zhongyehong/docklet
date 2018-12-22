@@ -803,6 +803,8 @@ def add_job(user,beans,form):
         'message': 'add batch job success'
     }
     for key in job_data:
+        if key == 'csrf_token':
+            continue
         key_arr = key.split('_')
         value = job_data[key]
         if key_arr[0] == 'srcAddr' and value == '':
