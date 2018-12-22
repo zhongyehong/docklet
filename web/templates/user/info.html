@@ -91,6 +91,7 @@
                                       <div class="modal-body">
 
                                            <form action="/user/info/" method="POST" id="ChpasswordForm">
+                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                              <div class="form-group">
                                                <label>Old password</label>
                                                <input type = "password" placeholder="Enter old password" class="form-control" name="o_password" id="o_password">

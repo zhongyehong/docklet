@@ -94,7 +94,7 @@ def login():
     auth_result = G_usermgr.auth(user,key,userip)
     if auth_result['success'] == 'false':
         logger.info("%s login failed" % user)
-        return json.dumps({'success':'false', 'message':'auth failed'})
+        return json.dumps({'success':'false', 'message':auth_result['reason']})
     logger.info("%s login success" % user)
     return json.dumps({'success':'true', 'action':'login', 'data': auth_result['data']})
 
@@ -473,7 +473,7 @@ def query_self_notifications_infos(cur_user, user, form):
     result = G_notificationmgr.query_self_notifications_infos(cur_user=cur_user, form=form)
     return json.dumps(result)
 
-@app.route("/bug/report/", methods=['POST']) 
+@app.route("/bug/report/", methods=['POST'])
 @login_required
 def report_bug(cur_user, user, form):
     logger.info("handle request: bug/report")

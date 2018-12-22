@@ -50,6 +50,7 @@
                      </div>
                      <div class="modal-body">
                        <form action="/user/add/" method="POST" id="addUserForm">
+                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                           <div class="form-group">
                             <label>User Name</label>
                             <input type = "text" placeholder="Enter Username" class="form-control" name="username">
@@ -100,6 +101,7 @@
                              </div>
                              <div class="modal-body">
                                <form action="/user/modify/" method="POST" id="modifyUserForm">
+                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                   <div class="form-group">
                                     <label>User Name</label>
                                     <input type = "text" placeholder="Enter Username" class="form-control" name="username" id="mUsername" readonly="readonly">
@@ -182,6 +184,7 @@
                              </div>
                              <div class="modal-body">
                                <form action="/user/change/" method="POST" id="chpasswordForm">
+                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                   <div class="form-group">
                                     <label>User Name</label>
                                     <input type = "text" placeholder="Enter Username" class="form-control" name="username" id="mpUsername" readonly="readonly">

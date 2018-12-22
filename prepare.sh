@@ -23,6 +23,7 @@ apt-get install -y nodejs nodejs-legacy npm
 apt-get install -y etcd
 apt-get install -y glusterfs-client attr
 apt-get install -y nginx
+pip3 install Flask-WTF
 apt-get install -y gdebi-core
 gdebi ossfs_1.80.5_ubuntu16.04_amd64.deb
 pip3 install grpcio grpcio-tools googleapis-common-protos

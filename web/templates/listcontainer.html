@@ -76,6 +76,7 @@
                                            <div class="modal-body">
                                                 <div class="form-group">
                                                   <form action="/cluster/save/{{ clustername }}/{{ container['containername'] }}/" method="GET" id="saveImage">
+                                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                   <label>Image Name</label>
 						  <input type="text" placeholder="Enter image name" class="form-control" name="ImageName" id="ImageName"/>
                                            	  <div class="modal-footer">

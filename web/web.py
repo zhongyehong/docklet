@@ -21,6 +21,7 @@ initlogging("docklet-web")
 from webViews.log import logger
 
 from flask import Flask, request, session, render_template, redirect, send_from_directory, make_response, url_for, abort
+from flask_wtf.csrf import CsrfProtect
 from webViews.dashboard import dashboardView
 from webViews.user.userlist import userlistView, useraddView, usermodifyView, userdataView, userqueryView
 from webViews.notification.notification import CreateNotificationView, NotificationView, QuerySelfNotificationsView, \
@@ -62,7 +63,7 @@ if (external_login == 'True'):
 
 
 app = Flask(__name__)
-
+CsrfProtect(app)
 
 
 @app.route("/", methods=['GET'])
@@ -776,4 +777,4 @@ if __name__ == '__main__':
         elif opt in ("-p", "--port"):
             webport = int(arg)
 
-app.run(host = webip, port = webport, debug = True, threaded=True)
+app.run(host = webip, port = webport, threaded=True)

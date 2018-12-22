@@ -6,6 +6,7 @@ from utils import env, imagemgr
 from utils.lvmtool import sys_run, check_volume
 from worker.monitor import Container_Collector, History_Manager
 import lxc
+from utils import model
 
 class Container(object):
     def __init__(self, addr, etcdclient):
@@ -320,17 +321,11 @@ IP=%s
     # list containers in FS_PREFIX/global/... on this host as global
     def diff_containers(self):
         [status, localcontainers] = self.list_containers()
-        globalpath = self.fspath+"/global/users/"
-        users = os.listdir(globalpath)
+        containers = model.Container.query.all()
         globalcontainers = []
-        for user in users:
-            clusters = os.listdir(globalpath+user+"/clusters")
-            for cluster in clusters:
-                clusterfile = open(globalpath+user+"/clusters/"+cluster, 'r')
-                clusterinfo = json.loads(clusterfile.read())
-                for container in clusterinfo['containers']:
-                    if container['host'] == self.addr:
-                        globalcontainers.append(container['containername'])
+        for con in containers:
+            if con.host == self.addr:
+                globalcontainers.append(con.containername)
         both = []
         onlylocal = []
         onlyglobal = []

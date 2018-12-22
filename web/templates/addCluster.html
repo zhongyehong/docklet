@@ -38,7 +38,7 @@
                        </div>
                         <div class="box-body">
 				<form id="form" class="form-horizontal" action="/workspace/{{masterips[0].split("@")[0]}}/add/" method="POST">
-
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 				    <div class="form-group"><label class="col-sm-2 control-label">Workspace Name</label>
 					    <div class="col-sm-10"><input type="text" class="form-control" name="clusterName" id="clusterName"></div>
 				    </div>
@@ -94,7 +94,7 @@
 								<td>{{image['name']}}</td>
 								<td>public</td>
 								<td>{{p_user}}</td>
-								<td>{{image['size_format']}}</td>	
+								<td>{{image['size_format']}}</td>
 								<td><a href="/image/{{masterips[0].split("@")[0]}}/description/{{image['name']}}_{{p_user}}_public/" target="_blank">{{image['description']}}</a></td>
 								<td><div class="i-checks"><label><input type="radio" name="image" value="{{image['name']}}_{{p_user}}_public" onchange="setMinDiskSize({{image['size_in_mb']}})"></label></div></td>
 						    	</tr>
@@ -156,20 +156,18 @@
 
 {% block script_src %}
     <!-- Custom and plugin javascript -->
-    <script src="/static/js/inspinia.js"></script>
-
-    <script src="http://cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <script src="https://cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
 
     <!-- Steps -->
-    <script src="http://cdn.bootcss.com/jquery-steps/1.1.0/jquery.steps.min.js"></script>
+    <script src="https://cdn.bootcss.com/jquery-steps/1.1.0/jquery.steps.min.js"></script>
 
     <!-- Jquery Validate -->
-    <script src="http://cdn.bootcss.com/jquery-validate/1.15.0/jquery.validate.min.js"></script>
+    <script src="https://cdn.bootcss.com/jquery-validate/1.15.0/jquery.validate.min.js"></script>
 
 
-	<script src="http://cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.js"></script>
-	<script src="http://cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.js"></script>
-	<script src="http://cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
+	<script src="https://cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.js"></script>
+	<script src="https://cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.js"></script>
+	<script src="https://cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
 
 	<script type="text/javascript">
 		function setMinDiskSize(minSize) {
@@ -185,10 +183,10 @@
 			console.log(masterip);
 			document.getElementById("form").action="/workspace/"+masterip+"/add/";
 			var host = window.location.host;
-			$.post("http://"+host+"/getmasterdesc/"+mastername+"/", {}, function(data) {
+			$.post("//"+host+"/getmasterdesc/"+mastername+"/", {}, function(data) {
 				$("#masterdesc").html(data);
 			});
-			$.post("http://"+host+"/image/"+masterip+"/list/",{},function(data){
+			$.post("//"+host+"/image/"+masterip+"/list/",{},function(data){
 				var images = data.images;
 				var imagehtml =
 					"<thread>"

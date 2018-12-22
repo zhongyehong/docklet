@@ -7,7 +7,7 @@ Warning: in some early versions, "token" stand for the instance of class model.U
 Original author: Liu Peidong
 '''
 
-from utils.model import db, User, UserGroup, Notification, UserUsage, LoginMsg
+from utils.model import db, User, UserGroup, Notification, UserUsage, LoginMsg, LoginFailMsg
 from functools import wraps
 import os, subprocess, math
 import hashlib
@@ -19,7 +19,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 from utils.log import logger
 from utils.lvmtool import *
@@ -144,7 +144,6 @@ class userManager:
         '''
         try:
             User.query.all()
-            LoginMsg.query.all()
         except:
             db.create_all()
             if password == None:
@@ -202,6 +201,8 @@ class userManager:
 
         try:
             UserUsage.query.all()
+            LoginMsg.query.all()
+            LoginFailMsg.query.all()
         except:
             db.create_all()
 
@@ -209,9 +210,9 @@ class userManager:
         password = hashlib.sha512(password.encode('utf-8')).hexdigest()
         user = User.query.filter_by(username = username).first()
         if (user == None):
-            return {"success":'false', "reason": "User did not exist"}
+            return {"success":'false', "reason": "User does not exist!"}
         if (user.password != password):
-            return {"success":'false', "reason": "Wrong password"}
+            return {"success":'false', "reason": "Wrong password!"}
         result = {
             "success": 'true',
             "data":{
@@ -230,7 +231,7 @@ class userManager:
         user = User.query.filter_by(username = username).first()
         pamresult = PAM.authenticate(username, password)
         if (pamresult == False or (user != None and user.auth_method != 'pam')):
-            return {"success":'false', "reason": "Wrong password or wrong login method"}
+            return {"success":'false', "reason": "Wrong password or wrong login method!"}
         if (user == None):
             newuser = self.newuser();
             newuser.username = username
@@ -327,21 +328,45 @@ class userManager:
         return a token as well as some user information
         '''
         user = User.query.filter_by(username = username).first()
+        failmsg = LoginFailMsg.query.filter_by(username = username).first()
         result = {}
-        if (user == None or user.auth_method =='pam'):
-            result = self.auth_pam(username, password)
-        elif (user.auth_method == 'local'):
+        if failmsg == None:
+            newfailmsg = LoginFailMsg(username)
+            db.session.add(newfailmsg)
+            db.session.commit()
+            failmsg = newfailmsg
+        elif failmsg.failcnt > 40:
+            reason = "You have been input wrong password over 40 times. You account will be locked. Please contact administrators for help."
+            logger.info("Login failed: userip=%s reason:%s" % (userip,reason))
+            return {'success':'false', 'reason':reason}
+        elif datetime.now() < failmsg.bantime:
+            reason = "You have been input wrong password %d times. Please try after %s." % (failmsg.failcnt, failmsg.bantime.strftime("%Y-%m-%d %H:%M:%S"))
+            logger.info("Login failed: userip=%s reason:%s" % (userip,reason))
+            return {'success':'false', 'reason':reason}
+
+        if (user == None or user.auth_method =='local'):
             result = self.auth_local(username, password)
+        elif (user.auth_method == 'pam'):
+            result = self.auth_pam(username, password)
         else:
-            result  = {'success':'false', 'reason':'auth_method error'}
+            result  = {'success':'false', 'reason':'auth_method error!'}
 
         if result['success'] == 'true':
             loginmsg = LoginMsg(result['data']['username'],userip)
+            failmsg.failcnt = 0
             db.session.add(loginmsg)
             db.session.commit()
             logger.info("Login success: username=%s, userip=%s" % (result['data']['username'], userip))
         else:
             logger.info("Login failed: userip=%s" % (userip))
+            failmsg.failcnt += 1
+            if failmsg.failcnt == 10:
+                failmsg.bantime = datetime.now() + timedelta(minutes=10)
+            elif failmsg.failcnt == 20:
+                failmsg.bantime = datetime.now() + timedelta(minutes=100)
+            elif failmsg.failcnt == 30:
+                failmsg.bantime = datetime.now() + timedelta(days=1)
+            db.session.commit()
         return result
 
     def auth_token(self, token):

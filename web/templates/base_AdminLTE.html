@@ -117,6 +117,7 @@
             <ul class="dropdown-menu">
               <!-- The user image in the menu -->
 	      <form action="/bug/report/" method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 		<textarea id="bugmessage" name="bugmessage" style="width:250px; height:200px"></textarea>
               	<li class="user-footer" style="background-color:#e6e6e6">
               	  <div class="pull-right">
@@ -293,6 +294,9 @@
 </script>
 
 <script type="text/javascript">
+    $.ajaxSetup({
+      headers: {'X-CSRFToken':'{{ csrf_token() }}'},
+    });
     var ajaxCfg = {
         type : "post",
         url : '/notification/query_self/',

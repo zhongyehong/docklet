@@ -47,7 +47,7 @@ class loginView(normalView):
         else:
             link = ''
             url = ''
-        return render_template(self.template_path, link = link, url = url, open_registry=self.open_registry)
+        return render_template(self.template_path, loginMsg="", link = link, url = url, open_registry=self.open_registry)
 
     @classmethod
     def post(self):
@@ -70,7 +70,14 @@ class loginView(normalView):
                 session['token'] = result['data']['token']
                 return resp
             else:
-                return redirect('/login/')
+                if (env.getenv('EXTERNAL_LOGIN') == 'True'):
+                    url = external_generate.external_login_url
+                    link = external_generate.external_login_link
+                else:
+                    link = ''
+                    url = ''
+                loginMsg = result.get('message', '')
+                return render_template(self.template_path, loginMsg=loginMsg, link = link, url = url, open_registry=self.open_registry)
         else:
             return redirect('/login/')
 

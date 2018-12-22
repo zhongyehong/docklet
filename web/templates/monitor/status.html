@@ -273,9 +273,9 @@
 
 {% block script_src %}
 
-<script src="http://cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.js"></script>
-<script src="http://cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.js"></script>
-<script src="http://cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
+<script src="//cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.js"></script>
+<script src="//cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.js"></script>
+<script src="//cdn.bootcss.com/datatables-tabletools/2.1.5/js/TableTools.min.js"></script>
 
 <script type='text/javascript'>
 function num2human(data)
@@ -408,15 +408,13 @@ function num2human(data)
    function updateAll()
    {
         var host = window.location.host;
-        //var url0 = "http://" + host + "/monitor/vnodes/";
-
 	{% for master in allcontainers %}
-	url = "http://" + host + "/monitor/" + '{{master.split("@")[0]}}' + "/user/net_stats/";
+	url = "//" + host + "/monitor/" + '{{master.split("@")[0]}}' + "/user/net_stats/";
   update_net_stats(url,'{{master.split("@")[1]}}')
  	{% for clustername, clusterinfo in allcontainers[master].items() %}
 	{% for container in clusterinfo['containers'] %}
 	//url = url0 + '{{ container['containername'] }}';
-	url = "http://" + host + "/monitor/" + '{{master.split("@")[0]}}' + "/vnodes/" + '{{container["containername"]}}' ;
+	url = "//" + host + "/monitor/" + '{{master.split("@")[0]}}' + "/vnodes/" + '{{container["containername"]}}' ;
 	update(url,'{{master.split("@")[1]}}_{{ container['containername'] }}');
 	{% endfor %}
 	{% endfor %}
