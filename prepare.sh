@@ -16,7 +16,7 @@ fi
 # some packages' name maybe different in debian
 apt-get install -y cgmanager lxc lxcfs lxc-templates lvm2 bridge-utils curl exim4 openssh-server openvswitch-switch
 apt-get install -y python3 python3-netifaces python3-flask python3-flask-sqlalchemy python3-pampy python3-httplib2 python3-pip
-apt-get install -y python3-psutil python3-flask-migrate
+apt-get install -y python3-psutil python3-flask-migrate python3-paramiko
 apt-get install -y python3-lxc
 apt-get install -y python3-requests python3-suds
 apt-get install -y nodejs nodejs-legacy npm
@@ -24,6 +24,9 @@ apt-get install -y etcd
 apt-get install -y glusterfs-client attr
 apt-get install -y nginx
 pip3 install Flask-WTF
+apt-get install -y gdebi-core
+gdebi ossfs_1.80.5_ubuntu16.04_amd64.deb
+pip3 install grpcio grpcio-tools googleapis-common-protos
 
 #add ip forward
 echo "net.ipv4.ip_forward=1" >>/etc/sysctl.conf
