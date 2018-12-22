@@ -45,6 +45,9 @@
   <script src="//cdn.bootcss.com/toastr.js/latest/js/toastr.min.js"></script>
 
   <script type="text/javascript">
+    $.ajaxSetup({
+      headers: {'X-CSRFToken':'{{ csrf_token() }}'},
+    });
     function updateOutput()
     {
       var host = window.location.host;

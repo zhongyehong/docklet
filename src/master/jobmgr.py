@@ -22,10 +22,7 @@ class BatchJob(object):
     def top_sort(self):
         logger.debug('top sorting')
         tasks = self.raw_job_info["tasks"]
-        logger.debug('top sorting test')
         dependency_graph = {}
-        logger.debug('top sorting test2')
-        logger.info(tasks)
         for task_idx in tasks:
             dependency_graph[task_idx] = set()
             task_info = tasks[task_idx]
@@ -36,7 +33,6 @@ class BatchJob(object):
                 if not t in tasks:
                     raise ValueError('task %s is not defined in the dependency of task %s' % (t, task_idx))
                 dependency_graph[task_idx].add(t)
-        logger.debug('top sorting end')
         while len(dependency_graph) > 0:
             s = set()
             flag = False
@@ -58,7 +54,6 @@ class BatchJob(object):
                 'task_idx': s,
                 'status': 'pending'
             })
-        logger.debug('top sorting return')
 
     # get a task and pass it to taskmgr
     def get_task(self):
@@ -94,11 +89,8 @@ class JobMgr(threading.Thread):
     # user submit a new job, add this job to queue and database
     def add_job(self, user, job_info):
         try:
-            logger.info(self.job_queue)
             job = BatchJob(user, job_info)
-            logger.info("test2")
             job.job_id = self.gen_jobid()
-            logger.info("test3")
             self.job_queue.append(job.job_id)
             self.job_map[job.job_id] = job
         except ValueError as err:
@@ -113,7 +105,6 @@ class JobMgr(threading.Thread):
     # list a user's all job
     def list_jobs(self,user):
         res = []
-        logger.info(self.job_queue)
         for job_id in self.job_queue:
             job = self.job_map[job_id]
             logger.debug('job_id: %s, user: %s' % (job_id, job.user))
