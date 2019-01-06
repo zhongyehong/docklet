@@ -16,6 +16,7 @@ import grpc
 #from utils import env
 import json,lxc,subprocess,threading,os,time,traceback
 from utils import imagemgr,etcdlib,gputools
+from utils.lvmtool import sys_run
 from worker import ossmounter
 from protos import rpc_pb2, rpc_pb2_grpc
 
@@ -200,8 +201,8 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
             path = env.getenv('DOCKLET_LIB')
             subprocess.call([path+"/master/userinit.sh", username])
             logger.info("user %s directory not found, create it" % username)
-            sys_run("mkdir -p /var/lib/lxc/%s" % lxcname)
-            logger.info("generate config file for %s" % lxcname)
+        sys_run("mkdir -p /var/lib/lxc/%s" % lxcname)
+        logger.info("generate config file for %s" % lxcname)
 
         def config_prepare(content):
             content = content.replace("%ROOTFS%",rootfs)
@@ -272,8 +273,11 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
             conffile.write("\n"+ mount_str % (self.fspath, username, mount.remotePath, rootfs, mount.remotePath))
         conffile.close()
 
-        container = lxc.Container(lxcname)
-        if not container.start():
+
+        logger.info("Start container %s..." % lxcname)
+        #container = lxc.Container(lxcname)
+        ret = subprocess.run('lxc-start -n %s'%lxcname,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
+        if ret.returncode != 0:
             logger.error('start container %s failed' % lxcname)
             self.release_ip(ip)
             self.imgmgr.deleteFS(lxcname)
