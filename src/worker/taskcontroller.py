@@ -16,6 +16,7 @@ import grpc
 #from utils import env
 import json,lxc,subprocess,threading,os,time,traceback
 from utils import imagemgr,etcdlib,gputools
+from utils.lvmtool import sys_run
 from worker import ossmounter
 from protos import rpc_pb2, rpc_pb2_grpc
 
@@ -200,8 +201,8 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
             path = env.getenv('DOCKLET_LIB')
             subprocess.call([path+"/master/userinit.sh", username])
             logger.info("user %s directory not found, create it" % username)
-            sys_run("mkdir -p /var/lib/lxc/%s" % lxcname)
-            logger.info("generate config file for %s" % lxcname)
+        sys_run("mkdir -p /var/lib/lxc/%s" % lxcname)
+        logger.info("generate config file for %s" % lxcname)
 
         def config_prepare(content):
             content = content.replace("%ROOTFS%",rootfs)
