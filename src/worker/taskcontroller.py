@@ -273,8 +273,11 @@ class TaskController(rpc_pb2_grpc.WorkerServicer):
             conffile.write("\n"+ mount_str % (self.fspath, username, mount.remotePath, rootfs, mount.remotePath))
         conffile.close()
 
-        container = lxc.Container(lxcname)
-        if not container.start():
+
+        logger.info("Start container %s..." % lxcname)
+        #container = lxc.Container(lxcname)
+        ret = subprocess.run('lxc-start -n %s'%lxcname,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
+        if ret.returncode != 0:
             logger.error('start container %s failed' % lxcname)
             self.release_ip(ip)
             self.imgmgr.deleteFS(lxcname)
