@@ -32,6 +32,8 @@ WEB_PORT=8888
 USER_PORT=9100
 #cluster net, default is 172.16.0.1/16
 CLUSTER_NET="172.16.0.1/16"
+# ip addresses range of containers for batch job, default is 10.0.3.0/24
+BATCH_NET="10.0.3.0/24"
 #configurable-http-proxy public port, default is 8000
 PROXY_PORT=8000
 #configurable-http-proxy api port, default is 8001
@@ -103,6 +105,7 @@ pre_start_master () {
     # iptables for NAT network for containers to access web
     iptables -t nat -F
     iptables -t nat -A POSTROUTING -s $CLUSTER_NET -j MASQUERADE
+    iptables -t nat -A POSTROUTING -s $BATCH_NET -j MASQUERADE
 
 }
 
