@@ -47,7 +47,7 @@ class TaskMgr(threading.Thread):
     # load task information from etcd
     # initial a task queue and task schedueler
     # taskmgr: a taskmgr instance
-    def __init__(self, nodemgr, monitor_fetcher, scheduler_interval=2, external_logger=None):
+    def __init__(self, nodemgr, cloudmgr, monitor_fetcher,scheduler_interval=2, external_logger=None):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.jobmgr = None
@@ -65,6 +65,7 @@ class TaskMgr(threading.Thread):
 
         # nodes
         self.nodemgr = nodemgr
+        self.cloudmgr = cloudmgr
         self.monitor_fetcher = monitor_fetcher
         self.cpu_usage = {}
         self.gpu_usage = {}
@@ -130,6 +131,7 @@ class TaskMgr(threading.Thread):
         if instance['status'] == RUNNING and report.instanceStatus != RUNNING:
             self.cpu_usage[instance['worker']] -= task.info.cluster.instance.cpu
             self.gpu_usage[instance['worker']] -= task.info.cluster.instance.gpu
+            self.cloudmgr.removeTaskFromNode(instance['worker'], task)
 
         instance['status'] = report.instanceStatus
         instance['error_msg'] = report.errmsg
@@ -211,6 +213,7 @@ class TaskMgr(threading.Thread):
         instance['try_count'] += 1
         instance['token'] = task.info.token
         instance['worker'] = worker_ip
+        instance['']
 
         self.cpu_usage[worker_ip] += task.info.cluster.instance.cpu
         self.gpu_usage[worker_ip] += task.info.cluster.instance.gpu
@@ -254,7 +257,9 @@ class TaskMgr(threading.Thread):
         for task in self.task_queue:
             if task in self.lazy_delete_list:
                 continue
-            worker = self.find_proper_worker(task)
+            # worker = self.find_proper_worker(task)
+            worker = self.find_proper_cloud_worker(task)
+
 
             for index, instance in enumerate(task.instance_list):
                 # find instance to retry
@@ -269,7 +274,7 @@ class TaskMgr(threading.Thread):
                         instance['token'] = ''
                         self.cpu_usage[instance['worker']] -= task.info.cluster.instance.cpu
                         self.gpu_usage[instance['worker']] -= task.info.cluster.instance.gpu
-
+                        self.cloudmgr.addTaskToNode(worker, task)
                         self.logger.warning('[task_scheduler] worker dead, retry task [%s] instance [%d]' % (task.info.id, index))
                         if worker is not None:
                             return task, index, worker
@@ -279,7 +284,9 @@ class TaskMgr(threading.Thread):
                 if len(task.instance_list) < task.info.instanceCount:
                     instance = {}
                     instance['try_count'] = 0
+                    instance['worker'] = worker
                     task.instance_list.append(instance)
+                    self.cloudmgr.addTaskToNode(worker, task)
                     return task, len(task.instance_list) - 1, worker
 
             self.check_task_completed(task)
@@ -303,6 +310,39 @@ class TaskMgr(threading.Thread):
             if task.info.cluster.instance.gpu + self.get_gpu_usage(worker_ip) > worker_info['gpu']:
                 continue
             return worker_ip
+
+
+        return None
+
+    def find_proper_cloud_worker(self, task, timeout=600, wait_period=3):
+        nodes = self.cloudmgr.engine.listNodes()
+        
+        for node in nodes:
+            if node.cpu_free >= task.info.cluster.instance.cpu and node.memory_free >= task.info.cluster.instance.memory:
+                logger.info("find proper cloud worker, ip: {}".format(node.private_ip))
+                return node
+
+        logger.info("proper cloud worker not found, create a new one")
+
+        result = self.cloudmgr.engine.addNode('ecs.g5.large', 'hdd', 100)
+
+        if result['success'] == 'false':
+            logger.info("create cloud worker failed")
+            return None
+
+        node = result['node']
+        
+        start = time.time()
+        end = start + timeout
+
+        while(time.time() < end):
+            all_nodes = self.nodemgr.get_batch_nodeips()
+            if node.private_ip in all_nodes:
+                logger.info("find proper cloud worker, ip: {} - {}".format(node.public_ip, node.private_ip))
+                return node.private_ip
+            else:
+                time.sleep(wait_period)
+
         return None
 
 

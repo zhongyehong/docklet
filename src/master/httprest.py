@@ -518,8 +518,25 @@ def modify_account_cloud(cur_user, user, form):
 def add_node_cloud(user, beans, form):
     global G_cloudmgr
     logger.info("handle request: cloud/node/add/")
-    G_cloudmgr.engine.addNodeAsync()
+    G_cloudmgr.engine.addNode('ecs.g5.large', 'hdd', 100)
     result = {'success':'true'}
+    return json.dumps(result)
+
+@app.route("/cloud/node/delete/", methods=['POST'])
+@login_required
+def delete_node_cloud(user, beans, form):
+    global G_cloudmgr
+    logger.info("handle request: cloud/node/delete/")
+    result = G_cloudmgr.engine.deleteNode(form.get("nodeid"))
+    return json.dumps(result)
+
+@app.route("/cloud/node/list/", methods=['POST'])
+@login_required
+def list_node_cloud(user, beans, form):
+    global G_cloudmgr
+    logger.info("handle request: cloud/node/list/")
+    nodes = G_cloudmgr.engine.listNodesInfo()
+    result = {'success':'true', 'nodes': nodes}
     return json.dumps(result)
 
 @app.route("/addproxy/", methods=['POST'])
@@ -1097,7 +1114,7 @@ if __name__ == '__main__':
     # server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
     logger.info("starting master server")
 
-    G_taskmgr = taskmgr.TaskMgr(G_nodemgr, monitor.Fetcher)
+    G_taskmgr = taskmgr.TaskMgr(G_nodemgr, G_cloudmgr, monitor.Fetcher)
     G_jobmgr = jobmgr.JobMgr(G_taskmgr)
     G_taskmgr.set_jobmgr(G_jobmgr)
     G_taskmgr.start()

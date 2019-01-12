@@ -32,3 +32,16 @@ class cloudNodeAddView(normalView):
     @classmethod
     def get(self):
         return self.post()
+
+class cloudNodeDeleteView(normalView):
+    @classmethod
+    def post(self):
+        data = {
+            "nodeid": self.nodeid
+        }
+        dockletRequest.post('/cloud/node/delete/', data, self.masterip)
+        return redirect('/hosts/')
+
+    @classmethod
+    def get(self):
+        return self.post()

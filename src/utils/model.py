@@ -44,6 +44,7 @@ app.config['SQLALCHEMY_BINDS'] = {
     'history': 'sqlite:///'+fsdir+'/global/sys/HistoryTable.db',
     'beansapplication': 'sqlite:///'+fsdir+'/global/sys/BeansApplication.db',
     'system': 'sqlite:///'+fsdir+'/global/sys/System.db',
+    'cloud': 'sqlite:///'+fsdir+'/global/sys/Cloud.db',
     'login': 'sqlite:///'+fsdir+'/global/sys/Login.db'
     }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
@@ -421,3 +422,56 @@ class Image(db.Model):
 
     def __repr__(self):
         return "{\"id\":\"%d\",\"imagename\":\"%s\",\"hasPrivate\":\"%s\",\"hasPublic\":\"%s\",\"ownername\":\"%s\",\"updatetime\":\"%s\",\"description\":\"%s\"}" % (self.id,self.imagename,str(self.hasPrivate),str(self.hasPublic),self.create_time.strftime("%Y-%m-%d %H:%M:%S"),self.ownername,self.description)
+
+class CloudNode(db.Model):
+    __bind_key__ = 'cloud'
+    id = db.Column(db.Integer, primary_key=True)
+    node_id = db.Column(db.String(20))
+    public_ip = db.Column(db.String(20))
+    private_ip = db.Column(db.String(20))
+    password = db.Column(db.String(20))
+    running_task_number = db.Column(db.Integer)
+    cpu_total = db.Column(db.Float)
+    memory_total = db.Column(db.Float)
+    disk_total = db.Column(db.Float)
+    cpu_free = db.Column(db.Float)
+    memory_free = db.Column(db.Float)
+    disk_free = db.Column(db.Float)
+    create_time = db.Column(db.DateTime, default=datetime.now)
+    updated_time = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    instance_type = db.Column(db.String(20))
+    price_per_hour = db.Column(db.Float)
+
+    def __init__(self, node_id, public_ip, private_ip, password, instance_type, cpu_total, memory_total, disk_total, price_per_hour):
+        self.node_id = node_id
+        self.public_ip = public_ip
+        self.private_ip = private_ip
+        self.password = password
+        self.running_task_number = 0
+        self.cpu_total = cpu_total
+        self.memory_total = memory_total
+        self.disk_total = disk_total
+        self.cpu_free = cpu_total
+        self.memory_free = memory_total
+        self.disk_free = disk_total
+        self.instance_type = instance_type
+        self.price_per_hour = price_per_hour
+
+    def __repr__(self):
+        info = {}
+        info["node_id"] = self.node_id
+        info["public_ip"] = self.public_ip
+        info["private_ip"] = self.private_ip
+        info["password"] = self.password
+        info["running_task_number"] = self.running_task_number
+        info["cpu_total"] = self.cpu_total
+        info["memory_total"] = self.memory_total
+        info["disk_total"] = self.disk_total
+        info["cpu_free"] = self.cpu_free
+        info["memory_free"] = self.memory_free
+        info["disk_free"] = self.disk_free
+        info["create_time"] = self.create_time.strftime("%Y-%m-%d %H:%M:%S")
+        info["updated_time"] = self.updated_time.strftime("%Y-%m-%d %H:%M:%S")
+        info["instance_type"] = self.instance_type
+        info["price_per_hour"] = self.price_per_hour
+        return json.dumps(info)

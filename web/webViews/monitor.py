@@ -140,8 +140,10 @@ class hostsView(normalView):
         }
         allresult = dockletRequest.post_to_all('/monitor/listphynodes/', data)
         allmachines = {}
+        all_cloud_nodes = {}
         for master in allresult:
             allmachines[master] = []
+            all_cloud_nodes[master] = dockletRequest.post('/cloud/node/list/', data, master.split("@")[0]).get('nodes')
             iplist = allresult[master].get('monitor').get('allnodes')
             for ip in iplist:
                 containers = {}
@@ -151,7 +153,7 @@ class hostsView(normalView):
                 status = result.get('monitor').get('status')
                 allmachines[master].append({'ip':ip,'containers':containers, 'status':status})
         #print(machines)
-        return self.render(self.template_path, allmachines = allmachines, user = session['username'])
+        return self.render(self.template_path, allmachines = allmachines, user = session['username'], all_cloud_nodes = all_cloud_nodes)
 
 class monitorUserAllView(normalView):
     template_path = "monitor/monitorUserAll.html"

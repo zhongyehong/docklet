@@ -1,8 +1,13 @@
 #!/usr/bin/python3
 from io import StringIO
-import os,sys,subprocess,time,re,datetime,threading,random,shutil
-from utils.model import db, Image
+import threading
+import os,sys,subprocess,time,re,threading,random,shutil
+from datetime import datetime, timedelta
+from utils.model import db, Image, CloudNode
 from master.deploy import *
+from libcloud.compute.types import Provider
+from libcloud.compute.providers import get_driver
+from libcloud.compute.base import NodeAuthPassword
 import json
 
 from utils.log import logger
@@ -12,20 +17,54 @@ import requests
 fspath = env.getenv('FS_PREFIX')
 
 
-class AliyunMgr():
-    def __init__(self):
-        self.AcsClient = __import__('aliyunsdkcore.client', fromlist=["AcsClient"])
-        self.Request = __import__('aliyunsdkecs.request.v20140526', fromlist=[
-            "CreateInstanceRequest",
-            "StopInstanceRequest",
-            "DescribeInstancesRequest",
-            "DeleteInstanceRequest",
-            "StartInstanceRequest",
-            "DescribeInstancesRequest",
-            "AllocateEipAddressRequest",
-            "AssociateEipAddressRequest"])
 
-    def loadClient(self):
+class AliyunMgr(threading.Thread):
+    def __init__(self): 
+        threading.Thread.__init__(self)
+        try:
+            CLoudNode.query.all()
+        except:
+            db.create_all()
+        self.cls = get_driver(Provider.ALIYUN_ECS)
+        self.loadSetting()
+        self.sizes = self.driver.list_sizes()
+        logger.info("load cloud instance type success")
+        images = self.driver.list_images()
+        self.image = [i for i in images if self.setting['ImageName'] == i.name][0]
+        logger.info("load cloud image success")
+        sgs = self.driver.ex_list_security_groups()
+        self.sg = [s for s in sgs if "docklet" == s.name][0].id
+        logger.info("load security group success")
+        self.auth = NodeAuthPassword(self.setting['Password'])
+        # self.master_ip = env.getenv('ETCD').split(':')[0]
+        self.master_ip = "192.168.0.110"
+        self.DISK_TYPE_MAP = {
+            'hdd': {
+                'type': self.driver.disk_categories.CLOUD_EFFICIENCY,
+                'price': 0.00049
+            },
+            'ssd': {
+                'type': self.driver.disk_categories.CLOUD_SSD,
+                'price': 0.0014
+            }
+        }
+        self.INSTANCE_TYPE_MAP = {
+            'ecs.g5.large': {
+                'cpu': 2.0,
+                'memory': 8000.0,
+                'price': 0.89
+            },
+            'ecs.hfg5.large': {
+                'cpu': 2.0,
+                'memory': 8000.0,
+                'price': 1.15
+            }
+        }
+
+    def run(self):
+        self.autoRemove()
+
+    def loadSetting(self):
         if not os.path.exists(fspath+"/global/sys/cloudsetting.json"):
             currentfilepath = os.path.dirname(os.path.abspath(__file__))
             templatefilepath = currentfilepath + "/../tools/cloudsetting.aliyun.template.json"
@@ -36,131 +75,124 @@ class AliyunMgr():
             settingfile = open(fspath+"/global/sys/cloudsetting.json", 'r')
             self.setting = json.loads(settingfile.read())
             settingfile.close()
-            self.clt = self.AcsClient.AcsClient(self.setting['AccessKeyId'],self.setting['AccessKeySecret'], self.setting['RegionId'])
+            self.driver = self.cls(self.setting['AccessKeyId'], self.setting['AccessKeySecret'], region = self.setting['RegionId'])
             logger.info("load CLT of Aliyun success")
             return True
         except Exception as e:
             logger.error(e)
             return False
 
-    def createInstance(self):
-        request = self.Request.CreateInstanceRequest.CreateInstanceRequest()
-        request.set_accept_format('json')
-        request.add_query_param('RegionId', self.setting['RegionId'])
-        if 'ZoneId' in self.setting and not self.setting['ZoneId'] == "":
-            request.add_query_param('ZoneId', self.setting['ZoneId'])
-        if 'VSwitchId' in self.setting and not self.setting['VSwitchId'] == "":
-            request.add_query_param('VSwitchId', self.setting['VSwitchId'])
-        request.add_query_param('ImageId', 'ubuntu_16_0402_64_20G_alibase_20170818.vhd')
-        request.add_query_param('InternetMaxBandwidthOut', 1)
-        request.add_query_param('InstanceName', 'docklet_tmp_worker')
-        request.add_query_param('HostName', 'worker-tmp')
-        request.add_query_param('SystemDisk.Size', int(self.setting['SystemDisk.Size']))
-        request.add_query_param('InstanceType', self.setting['InstanceType'])
-        request.add_query_param('Password', self.setting['Password'])
-        response = self.clt.do_action_with_exception(request)
-        logger.info(response)
+    def generateDiskConf(self, disk_type, disk_size):
+        return {
+            'size': disk_size,
+            'category': self.DISK_TYPE_MAP[disk_type]['type']
+        }
 
-        instanceid=json.loads(bytes.decode(response))['InstanceId']
-        return instanceid
+    def getInstanceTypeInfoByName(self, instance_type):
+        return self.INSTANCE_TYPE_MAP[instance_type]
 
-    def startInstance(self, instanceid):
-        request = self.Request.StartInstanceRequest.StartInstanceRequest()
-        request.set_accept_format('json')
-        request.add_query_param('InstanceId', instanceid)
-        response = self.clt.do_action_with_exception(request)
-        logger.info(response)
+    def getDiskPrice(self, disk_type, disk_size):
+        return self.DISK_TYPE_MAP[disk_type]['price'] * disk_size
 
+    def createInstance(self, instance_type, disk):
+        node = None
+        try:
+            size = [s for s in self.sizes if s.id == instance_type][0]
+            node = self.driver.create_node(name=self.setting['NodeName'], size=size, image=self.image, auth=self.auth, 
+                ex_public_ip=True,
+                ex_system_disk=disk,
+                ex_vswitch_id=self.setting["VSwitchId"], 
+                ex_security_group_id=self.sg,
+                ex_internet_charge_type="PayByTraffic",
+                ex_internet_max_bandwidth_out=30)
+            logger.info("create instance success, id: {}, ip: {}".format(node.id, node.public_ips[0]))
+        except Exception as ex:
+            logger.error("an error occured during creating instance -- {}".format(ex))
+            return None
 
-    def createEIP(self):
-        request = self.Request.AllocateEipAddressRequest.AllocateEipAddressRequest()
-        request.set_accept_format('json')
-        request.add_query_param('RegionId', self.setting['RegionId'])
-        response = self.clt.do_action_with_exception(request)
-        logger.info(response)
+        return node
 
-        response=json.loads(bytes.decode(response))
-        eipid=response['AllocationId']
-        eipaddr=response['EipAddress']
+    def addNode(self, instance_type, disk_type, disk_size):
+        disk = self.generateDiskConf(disk_type, disk_size)
+        node = self.createInstance(instance_type, disk)
+        if node:
+            try:
+                deploy(node.public_ips[0], self.master_ip, 'root', self.setting['Password'], self.setting['VolumeName'], 1024*int(disk_size-20))
+                instance_type_info =  self.getInstanceTypeInfoByName(instance_type)
+                disk_price = self.getDiskPrice(disk_type, disk_size)
+                node_info = CloudNode(node.id, node.public_ips[0], node.private_ips[0], self.setting['Password'], instance_type, instance_type_info['cpu'], instance_type_info['memory'], disk_size, instance_type_info['price'] + disk_price)
+                db.session.add(node_info)
+                db.session.commit()
+                return {'success': 'true', 'node': node_info}
+            except Exception as ex:
+                logger.error("an error occured during deploying docklet -- {}".format(ex))
+                self.driver.destroy_node(node)
+                return {'success': 'false'}
+        else:
+            return {'success':'false'}
 
-        return [eipid, eipaddr]
+    def deleteNode(self, node_id):
+        try:
+            node_info = CloudNode.query.filter_by(node_id=node_id).first()
+            nodes = self.driver.list_nodes(ex_node_ids=[node_id])
+            if len(nodes) != 1:
+                logger.error("node_id could not be found in aliyun")
+                return {'success': 'false'}
+            node = nodes[0]
+            self.driver.destroy_node(node)
+            db.session.delete(node_info)
+            db.session.commit()
+            logger.info("delete node: {} success".format(node_id))
+            return {'success': 'true'}
+        except Exception as ex:
+            logger.error("destroy node: {} -- {}".format(node_id, ex))
+            return {'success': 'false'}
 
+    def listNodes(self):
+        nodes = CloudNode.query.all()
+        return nodes
 
-    def associateEIP(self, instanceid, eipid):
-        request = self.Request.AssociateEipAddressRequest.AssociateEipAddressRequest()
-        request.set_accept_format('json')
-        request.add_query_param('AllocationId', eipid)
-        request.add_query_param('InstanceId', instanceid)
-        response = self.clt.do_action_with_exception(request)
-        logger.info(response)
+    def listNodesInfo(self):
+        nodes = CloudNode.query.all()
+        node_info_list = []
+        for node in nodes:
+            node_info_list.append(json.loads(str(node)))
+        return node_info_list
 
-
-    def getInnerIP(self, instanceid):
-        request = self.Request.DescribeInstancesRequest.DescribeInstancesRequest()
-        request.set_accept_format('json')
-        response = self.clt.do_action_with_exception(request)
-        instances = json.loads(bytes.decode(response))['Instances']['Instance']
-        for instance in instances:
-            if instance['InstanceId'] == instanceid:
-                return instance['NetworkInterfaces']['NetworkInterface'][0]['PrimaryIpAddress']
-        return json.loads(bytes.decode(response))['Instances']['Instance'][0]['VpcAttributes']['PrivateIpAddress']['IpAddress'][0]
-
-    def isStarted(self, instanceids):
-        request = self.Request.DescribeInstancesRequest.DescribeInstancesRequest()
-        request.set_accept_format('json')
-        response = self.clt.do_action_with_exception(request)
-        instances = json.loads(bytes.decode(response))['Instances']['Instance']
-        for instance in instances:
-            if instance['InstanceId'] in instanceids:
-                if not instance['Status'] == "Running":
-                    return False
+    def addTaskToNode(self, node_ip, task):
+        node = CloudNode.query.filter_by(private_ip=node_ip).first()
+        node.memory_cpu -= task.info.cluster.instance.cpu
+        node.memory_free -= task.info.cluster.instance.memory
+        node.memory_disk -= task.info.cluster.instance.disk
+        node.running_task_number += 1
+        db.session.commit()
         return True
 
-    def rentServers(self,number):
-        instanceids=[]
-        eipids=[]
-        eipaddrs=[]
-        for i in range(int(number)):
-            instanceids.append(self.createInstance())
-            time.sleep(2)
-        time.sleep(10)
-        for i in range(int(number)):
-            [eipid,eipaddr]=self.createEIP()
-            eipids.append(eipid)
-            eipaddrs.append(eipaddr)
-            time.sleep(2)
-        masterip=env.getenv('ETCD').split(':')[0]
-        for i in range(int(number)):
-            self.associateEIP(instanceids[i],eipids[i])
-            time.sleep(2)
-        time.sleep(5)
-        for instanceid in instanceids:
-            self.startInstance(instanceid)
-            time.sleep(2)
-        time.sleep(10)
-        while not self.isStarted(instanceids):
-            time.sleep(10)
-        time.sleep(5)
-        return [masterip, eipaddrs]
 
-    def addNode(self):
-        if not self.loadClient():
-            return {'success':'false'}
-        [masterip, eipaddrs] = self.rentServers(1)
-        threads = []
-        for eip in eipaddrs:
-            thread = threading.Thread(target = deploy, args=(eip,masterip,'root',self.setting['Password'],self.setting['VolumeName']))
-            thread.setDaemon(True)
-            thread.start()
-            threads.append(thread)
-        for thread in threads:
-            thread.join()
-        return {'success':'true'}
+    def removeTaskFromNode(self, node_ip, task):
+        node = CloudNode.query.filter_by(private_ip=node_ip).first()
+        node.memory_cpu += task.info.cluster.instance.cpu
+        node.memory_free += task.info.cluster.instance.memory
+        node.memory_disk += task.info.cluster.instance.disk
+        node.running_task_number -= 1
+        db.session.commit()
+        return True
 
-    def addNodeAsync(self):
-        thread = threading.Thread(target = self.addNode)
+    def addNodeAsync(self, instance_type, disk_type, disk_size):
+        thread = threading.Thread(target = self.addNode, args=(instance_type, disk_type, disk_size))
         thread.setDaemon(True)
         thread.start()
+
+    def autoRemove(self, wait_period=120, maintain_time=300):
+        while True:
+            logger.info("checking free node")
+            now_time = datetime.now()
+            delta = timedelta(seconds=maintain_time)
+            nodes = CloudNode.query.all()
+            for node in nodes:
+                if node.running_task_number < 10 and node.updated_time + delta < now_time:
+                    self.deleteNode(node.node_id)
+            time.sleep(wait_period)
 
 class EmptyMgr():
     def addNodeAsync(self):
@@ -192,5 +224,6 @@ class CloudMgr():
     def __init__(self):
         if env.getenv("ALLOW_SCALE_OUT") == "True":
             self.engine = AliyunMgr()
+            self.engine.start()
         else:
             self.engine = EmptyMgr()

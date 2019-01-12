@@ -91,6 +91,64 @@
              </div>
 	   </div>
 </div>
+<div class="row">
+       <div class="col-md-12">
+         <div class="box box-info">
+              <div class="box-header with-border">
+          <h3 class="box-title">Cloud Nodes</h3>
+
+                <div class="box-tools pull-right">
+                  <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+                  </button>
+                  <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                </div>
+              </div>
+                     <div class="box-body table-responsive">
+           <p>
+           <a href="/cloud/{{master.split('@')[0]}}/node/add/"><button type="button" class="btn btn-primary btn-sm"><i class="fa fa-plus"></i>Add Host</button></a>
+           </p>
+                         <table class="table table-bordered">
+                             <thead>
+                             <tr>
+                                 <th>ID</th>
+                                 <th>Public IP</th>
+                                 <th>Private IP</th>
+                                 <th>Type</th>
+                                 <th>Task number</th>
+                                 <th>Cpu used</th>
+                                 <th>Mem used</th>
+                                 <th>Disk used</th>
+                                 <th>Price</th>
+                                 <th>Create Time</th>
+                                 <th>Updated Time</th>
+                                 <th>Delete</th>
+                             </tr>
+                             </thead>
+                             <tbody>
+                             {% for node in all_cloud_nodes[master] %}
+                             <tr>
+                                 <td>{{ node['node_id'] }}</td>
+                                 <td>{{ node['public_ip'] }}</td>
+                                 <td>{{ node['private_ip'] }}</td>
+                                 <td>{{ node['instance_type'] }}</td>
+                                 <td>{{ node['running_task_number'] }}</td>
+                                 <td>{{ node['cpu_free'] }}/{{ node['cpu_total'] }}</td>
+                                 <td>{{ node['memory_free'] }}/{{ node['memory_total'] }}</td>
+                                 <td>{{ node['disk_free'] }}/{{ node['disk_total'] }}</td>
+                                 <td>{{ node['price_per_hour'] }}</td>
+                                 <td>{{ node['create_time'] }}</td>
+                                 <td>{{ node['updated_time'] }}</td>
+                                 <td> <a href="/cloud/{{master.split('@')[0]}}/node/delete/{{node['node_id']}}/"><button type="button" class="btn btn-danger btn-xs">Delete</button></a></td>
+                             </tr>
+                             {% endfor %}
+                             </tbody>
+                         </table>
+
+                     </div>
+                 </div>
+             </div>
+     </div>
+</div>
 {% endfor %}
 {% endblock %}
 

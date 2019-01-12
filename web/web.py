@@ -579,6 +579,12 @@ def cloud_node_add(masterip):
     cloudNodeAddView.masterip = masterip
     return cloudNodeAddView.as_view()
 
+@app.route("/cloud/<masterip>/node/delete/<nodeid>/", methods = ['POST', 'GET'])
+@administration_required
+def cloud_node_delete(masterip, nodeid):
+    cloudNodeDeleteView.masterip = masterip
+    cloudNodeDeleteView.nodeid = nodeid
+    return cloudNodeDeleteView.as_view()
 
 @app.route("/notification/", methods=['GET'])
 @administration_required
