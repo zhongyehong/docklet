@@ -1,6 +1,7 @@
 import time, threading, random, string, os, traceback
 import master.monitor
 import subprocess
+from functools import wraps
 
 from utils.log import initlogging, logger
 from utils import env
@@ -9,65 +10,122 @@ class BatchJob(object):
     def __init__(self, user, job_info):
         self.user = user
         self.raw_job_info = job_info
-        self.task_queue = []
-        self.task_finished = []
         self.job_id = None
         self.job_name = job_info['jobName']
         self.job_priority = int(job_info['jobPriority'])
         self.status = 'pending'
         self.create_time = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())
-        self.top_sort()
+        self.lock = threading.Lock()
+        self.tasks = {}
+        self.dependency_out = {}
+        self.tasks_cnt = {'pending':0, 'scheduling':0, 'running':0, 'error':0, 'failed':0, 'finished':0}
+        #self.top_sort()
 
-    # transfer the dependency graph into a job queue
-    def top_sort(self):
-        logger.debug('top sorting')
-        tasks = self.raw_job_info["tasks"]
-        dependency_graph = {}
-        for task_idx in tasks:
-            dependency_graph[task_idx] = set()
-            task_info = tasks[task_idx]
+        #init self.tasks & self.dependency_out & self.tasks_cnt
+        raw_tasks = self.raw_job_info["tasks"]
+        self.tasks_cnt['pending'] = len(raw_tasks.keys())
+        for task_idx in raw_tasks.keys():
+            task_info = raw_tasks[task_idx]
+            self.tasks[task_idx] = {}
+            self.tasks[task_idx]['config'] = task_info
+            self.tasks[task_idx]['status'] = 'pending'
+            self.tasks[task_idx]['dependency'] = []
             dependency = task_info['dependency'].strip().replace(' ', '').split(',')
             if len(dependency) == 1 and dependency[0] == '':
                 continue
-            for t in dependency:
-                if not t in tasks:
+            for d in dependency:
+                if not d in raw_tasks.keys():
                     raise ValueError('task %s is not defined in the dependency of task %s' % (t, task_idx))
-                dependency_graph[task_idx].add(t)
-        while len(dependency_graph) > 0:
-            s = set()
-            flag = False
-            for task_idx in dependency_graph:
-                if len(dependency_graph[task_idx]) == 0:
-                    flag = True
-                    s.add(task_idx)
-            for task_idx in s:
-                dependency_graph.pop(task_idx)
-            #there is a circle in the graph
-            if not flag:
-                raise ValueError('there is a circle in the dependency graph')
-                break
-            for task_idx in dependency_graph:
-                for t in s:
-                    if t in dependency_graph[task_idx]:
-                        dependency_graph[task_idx].remove(t)
-            self.task_queue.append({
-                'task_idx': s,
-                'status': 'pending'
-            })
+                self.tasks[task_idx]['dependency'].append(d)
+                if not d in self.dependency_out.keys():
+                    self.dependency_out[d] = []
+                self.dependency_out[d].append(task_idx)
 
-    # get a task and pass it to taskmgr
-    def get_task(self):
-        for task in self.task_queue:
-            if task['status'] == 'pending':
-                task_idx = task['task_idx'].pop()
-                task['status'] = 'running'
+    def data_lock(f):
+        @wraps(f)
+        def new_f(self, *args, **kwargs):
+            self.lock.acquire()
+            try:
+                result = f(self, *args, **kwargs)
+            except Exception as err:
+                self.lock.release()
+                raise err
+            self.lock.release()
+            return result
+        return new_f
+
+    # return the tasks without dependencies
+    @data_lock
+    def get_tasks_no_dependency(self,update_status=False):
+        ret_tasks = []
+        for task_idx in self.tasks.keys():
+            if (self.tasks[task_idx]['status'] = 'pending' and
+                len(self.tasks[task_idx]['dependency']) == 0):
+                if update_status:
+                    self.tasks_cnt['pending'] -= 1
+                    self.tasks_cnt['scheduling'] += 1
+                    self.tasks[task_idx]['status'] = 'scheduling'
                 task_name = self.user + '_' + self.job_id + '_' + task_idx
-                return task_name, self.raw_job_info["tasks"][task_idx]
-        return '', None
+                ret_tasks.append([task_name, self.tasks[task_idx]['config']])
+        return ret_tasks
 
-    # a task has finished
+    # update status of this job based
+    def _update_job_status(self):
+        allcnt = len(self.tasks.keys())
+        if self.tasks_cnt['failed'] != 0:
+            self.status = 'failed'
+        elif self.tasks_cnt['running'] != 0:
+            self.status = 'running'
+        elif self.tasks_cnt['finished'] == allcnt:
+            self.status = 'done'
+        else:
+            self.status = 'pending'
+
+    # start run a task, update status
+    @data_lock
+    def update_task_running(self, task_idx):
+        old_status = self.tasks[task_idx]['status'].split('(')[0]
+        self.tasks_cnt[old_status] -= 1
+        self.tasks[task_idx]['status'] = 'running'
+        self.tasks_cnt['running'] += 1
+        self._update_job_status()
+
+    # a task has finished, update dependency and return tasks without dependencies
+    @data_lock
     def finish_task(self, task_idx):
-        pass
+        if task_idx not in self.tasks.keys():
+            logger.error('Task_idx %s not in job. user:%s job_name:%s job_id:%s'%(task_idx, self.user, self.job_name, self.job_id))
+            return []
+        old_status = self.tasks[task_idx]['status'].split('(')[0]
+        self.tasks_cnt[old_status] -= 1
+        self.tasks[task_idx]['status'] = 'finished'
+        self.tasks_cnt['finished'] += 1
+        self._update_job_status()
+        if task_idx not in self.dependency_out.keys():
+            return []
+        ret_tasks = []
+        for out_idx in self.dependency_out[task_idx]:
+            self.tasks[out_idx]['dependency'].remove(task_idx)
+            if (self.tasks[out_idx]['status'] == 'pending' and
+                len(self.tasks[out_idx]['dependency']) == 0):
+                self.tasks_cnt['pending'] -= 1
+                self.tasks_cnt['scheduling'] += 1
+                self.tasks[out_idx]['status'] = 'scheduling'
+                task_name = self.user + '_' + self.job_id + '_' + out_idx
+                ret_tasks.append([task_name, self.tasks[out_idx]['config']])
+        return ret_tasks
+
+    # update error status of task
+    @data_lock
+    def update_task_error(self, task_idx, tried_times, try_out=False):
+        old_status = self.tasks[task_idx]['status'].split('(')[0]
+        self.tasks_cnt[old_status] -= 1
+        self.tasks[task_idx]['status'] = 'error(tried %d times)' % int(tried_times)
+        if try_out:
+            self.tasks_cnt['failed'] += 1
+        else:
+            self.tasks_cnt['error'] += 1
+        self._update_job_status()
 
 class JobMgr(threading.Thread):
     # load job information from etcd
@@ -159,8 +217,8 @@ class JobMgr(threading.Thread):
             if self.job_processor(job):
                 job.status = 'running'
                 break
-            else:
-                job.status = 'done'
+            #else:
+                #job.status = 'done'
 
     # a task has finished
     def report(self, task):
