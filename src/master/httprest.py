@@ -1103,6 +1103,5 @@ if __name__ == '__main__':
     G_jobmgr = jobmgr.JobMgr(G_taskmgr)
     G_taskmgr.set_jobmgr(G_jobmgr)
     G_taskmgr.start()
-    G_jobmgr.start()
 
     app.run(host = masterip, port = masterport, threaded=True)

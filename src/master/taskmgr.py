@@ -171,7 +171,7 @@ class TaskMgr(threading.Thread):
         if self.jobmgr is None:
             self.logger.error('[task_completed] jobmgr is None!')
         else:
-            self.jobmgr.report(task)
+            self.jobmgr.report(task.info.id,'finished')
         self.logger.info('task %s completed' % task.info.id)
         self.lazy_delete_list.append(task)
 
@@ -182,7 +182,7 @@ class TaskMgr(threading.Thread):
         if self.jobmgr is None:
             self.logger.error('[task_failed] jobmgr is None!')
         else:
-            self.jobmgr.report(task)
+            self.jobmgr.report(task.info.id,'failed')
         self.logger.info('task %s failed' % task.info.id)
         self.lazy_delete_list.append(task)
 
@@ -201,6 +201,7 @@ class TaskMgr(threading.Thread):
 
     def task_processor(self, task, instance_id, worker_ip):
         task.status = RUNNING
+        self.jobmgr.report(task.info.id,'running')
 
         # properties for transaction
         task.info.instanceid = instance_id
