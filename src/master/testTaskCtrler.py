@@ -5,20 +5,21 @@ if sys.path[0].endswith("master"):
 import grpc,time
 
 from protos import rpc_pb2, rpc_pb2_grpc
+import random, string
 
 def run():
     channel = grpc.insecure_channel('localhost:50051')
     stub = rpc_pb2_grpc.WorkerStub(channel)
 
-    comm = rpc_pb2.Command(commandLine="ls /root/oss/test-for-docklet", packagePath="/root", envVars={'test1':'10','test2':'20'}) # | awk '{print \"test\\\"\\n\"}'
-    paras = rpc_pb2.Parameters(command=comm, stderrRedirectPath="/root/oss/test-for-docklet/", stdoutRedirectPath="/root/oss/test-for-docklet/")
+    comm = rpc_pb2.Command(commandLine="ls /root;sleep 5;ls /root", packagePath="/root", envVars={'test1':'10','test2':'20'}) # | awk '{print \"test\\\"\\n\"}'
+    paras = rpc_pb2.Parameters(command=comm, stderrRedirectPath="/root/nfs/batch_{jobid}/", stdoutRedirectPath="/root/nfs/batch_{jobid}/")
 
     img = rpc_pb2.Image(name="base", type=rpc_pb2.Image.BASE, owner="docklet")
     inst = rpc_pb2.Instance(cpu=1, memory=1000, disk=1000, gpu=0)
     mnt = rpc_pb2.Mount(localPath="",provider='aliyun',remotePath="test-for-docklet",other="oss-cn-beijing.aliyuncs.com",accessKey="LTAIdl7gmmIhfqA9",secretKey="")
-    clu = rpc_pb2.Cluster(image=img, instance=inst, mount=[mnt])
+    clu = rpc_pb2.Cluster(image=img, instance=inst, mount=[])
 
-    task = rpc_pb2.TaskInfo(id="test",username="root",instanceid=1,instanceCount=1,maxRetryCount=1,parameters=paras,cluster=clu,timeout=60000,token="test")
+    task = rpc_pb2.TaskInfo(id="test",username="root",instanceid=1,instanceCount=1,maxRetryCount=1,parameters=paras,cluster=clu,timeout=60000,token=''.join(random.sample(string.ascii_letters + string.digits, 8)))
 
     response = stub.process_task(task)
     print("Batch client received: " + str(response.status)+" "+response.message)
@@ -34,6 +35,7 @@ def stop_task():
     print("Batch client received: " + str(response.status)+" "+response.message)
 
 if __name__ == '__main__':
+    #for i in range(10):
     run()
     #time.sleep(4)
     #stop_task()

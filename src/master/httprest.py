@@ -808,12 +808,12 @@ def add_job(user,beans,form):
         key_arr = key.split('_')
         value = job_data[key]
         if key_arr[0] == 'srcAddr' and value == '':
-            task_idx = 'task_' + key_arr[1]
+            #task_idx = 'task_' + key_arr[1]
             if task_idx in job_info['tasks']:
-                job_info['tasks'][task_idx]['srcAddr'] = '/root/nfs'
+                job_info['tasks'][task_idx]['srcAddr'] = '/root'
             else:
                 job_info['tasks'][task_idx] = {
-                    'srcAddr': '/root/nfs/'
+                    'srcAddr': '/root'
                 }
         elif key_arr[0] != 'dependency'and value == '':
             message['success'] = 'false'
@@ -822,7 +822,7 @@ def add_job(user,beans,form):
             job_info[key_arr[0]] = value
         elif len(key_arr) == 2:
             key_prefix, task_idx = key_arr[0], key_arr[1]
-            task_idx = 'task_' + task_idx
+            #task_idx = 'task_' + task_idx
             if task_idx in job_info["tasks"]:
                 job_info["tasks"][task_idx][key_prefix] = value
             else:
@@ -832,7 +832,7 @@ def add_job(user,beans,form):
                 job_info["tasks"][task_idx] = tmp_dict
         elif len(key_arr) == 3:
             key_prefix, task_idx, mapping_idx = key_arr[0], key_arr[1], key_arr[2]
-            task_idx = 'task_' + task_idx
+            #task_idx = 'task_' + task_idx
             mapping_idx = 'mapping_' + mapping_idx
             if task_idx in job_info["tasks"]:
                 if "mapping" in job_info["tasks"][task_idx]:
@@ -1103,6 +1103,5 @@ if __name__ == '__main__':
     G_jobmgr = jobmgr.JobMgr(G_taskmgr)
     G_taskmgr.set_jobmgr(G_jobmgr)
     G_taskmgr.start()
-    G_jobmgr.start()
 
     app.run(host = masterip, port = masterport, threaded=True)
