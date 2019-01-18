@@ -139,20 +139,26 @@ class TaskMgr(threading.Thread):
         elif report.instanceStatus == FAILED or report.instanceStatus == TIMEOUT:
             if instance['try_count'] > task.info.maxRetryCount:
                 self.check_task_completed(task)
+            else:
+                reason = 'FAILED' if report.instanceStatus == FAILED else 'TIMEOUT'
+                self.task_retrying(task, reason, instance['try_count'])
         elif report.instanceStatus == OUTPUTERROR:
-            self.task_failed(task)
+            self.task_failed(task,"OUTPUTERROR")
 
 
     def check_task_completed(self, task):
         if len(task.instance_list) < task.info.instanceCount:
             return
         failed = False
+        reason = "FAILED"
         for instance in task.instance_list:
             if instance['status'] == RUNNING or instance['status'] == WAITING:
                 return
             if instance['status'] == FAILED or instance['status'] == TIMEOUT:
                 if instance['try_count'] > task.info.maxRetryCount:
                     failed = True
+                    if instance['status'] == TIMEOUT:
+                        reason = "TIMEOUT"
                 else:
                     return
             if instance['status'] == OUTPUTERROR:
@@ -160,7 +166,7 @@ class TaskMgr(threading.Thread):
                 break
 
         if failed:
-            self.task_failed(task)
+            self.task_failed(task,reason)
         else:
             self.task_completed(task)
 
@@ -176,15 +182,21 @@ class TaskMgr(threading.Thread):
         self.lazy_delete_list.append(task)
 
 
-    def task_failed(self, task):
+    def task_failed(self, task, reason):
         task.status = FAILED
 
         if self.jobmgr is None:
             self.logger.error('[task_failed] jobmgr is None!')
         else:
-            self.jobmgr.report(task.info.id,'failed')
+            self.jobmgr.report(task.info.id,'failed', reason, task.info.maxRetryCount+1)
         self.logger.info('task %s failed' % task.info.id)
         self.lazy_delete_list.append(task)
+
+    def task_retrying(self, task, reason, tried_times):
+        if self.jobmgr is None:
+            self.logger.error('[task_retrying] jobmgr is None!')
+        else:
+            self.jobmgr.report(task.info.id,'retrying',reason,tried_times)
 
 
     @queue_lock

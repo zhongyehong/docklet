@@ -42,6 +42,7 @@ class BatchJob(object):
                 self.dependency_out[d].append(task_idx)
 
         self.log_status()
+        logger.debug("BatchJob(id:%s) dependency_out: %s" % (self.job_id, json.dumps(self.dependency_out, indent=3)))
 
     def data_lock(f):
         @wraps(f)
@@ -130,16 +131,26 @@ class BatchJob(object):
 
     # update retrying status of task
     @data_lock
-    def update_task_retrying(self, task_idx, tried_times, try_out=False):
-        logger.debug("Update status of task(idx:%s) of BatchJob(id:%s) retrying." % (task_idx, self.job_id))
+    def update_task_retrying(self, task_idx, reason, tried_times):
+        logger.debug("Update status of task(idx:%s) of BatchJob(id:%s) retrying. reason:%s tried_times:%d" % (task_idx, self.job_id, reason, int(tried_times)))
         old_status = self.tasks[task_idx]['status'].split('(')[0]
         self.tasks_cnt[old_status] -= 1
-        if try_out:
-            self.tasks_cnt['failed'] += 1
-            self.tasks[task_idx]['status'] = 'failed(tried %d times)' % int(tried_times)
+        self.tasks_cnt['retrying'] += 1
+        self.tasks[task_idx]['status'] = 'retrying(%s)(%d times)' % (reason, int(tried_times))
+        self._update_job_status()
+        self.log_status()
+
+    # update failed status of task
+    @data_lock
+    def update_task_failed(self, task_idx, reason, tried_times):
+        logger.debug("Update status of task(idx:%s) of BatchJob(id:%s) failed. reason:%s tried_times:%d" % (task_idx, self.job_id, reason, int(tried_times)))
+        old_status = self.tasks[task_idx]['status'].split('(')[0]
+        self.tasks_cnt[old_status] -= 1
+        self.tasks_cnt['failed'] += 1
+        if reason == "OUTPUTERROR":
+            self.tasks[task_idx]['status'] = 'failed(OUTPUTERROR)'
         else:
-            self.tasks_cnt['retrying'] += 1
-            self.tasks[task_idx]['status'] = 'retrying(%d times)' % int(tried_times)
+            self.tasks[task_idx]['status'] = 'failed(%s)(%d times)' % (reason, int(tried_times))
         self._update_job_status()
         self.log_status()
 
@@ -151,8 +162,9 @@ class BatchJob(object):
             task_copy[task_idx]['status'] = self.tasks[task_idx]['status']
             task_copy[task_idx]['dependency'] = self.tasks[task_idx]['dependency']
         logger.debug("BatchJob(id:%s) tasks status: %s" % (self.job_id, json.dumps(task_copy, indent=3)))
-        logger.debug("BatchJob(id:%s) dependency_out: %s" % (self.job_id, json.dumps(self.dependency_out, indent=3)))
+        logger.debug("BatchJob(id:%s)  tasks_cnt: %s" % (self.job_id, self.tasks_cnt))
         logger.debug("BatchJob(id:%s)  job_status: %s" %(self.job_id, self.status))
+
 
 class JobMgr():
     # load job information from etcd
@@ -239,8 +251,10 @@ class JobMgr():
 
     # report task status from taskmgr when running, failed and finished
     # task_name: user + '_' + job_id + '_' + task_idx
-    # status: 'running', 'retrying', 'failed', 'finished'
-    def report(self, task_name, status):
+    # status: 'running', 'finished', 'retrying', 'failed'
+    # reason: reason for failure or retrying, such as "FAILED", "TIMEOUT", "OUTPUTERROR"
+    # tried_times: how many times the task has been tried.
+    def report(self, task_name, status, reason="", tried_times=1):
         split_task_name = task_name.split('_')
         if len(split_task_name) != 3:
             logger.error("Illegal task_name(%s) report from taskmgr" % task_name)
@@ -249,13 +263,15 @@ class JobMgr():
         job  = self.job_map[job_id]
         if status == "running":
             job.update_task_running(task_idx)
-        elif status == "failed":
-            pass # TODO
         elif status == "finished":
             next_tasks = job.finish_task(task_idx)
             if len(next_tasks) == 0:
                 return
             ret = self.add_task_taskmgr(user, next_tasks)
+        elif status == "retrying":
+            job.update_task_retrying(task_idx, reason, tried_times)
+        elif status == "failed":
+            job.update_task_failed(task_idx, reason, tried_times)
 
     # Get Batch job stdout or stderr from its file
     def get_output(self, username, jobid, taskid, instid, issue):
