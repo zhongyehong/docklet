@@ -104,7 +104,8 @@ class NodeMgr(object):
                     #   waiting state can be deleted, there is no use to let master check
                     # this state because worker will change it and master will not change it now.
                     # it is only preserved for compatible.
-                    logger.info ("%s want to joins, call it to init first" % nodeip)
+                    # logger.info ("%s want to joins, call it to init first" % nodeip)
+                    pass
                 elif node['value']=='work':
                     logger.info ("new node %s joins" % nodeip)
                     etcd_runip.append(nodeip)

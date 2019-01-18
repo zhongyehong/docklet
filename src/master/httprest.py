@@ -1089,8 +1089,6 @@ if __name__ == '__main__':
     G_networkmgr = network.NetworkMgr(clusternet, etcdclient, mode, ipaddr)
     G_networkmgr.printpools()
 
-    G_cloudmgr = cloudmgr.CloudMgr()
-
     # start NodeMgr and NodeMgr will wait for all nodes to start ...
     G_nodemgr = nodemgr.NodeMgr(G_networkmgr, etcdclient, addr = ipaddr, mode=mode)
     logger.info("nodemgr started")
@@ -1100,6 +1098,8 @@ if __name__ == '__main__':
     G_imagemgr = imagemgr.ImageMgr()
     logger.info("imagemgr started")
 
+    G_cloudmgr = cloudmgr.CloudMgr(G_nodemgr)
+    
     logger.info("startting to listen on: ")
     masterip = env.getenv('MASTER_IP')
     logger.info("using MASTER_IP %s", masterip)

@@ -18,7 +18,7 @@ from utils import env
 
 
 class Task():
-    def __init__(self, info, priority):
+    def __init__(self, info, priority, job_id):
         self.info = info
         self.status = WAITING
         self.instance_list = []
@@ -26,6 +26,7 @@ class Task():
         # priority the bigger the better
         # self.priority the smaller the better
         self.priority = int(time.time()) / 60 / 60 - priority
+        self.job_id = job_id
 
     def __lt__(self, other):
         return self.priority < other.priority
@@ -47,7 +48,7 @@ class TaskMgr(threading.Thread):
     # load task information from etcd
     # initial a task queue and task schedueler
     # taskmgr: a taskmgr instance
-    def __init__(self, nodemgr, cloudmgr, monitor_fetcher,scheduler_interval=2, external_logger=None):
+    def __init__(self, nodemgr, cloudmgr, monitor_fetcher,scheduler_interval=10, external_logger=None):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.jobmgr = None
@@ -88,11 +89,12 @@ class TaskMgr(threading.Thread):
         self.serve()
         while not self.thread_stop:
             self.sort_out_task_queue()
-            task, instance_id, worker = self.task_scheduler()
-            if task is not None and worker is not None:
-                self.task_processor(task, instance_id, worker)
-            else:
-                time.sleep(self.scheduler_interval)
+            # task, instance_id, worker = self.task_scheduler()
+            # if task is not None and worker is not None:
+            #     self.task_processor(task, instance_id, worker)
+            instance_worker_pair = self.task_scheduler_cloud()
+            self.task_processor_cloud(instance_worker_pair)
+            time.sleep(self.scheduler_interval)
 
 
     def serve(self):
@@ -129,9 +131,9 @@ class TaskMgr(threading.Thread):
             self.logger.error('[on_task_report] receive task report when instance is not running')
 
         if instance['status'] == RUNNING and report.instanceStatus != RUNNING:
-            self.cpu_usage[instance['worker']] -= task.info.cluster.instance.cpu
-            self.gpu_usage[instance['worker']] -= task.info.cluster.instance.gpu
-            self.cloudmgr.removeTaskFromNode(instance['worker'], task)
+            #self.cpu_usage[instance['worker']] -= task.info.cluster.instance.cpu
+            #self.gpu_usage[instance['worker']] -= task.info.cluster.instance.gpu
+            self.cloudmgr.engine.removeTaskFromNode(instance['worker'], task)
 
         instance['status'] = report.instanceStatus
         instance['error_msg'] = report.errmsg
@@ -213,10 +215,10 @@ class TaskMgr(threading.Thread):
         instance['try_count'] += 1
         instance['token'] = task.info.token
         instance['worker'] = worker_ip
-        instance['']
 
-        self.cpu_usage[worker_ip] += task.info.cluster.instance.cpu
-        self.gpu_usage[worker_ip] += task.info.cluster.instance.gpu
+        #self.cpu_usage[worker_ip] += task.info.cluster.instance.cpu
+        #self.gpu_usage[worker_ip] += task.info.cluster.instance.gpu
+        
         username = task.info.username
         container_name = task.info.username + '-batch-' + task.info.id + '-' + str(instance_id) + '-' + task.info.token
         if not username in self.user_containers.keys():
@@ -234,7 +236,70 @@ class TaskMgr(threading.Thread):
             self.logger.error('[task_processor] rpc error message: %s' % e)
             instance['status'] = FAILED
             instance['try_count'] -= 1
+            self.cloudmgr.engine.removeTaskFromNode(instance['worker'], task)
             self.user_containers[username].remove(container_name)
+
+
+    def task_scheduler_cloud(self):
+        
+        instance_list = []
+        instance_worker_pair = []
+        
+        for task in self.task_queue:
+            if task in self.lazy_delete_list:
+                continue
+
+            while len(task.instance_list) < task.info.instanceCount:
+                instance = {}
+                instance['try_count'] = 0
+                instance['task'] = task
+                instance['idx'] = len(task.instance_list)
+                task.instance_list.append(instance)
+                instance_list.append(instance)
+
+        for instance in instance_list:
+            worker = self.find_proper_cloud_worker(instance['task'])
+            if worker:
+                instance_list.remove(instance)
+                instance_worker_pair.append([instance['task'], instance['idx'], worker])
+
+        cpu_total = 2.0
+        memory_total = 8190.0 
+
+        cpu_current = 0
+        memory_current = 0
+        disk_current = 0
+        instance_current = []
+
+        thread_list = []
+
+        for instance in instance_list:
+            cpu = instance['task'].info.cluster.instance.cpu
+            memory = instance['task'].info.cluster.instance.memory
+            disk = instance['task'].info.cluster.instance.disk
+            if cpu + cpu_current <= cpu_total and memory + memory_current <= memory_total:
+                cpu_current += cpu
+                memory_current += memory
+                disk_current += disk
+                instance_current.append(instance)
+            else:
+                thread = threading.Thread(target = self.assign_task_to_worker, args=(instance_current, instance_worker_pair, 'ecs.g5.large', 'hdd', 50+int(disk_current/1024)))
+                thread.setDaemon(True)
+                thread.start()
+                thread_list.append(thread)
+                cpu_current += cpu
+                memory_current += memory
+                disk_current = disk
+                instance_current = [instance]
+        
+        for thread in thread_list:
+            thread.join()
+
+        return instance_worker_pair
+
+    def task_processor_cloud(self, instance_worker_pair):
+        for item in instance_worker_pair:
+            self.task_processor(item[0], item[1], item[2])
 
 
     # return task, worker
@@ -272,9 +337,9 @@ class TaskMgr(threading.Thread):
                     if not self.is_alive(instance['worker']):
                         instance['status'] = FAILED
                         instance['token'] = ''
-                        self.cpu_usage[instance['worker']] -= task.info.cluster.instance.cpu
-                        self.gpu_usage[instance['worker']] -= task.info.cluster.instance.gpu
-                        self.cloudmgr.addTaskToNode(worker, task)
+                        #self.cpu_usage[instance['worker']] -= task.info.cluster.instance.cpu
+                        #self.gpu_usage[instance['worker']] -= task.info.cluster.instance.gpu
+                        self.cloudmgr.engine.removeTaskFromNode(instance['worker'], task)
                         self.logger.warning('[task_scheduler] worker dead, retry task [%s] instance [%d]' % (task.info.id, index))
                         if worker is not None:
                             return task, index, worker
@@ -284,9 +349,7 @@ class TaskMgr(threading.Thread):
                 if len(task.instance_list) < task.info.instanceCount:
                     instance = {}
                     instance['try_count'] = 0
-                    instance['worker'] = worker
                     task.instance_list.append(instance)
-                    self.cloudmgr.addTaskToNode(worker, task)
                     return task, len(task.instance_list) - 1, worker
 
             self.check_task_completed(task)
@@ -315,36 +378,40 @@ class TaskMgr(threading.Thread):
         return None
 
     def find_proper_cloud_worker(self, task, timeout=600, wait_period=3):
+
         nodes = self.cloudmgr.engine.listNodes()
         
         for node in nodes:
             if node.cpu_free >= task.info.cluster.instance.cpu and node.memory_free >= task.info.cluster.instance.memory:
+                self.cloudmgr.engine.addTaskToNode(worker_ip, task)
                 logger.info("find proper cloud worker, ip: {}".format(node.private_ip))
-                return node
+                return node.private_ip
 
-        logger.info("proper cloud worker not found, create a new one")
+        logger.info("proper cloud worker not found")
 
-        result = self.cloudmgr.engine.addNode('ecs.g5.large', 'hdd', 100)
+    def assign_task_to_worker(self, instance_list, instance_worker_pair, instance_type='ecs.g5.large', disk_type='hdd', disk_size=100):
+        
+        worker = self.create_new_worker(instance_type, disk_type, disk_size)
+        
+        for instance in instance_list:
+            self.cloudmgr.engine.addTaskToNode(worker, instance['task'])
+            instance_worker_pair.append([instance['task'], instance['idx'], worker])
+
+    def create_new_worker(self, instance_type='ecs.g5.large', disk_type='hdd', disk_size=100):
+        
+        logger.info("create a new cloud worker with type - {}, disk_type - {}, disk_size - {}".format(instance_type, disk_type, str(disk_size)))
+
+        result = self.cloudmgr.engine.addNode(instance_type, disk_type, disk_size)
 
         if result['success'] == 'false':
             logger.info("create cloud worker failed")
             return None
 
         node = result['node']
-        
-        start = time.time()
-        end = start + timeout
 
-        while(time.time() < end):
-            all_nodes = self.nodemgr.get_batch_nodeips()
-            if node.private_ip in all_nodes:
-                logger.info("find proper cloud worker, ip: {} - {}".format(node.public_ip, node.private_ip))
-                return node.private_ip
-            else:
-                time.sleep(wait_period)
+        logger.info("create cloud worker success, ip: {} - {}".format(node.public_ip, node.private_ip))
 
-        return None
-
+        return node.private_ip
 
     def get_all_nodes(self):
         # cache running nodes
@@ -394,7 +461,7 @@ class TaskMgr(threading.Thread):
 
     # save the task information into database
     # called when jobmgr assign task to taskmgr
-    def add_task(self, username, taskid, json_task, task_priority=1):
+    def add_task(self, username, jobid, taskid, json_task, task_priority=1):
         # decode json string to object defined in grpc
         self.logger.info('[taskmgr add_task] receive task %s' % taskid)
         image_dict = {
@@ -426,7 +493,8 @@ class TaskMgr(threading.Thread):
                     memory = int(json_task['memorySetting']),
                     disk = int(json_task['diskSetting']),
                     gpu = int(json_task['gpuSetting'])))),
-            priority=task_priority)
+            priority=task_priority,
+            job_id=jobid)
         if 'mapping' in json_task:
             task.info.cluster.mount.extend([Mount(localPath=json_task['mapping'][mapping_key]['mappingLocalDir'],
                                                   remotePath=json_task['mapping'][mapping_key]['mappingRemoteDir'])

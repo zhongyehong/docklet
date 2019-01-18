@@ -19,12 +19,13 @@ fspath = env.getenv('FS_PREFIX')
 
 
 class AliyunMgr(threading.Thread):
-    def __init__(self): 
+    def __init__(self, nodemgr): 
         threading.Thread.__init__(self)
         try:
             CLoudNode.query.all()
         except:
             db.create_all()
+        self.nodemgr = nodemgr
         self.cls = get_driver(Provider.ALIYUN_ECS)
         self.loadSetting()
         self.sizes = self.driver.list_sizes()
@@ -51,12 +52,12 @@ class AliyunMgr(threading.Thread):
         self.INSTANCE_TYPE_MAP = {
             'ecs.g5.large': {
                 'cpu': 2.0,
-                'memory': 8000.0,
+                'memory': 8190.0,
                 'price': 0.89
             },
             'ecs.hfg5.large': {
                 'cpu': 2.0,
-                'memory': 8000.0,
+                'memory': 8192.0,
                 'price': 1.15
             }
         }
@@ -118,9 +119,11 @@ class AliyunMgr(threading.Thread):
         if node:
             try:
                 deploy(node.public_ips[0], self.master_ip, 'root', self.setting['Password'], self.setting['VolumeName'], 1024*int(disk_size-20))
+                self._wait_until_start(node)
                 instance_type_info =  self.getInstanceTypeInfoByName(instance_type)
                 disk_price = self.getDiskPrice(disk_type, disk_size)
-                node_info = CloudNode(node.id, node.public_ips[0], node.private_ips[0], self.setting['Password'], instance_type, instance_type_info['cpu'], instance_type_info['memory'], disk_size, instance_type_info['price'] + disk_price)
+                node_info = CloudNode(node.id, node.public_ips[0], node.private_ips[0], self.setting['Password'],
+                    instance_type, instance_type_info['cpu'], instance_type_info['memory'], disk_size*1024, instance_type_info['price'] + disk_price)
                 db.session.add(node_info)
                 db.session.commit()
                 return {'success': 'true', 'node': node_info}
@@ -131,12 +134,27 @@ class AliyunMgr(threading.Thread):
         else:
             return {'success':'false'}
 
+    def _wait_until_start(self, node, wait_period=3, timeout=600):
+        start = time.time()
+        end = start + timeout
+
+        while(time.time() < end):
+            all_nodes = self.nodemgr.get_batch_nodeips()
+            if node.private_ips[0] in all_nodes:
+                return 
+            else:
+                time.sleep(wait_period)
+
+        raise ValueError('start instance failed')
+
     def deleteNode(self, node_id):
         try:
             node_info = CloudNode.query.filter_by(node_id=node_id).first()
             nodes = self.driver.list_nodes(ex_node_ids=[node_id])
             if len(nodes) != 1:
                 logger.error("node_id could not be found in aliyun")
+                db.session.delete(node_info)
+                db.session.commit()
                 return {'success': 'false'}
             node = nodes[0]
             self.driver.destroy_node(node)
@@ -161,9 +179,9 @@ class AliyunMgr(threading.Thread):
 
     def addTaskToNode(self, node_ip, task):
         node = CloudNode.query.filter_by(private_ip=node_ip).first()
-        node.memory_cpu -= task.info.cluster.instance.cpu
+        node.cpu_free -= task.info.cluster.instance.cpu
         node.memory_free -= task.info.cluster.instance.memory
-        node.memory_disk -= task.info.cluster.instance.disk
+        node.disk_free -= task.info.cluster.instance.disk
         node.running_task_number += 1
         db.session.commit()
         return True
@@ -171,9 +189,9 @@ class AliyunMgr(threading.Thread):
 
     def removeTaskFromNode(self, node_ip, task):
         node = CloudNode.query.filter_by(private_ip=node_ip).first()
-        node.memory_cpu += task.info.cluster.instance.cpu
+        node.cpu_free += task.info.cluster.instance.cpu
         node.memory_free += task.info.cluster.instance.memory
-        node.memory_disk += task.info.cluster.instance.disk
+        node.disk_free += task.info.cluster.instance.disk
         node.running_task_number -= 1
         db.session.commit()
         return True
@@ -221,9 +239,9 @@ class CloudMgr():
         return {'success':'true'}
 
 
-    def __init__(self):
+    def __init__(self, nodemgr=None):
         if env.getenv("ALLOW_SCALE_OUT") == "True":
-            self.engine = AliyunMgr()
+            self.engine = AliyunMgr(nodemgr)
             self.engine.start()
         else:
             self.engine = EmptyMgr()

@@ -11,6 +11,7 @@ class BatchJob(object):
         self.raw_job_info = job_info
         self.task_queue = []
         self.task_finished = []
+        self.task_number = len(self.raw_job_info["tasks"])
         self.job_id = None
         self.job_name = job_info['jobName']
         self.job_priority = int(job_info['jobPriority'])
@@ -147,7 +148,7 @@ class JobMgr(threading.Thread):
             return False
         else:
             task_priority = job.job_priority
-            self.taskmgr.add_task(job.user, task_name, task_info, task_priority)
+            self.taskmgr.add_task(job.user, job.job_id, task_name, task_info, task_priority)
             return True
 
     # this is a thread to schedule the jobs
@@ -158,12 +159,16 @@ class JobMgr(threading.Thread):
             if self.job_processor(job):
                 job.status = 'running'
                 break
-            else:
+            elif self.check_job_finished(job):
                 job.status = 'done'
 
     # a task has finished
     def report(self, task):
-        pass
+        job = self.job_map[task.job_id]
+        job.task_finished.append(task)
+
+    def check_job_finished(self, job):
+        return len(job.task_finished) == job.task_number
 
     def get_output(self, username, jobid, taskid, instid, issue):
         filename = username + "_" + jobid + "_" + taskid + "_" + instid + "_" + issue + ".txt"
