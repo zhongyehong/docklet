@@ -430,6 +430,10 @@ class portcontrol(object):
         ports_lock.release()
         try:
             subprocess.run(['iptables','-t','nat','-A','PREROUTING','-p','tcp','--dport',str(free_port),"-j","DNAT",'--to-destination','%s:%s'%(container_ip,container_port)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+        except subprocess.CalledProcessError as suberror:
+            return [False, "set port mapping failed : %s" % suberror.stdout.decode('utf-8')]
+        try:
+            subprocess.run(['iptables','-t','nat','-A','PREROUTING','-p','udp','--dport',str(free_port),"-j","DNAT",'--to-destination','%s:%s'%(container_ip,container_port)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
             return [True, str(free_port)]
         except subprocess.CalledProcessError as suberror:
             return [False, "set port mapping failed : %s" % suberror.stdout.decode('utf-8')]
@@ -445,6 +449,10 @@ class portcontrol(object):
         public_ip = env.getenv("PUBLIC_IP")
         try:
             subprocess.run(['iptables','-t','nat','-D','PREROUTING','-p','tcp','--dport',str(free_port),"-j","DNAT",'--to-destination','%s:%s'%(container_ip,container_port)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+        except subprocess.CalledProcessError as suberror:
+            return [False, "release port mapping failed : %s" % suberror.stdout.decode('utf-8')]
+        try:
+            subprocess.run(['iptables','-t','nat','-D','PREROUTING','-p','udp','--dport',str(free_port),"-j","DNAT",'--to-destination','%s:%s'%(container_ip,container_port)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
         except subprocess.CalledProcessError as suberror:
             return [False, "release port mapping failed : %s" % suberror.stdout.decode('utf-8')]
         ports_lock.acquire()
