@@ -430,7 +430,6 @@ class portcontrol(object):
         ports_lock.release()
         try:
             subprocess.run(['iptables','-t','nat','-A','PREROUTING','-p','tcp','--dport',str(free_port),"-j","DNAT",'--to-destination','%s:%s'%(container_ip,container_port)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
-            return [True, str(free_port)]
         except subprocess.CalledProcessError as suberror:
             return [False, "set port mapping failed : %s" % suberror.stdout.decode('utf-8')]
         try:
