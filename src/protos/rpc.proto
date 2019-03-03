@@ -15,8 +15,7 @@ message VNodeInfo {
 	string taskid = 1;
 	string username = 2;
 	int32 vnodeid = 3;
-	Parameters parameters = 4;	// 参数
-	VNode vnode = 5;		// 集群配置
+	VNode vnode = 4;		// 集群配置
 }
 
 message Reply {

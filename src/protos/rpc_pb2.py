@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='rpc.proto',
   package='',
   syntax='proto3',
-  serialized_pb=_b('\n\trpc.proto\"v\n\tVNodeInfo\x12\x0e\n\x06taskid\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x0f\n\x07vnodeid\x18\x03 \x01(\x05\x12\x1f\n\nparameters\x18\x04 \x01(\x0b\x32\x0b.Parameters\x12\x15\n\x05vnode\x18\x05 \x01(\x0b\x32\x06.VNode\"f\n\x05Reply\x12\"\n\x06status\x18\x01 \x01(\x0e\x32\x12.Reply.ReplyStatus\x12\x0f\n\x07message\x18\x02 \x01(\t\"(\n\x0bReplyStatus\x12\x0c\n\x08\x41\x43\x43\x45PTED\x10\x00\x12\x0b\n\x07REFUSED\x10\x01\"\'\n\tReportMsg\x12\x1a\n\x08taskmsgs\x18\x01 \x03(\x0b\x32\x08.TaskMsg\"{\n\x07TaskMsg\x12\x0e\n\x06taskid\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x0f\n\x07vnodeid\x18\x03 \x01(\x05\x12\x1e\n\rsubTaskStatus\x18\x04 \x01(\x0e\x32\x07.Status\x12\r\n\x05token\x18\x05 \x01(\t\x12\x0e\n\x06\x65rrmsg\x18\x06 \x01(\t\"~\n\x08TaskInfo\x12\x0e\n\x06taskid\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x0f\n\x07vnodeid\x18\x03 \x01(\x05\x12\x1f\n\nparameters\x18\x04 \x01(\x0b\x32\x0b.Parameters\x12\x0f\n\x07timeout\x18\x05 \x01(\x05\x12\r\n\x05token\x18\x06 \x01(\t\"_\n\nParameters\x12\x19\n\x07\x63ommand\x18\x01 \x01(\x0b\x32\x08.Command\x12\x1a\n\x12stderrRedirectPath\x18\x02 \x01(\t\x12\x1a\n\x12stdoutRedirectPath\x18\x03 \x01(\t\"\x8b\x01\n\x07\x43ommand\x12\x13\n\x0b\x63ommandLine\x18\x01 \x01(\t\x12\x13\n\x0bpackagePath\x18\x02 \x01(\t\x12&\n\x07\x65nvVars\x18\x03 \x03(\x0b\x32\x15.Command.EnvVarsEntry\x1a.\n\x0c\x45nvVarsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"m\n\x05VNode\x12\x15\n\x05image\x18\x01 \x01(\x0b\x32\x06.Image\x12\x1b\n\x08instance\x18\x02 \x01(\x0b\x32\t.Instance\x12\x15\n\x05mount\x18\x03 \x03(\x0b\x32\x06.Mount\x12\x19\n\x07network\x18\x04 \x01(\x0b\x32\x08.Network\"L\n\x07Network\x12\x0e\n\x06ipaddr\x18\x01 \x01(\t\x12\x0f\n\x07gateway\x18\x02 \x01(\t\x12\x10\n\x08masterip\x18\x03 \x01(\t\x12\x0e\n\x06\x62rname\x18\x04 \x01(\t\"t\n\x05Image\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x1e\n\x04type\x18\x02 \x01(\x0e\x32\x10.Image.ImageType\x12\r\n\x05owner\x18\x03 \x01(\t\".\n\tImageType\x12\x08\n\x04\x42\x41SE\x10\x00\x12\n\n\x06PUBLIC\x10\x01\x12\x0b\n\x07PRIVATE\x10\x02\"u\n\x05Mount\x12\x10\n\x08provider\x18\x01 \x01(\t\x12\x11\n\tlocalPath\x18\x02 \x01(\t\x12\x12\n\nremotePath\x18\x03 \x01(\t\x12\x11\n\taccessKey\x18\x04 \x01(\t\x12\x11\n\tsecretKey\x18\x05 \x01(\t\x12\r\n\x05other\x18\x06 \x01(\t\"B\n\x08Instance\x12\x0b\n\x03\x63pu\x18\x01 \x01(\x05\x12\x0e\n\x06memory\x18\x02 \x01(\x05\x12\x0c\n\x04\x64isk\x18\x03 \x01(\x05\x12\x0b\n\x03gpu\x18\x04 \x01(\x05*[\n\x06Status\x12\x0b\n\x07WAITING\x10\x00\x12\x0b\n\x07RUNNING\x10\x01\x12\r\n\tCOMPLETED\x10\x02\x12\n\n\x06\x46\x41ILED\x10\x03\x12\x0b\n\x07TIMEOUT\x10\x04\x12\x0f\n\x0bOUTPUTERROR\x10\x05\x32(\n\x06Master\x12\x1e\n\x06report\x12\n.ReportMsg\x1a\x06.Reply\"\x00\x32\x97\x01\n\x06Worker\x12#\n\x0bstart_vnode\x12\n.VNodeInfo\x1a\x06.Reply\"\x00\x12!\n\nstart_task\x12\t.TaskInfo\x1a\x06.Reply\"\x00\x12!\n\tstop_task\x12\n.ReportMsg\x1a\x06.Reply\"\x00\x12\"\n\nstop_vnode\x12\n.VNodeInfo\x1a\x06.Reply\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\trpc.proto\"U\n\tVNodeInfo\x12\x0e\n\x06taskid\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x0f\n\x07vnodeid\x18\x03 \x01(\x05\x12\x15\n\x05vnode\x18\x04 \x01(\x0b\x32\x06.VNode\"f\n\x05Reply\x12\"\n\x06status\x18\x01 \x01(\x0e\x32\x12.Reply.ReplyStatus\x12\x0f\n\x07message\x18\x02 \x01(\t\"(\n\x0bReplyStatus\x12\x0c\n\x08\x41\x43\x43\x45PTED\x10\x00\x12\x0b\n\x07REFUSED\x10\x01\"\'\n\tReportMsg\x12\x1a\n\x08taskmsgs\x18\x01 \x03(\x0b\x32\x08.TaskMsg\"{\n\x07TaskMsg\x12\x0e\n\x06taskid\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x0f\n\x07vnodeid\x18\x03 \x01(\x05\x12\x1e\n\rsubTaskStatus\x18\x04 \x01(\x0e\x32\x07.Status\x12\r\n\x05token\x18\x05 \x01(\t\x12\x0e\n\x06\x65rrmsg\x18\x06 \x01(\t\"~\n\x08TaskInfo\x12\x0e\n\x06taskid\x18\x01 \x01(\t\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x0f\n\x07vnodeid\x18\x03 \x01(\x05\x12\x1f\n\nparameters\x18\x04 \x01(\x0b\x32\x0b.Parameters\x12\x0f\n\x07timeout\x18\x05 \x01(\x05\x12\r\n\x05token\x18\x06 \x01(\t\"_\n\nParameters\x12\x19\n\x07\x63ommand\x18\x01 \x01(\x0b\x32\x08.Command\x12\x1a\n\x12stderrRedirectPath\x18\x02 \x01(\t\x12\x1a\n\x12stdoutRedirectPath\x18\x03 \x01(\t\"\x8b\x01\n\x07\x43ommand\x12\x13\n\x0b\x63ommandLine\x18\x01 \x01(\t\x12\x13\n\x0bpackagePath\x18\x02 \x01(\t\x12&\n\x07\x65nvVars\x18\x03 \x03(\x0b\x32\x15.Command.EnvVarsEntry\x1a.\n\x0c\x45nvVarsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"m\n\x05VNode\x12\x15\n\x05image\x18\x01 \x01(\x0b\x32\x06.Image\x12\x1b\n\x08instance\x18\x02 \x01(\x0b\x32\t.Instance\x12\x15\n\x05mount\x18\x03 \x03(\x0b\x32\x06.Mount\x12\x19\n\x07network\x18\x04 \x01(\x0b\x32\x08.Network\"L\n\x07Network\x12\x0e\n\x06ipaddr\x18\x01 \x01(\t\x12\x0f\n\x07gateway\x18\x02 \x01(\t\x12\x10\n\x08masterip\x18\x03 \x01(\t\x12\x0e\n\x06\x62rname\x18\x04 \x01(\t\"t\n\x05Image\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x1e\n\x04type\x18\x02 \x01(\x0e\x32\x10.Image.ImageType\x12\r\n\x05owner\x18\x03 \x01(\t\".\n\tImageType\x12\x08\n\x04\x42\x41SE\x10\x00\x12\n\n\x06PUBLIC\x10\x01\x12\x0b\n\x07PRIVATE\x10\x02\"u\n\x05Mount\x12\x10\n\x08provider\x18\x01 \x01(\t\x12\x11\n\tlocalPath\x18\x02 \x01(\t\x12\x12\n\nremotePath\x18\x03 \x01(\t\x12\x11\n\taccessKey\x18\x04 \x01(\t\x12\x11\n\tsecretKey\x18\x05 \x01(\t\x12\r\n\x05other\x18\x06 \x01(\t\"B\n\x08Instance\x12\x0b\n\x03\x63pu\x18\x01 \x01(\x05\x12\x0e\n\x06memory\x18\x02 \x01(\x05\x12\x0c\n\x04\x64isk\x18\x03 \x01(\x05\x12\x0b\n\x03gpu\x18\x04 \x01(\x05*[\n\x06Status\x12\x0b\n\x07WAITING\x10\x00\x12\x0b\n\x07RUNNING\x10\x01\x12\r\n\tCOMPLETED\x10\x02\x12\n\n\x06\x46\x41ILED\x10\x03\x12\x0b\n\x07TIMEOUT\x10\x04\x12\x0f\n\x0bOUTPUTERROR\x10\x05\x32(\n\x06Master\x12\x1e\n\x06report\x12\n.ReportMsg\x1a\x06.Reply\"\x00\x32\x97\x01\n\x06Worker\x12#\n\x0bstart_vnode\x12\n.VNodeInfo\x1a\x06.Reply\"\x00\x12!\n\nstart_task\x12\t.TaskInfo\x1a\x06.Reply\"\x00\x12!\n\tstop_task\x12\n.ReportMsg\x1a\x06.Reply\"\x00\x12\"\n\nstop_vnode\x12\n.VNodeInfo\x1a\x06.Reply\"\x00\x62\x06proto3')
 )
 
 _STATUS = _descriptor.EnumDescriptor(
@@ -56,8 +56,8 @@ _STATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1264,
-  serialized_end=1355,
+  serialized_start=1231,
+  serialized_end=1322,
 )
 _sym_db.RegisterEnumDescriptor(_STATUS)
 
@@ -87,8 +87,8 @@ _REPLY_REPLYSTATUS = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=195,
-  serialized_end=235,
+  serialized_start=162,
+  serialized_end=202,
 )
 _sym_db.RegisterEnumDescriptor(_REPLY_REPLYSTATUS)
 
@@ -113,8 +113,8 @@ _IMAGE_IMAGETYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1029,
-  serialized_end=1075,
+  serialized_start=996,
+  serialized_end=1042,
 )
 _sym_db.RegisterEnumDescriptor(_IMAGE_IMAGETYPE)
 
@@ -148,15 +148,8 @@ _VNODEINFO = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='parameters', full_name='VNodeInfo.parameters', index=3,
+      name='vnode', full_name='VNodeInfo.vnode', index=3,
       number=4, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='vnode', full_name='VNodeInfo.vnode', index=4,
-      number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -174,7 +167,7 @@ _VNODEINFO = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=13,
-  serialized_end=131,
+  serialized_end=98,
 )
 
 
@@ -212,8 +205,8 @@ _REPLY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=133,
-  serialized_end=235,
+  serialized_start=100,
+  serialized_end=202,
 )
 
 
@@ -243,8 +236,8 @@ _REPORTMSG = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=237,
-  serialized_end=276,
+  serialized_start=204,
+  serialized_end=243,
 )
 
 
@@ -309,8 +302,8 @@ _TASKMSG = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=278,
-  serialized_end=401,
+  serialized_start=245,
+  serialized_end=368,
 )
 
 
@@ -375,8 +368,8 @@ _TASKINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=403,
-  serialized_end=529,
+  serialized_start=370,
+  serialized_end=496,
 )
 
 
@@ -420,8 +413,8 @@ _PARAMETERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=531,
-  serialized_end=626,
+  serialized_start=498,
+  serialized_end=593,
 )
 
 
@@ -458,8 +451,8 @@ _COMMAND_ENVVARSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=722,
-  serialized_end=768,
+  serialized_start=689,
+  serialized_end=735,
 )
 
 _COMMAND = _descriptor.Descriptor(
@@ -502,8 +495,8 @@ _COMMAND = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=629,
-  serialized_end=768,
+  serialized_start=596,
+  serialized_end=735,
 )
 
 
@@ -554,8 +547,8 @@ _VNODE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=770,
-  serialized_end=879,
+  serialized_start=737,
+  serialized_end=846,
 )
 
 
@@ -606,8 +599,8 @@ _NETWORK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=881,
-  serialized_end=957,
+  serialized_start=848,
+  serialized_end=924,
 )
 
 
@@ -652,8 +645,8 @@ _IMAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=959,
-  serialized_end=1075,
+  serialized_start=926,
+  serialized_end=1042,
 )
 
 
@@ -718,8 +711,8 @@ _MOUNT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1077,
-  serialized_end=1194,
+  serialized_start=1044,
+  serialized_end=1161,
 )
 
 
@@ -770,11 +763,10 @@ _INSTANCE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1196,
-  serialized_end=1262,
+  serialized_start=1163,
+  serialized_end=1229,
 )
 
-_VNODEINFO.fields_by_name['parameters'].message_type = _PARAMETERS
 _VNODEINFO.fields_by_name['vnode'].message_type = _VNODE
 _REPLY.fields_by_name['status'].enum_type = _REPLY_REPLYSTATUS
 _REPLY_REPLYSTATUS.containing_type = _REPLY
@@ -907,8 +899,8 @@ _MASTER = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=1357,
-  serialized_end=1397,
+  serialized_start=1324,
+  serialized_end=1364,
   methods=[
   _descriptor.MethodDescriptor(
     name='report',
@@ -931,8 +923,8 @@ _WORKER = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=1,
   options=None,
-  serialized_start=1400,
-  serialized_end=1551,
+  serialized_start=1367,
+  serialized_end=1518,
   methods=[
   _descriptor.MethodDescriptor(
     name='start_vnode',

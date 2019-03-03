@@ -56,14 +56,24 @@ class WorkerStub(object):
     Args:
       channel: A grpc.Channel.
     """
-    self.process_task = channel.unary_unary(
-        '/Worker/process_task',
+    self.start_vnode = channel.unary_unary(
+        '/Worker/start_vnode',
+        request_serializer=rpc__pb2.VNodeInfo.SerializeToString,
+        response_deserializer=rpc__pb2.Reply.FromString,
+        )
+    self.start_task = channel.unary_unary(
+        '/Worker/start_task',
         request_serializer=rpc__pb2.TaskInfo.SerializeToString,
         response_deserializer=rpc__pb2.Reply.FromString,
         )
-    self.stop_tasks = channel.unary_unary(
-        '/Worker/stop_tasks',
+    self.stop_task = channel.unary_unary(
+        '/Worker/stop_task',
         request_serializer=rpc__pb2.ReportMsg.SerializeToString,
+        response_deserializer=rpc__pb2.Reply.FromString,
+        )
+    self.stop_vnode = channel.unary_unary(
+        '/Worker/stop_vnode',
+        request_serializer=rpc__pb2.VNodeInfo.SerializeToString,
         response_deserializer=rpc__pb2.Reply.FromString,
         )
 
@@ -72,14 +82,28 @@ class WorkerServicer(object):
   # missing associated documentation comment in .proto file
   pass
 
-  def process_task(self, request, context):
+  def start_vnode(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def stop_tasks(self, request, context):
+  def start_task(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def stop_task(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def stop_vnode(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -89,14 +113,24 @@ class WorkerServicer(object):
 
 def add_WorkerServicer_to_server(servicer, server):
   rpc_method_handlers = {
-      'process_task': grpc.unary_unary_rpc_method_handler(
-          servicer.process_task,
+      'start_vnode': grpc.unary_unary_rpc_method_handler(
+          servicer.start_vnode,
+          request_deserializer=rpc__pb2.VNodeInfo.FromString,
+          response_serializer=rpc__pb2.Reply.SerializeToString,
+      ),
+      'start_task': grpc.unary_unary_rpc_method_handler(
+          servicer.start_task,
           request_deserializer=rpc__pb2.TaskInfo.FromString,
           response_serializer=rpc__pb2.Reply.SerializeToString,
       ),
-      'stop_tasks': grpc.unary_unary_rpc_method_handler(
-          servicer.stop_tasks,
+      'stop_task': grpc.unary_unary_rpc_method_handler(
+          servicer.stop_task,
           request_deserializer=rpc__pb2.ReportMsg.FromString,
+          response_serializer=rpc__pb2.Reply.SerializeToString,
+      ),
+      'stop_vnode': grpc.unary_unary_rpc_method_handler(
+          servicer.stop_vnode,
+          request_deserializer=rpc__pb2.VNodeInfo.FromString,
           response_serializer=rpc__pb2.Reply.SerializeToString,
       ),
   }
