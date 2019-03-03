@@ -16,20 +16,20 @@ from protos.rpc_pb2_grpc import MasterServicer, add_MasterServicer_to_server, Wo
 
 from utils import env
 
+
 class Task():
     def __init__(self, info, priority):
         self.info = info
         self.status = WAITING
-        self.subtask_list = []
+        self.instance_list = []
         self.token = ''
-        self.atSameTime = True
-        self.multicommand = True
         # priority the bigger the better
         # self.priority the smaller the better
         self.priority = int(time.time()) / 60 / 60 - priority
 
     def __lt__(self, other):
         return self.priority < other.priority
+
 
 class TaskReporter(MasterServicer):
 
@@ -40,6 +40,7 @@ class TaskReporter(MasterServicer):
         for task_report in request.taskmsgs:
             self.taskmgr.on_task_report(task_report)
         return Reply(status=Reply.ACCEPTED, message='')
+
 
 class TaskMgr(threading.Thread):
 
@@ -54,7 +55,7 @@ class TaskMgr(threading.Thread):
         self.lazy_append_list = []
         self.lazy_delete_list = []
         self.task_queue_lock = threading.Lock()
-        #self.user_containers = {}
+        self.user_containers = {}
 
         self.scheduler_interval = scheduler_interval
         self.logger = logger
@@ -86,11 +87,12 @@ class TaskMgr(threading.Thread):
         self.serve()
         while not self.thread_stop:
             self.sort_out_task_queue()
-            task, workers = self.task_scheduler()
-            if task is not None and workers is not None:
-                self.task_processor(task, workers)
+            task, instance_id, worker = self.task_scheduler()
+            if task is not None and worker is not None:
+                self.task_processor(task, instance_id, worker)
             else:
                 time.sleep(self.scheduler_interval)
+
 
     def serve(self):
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
@@ -99,10 +101,103 @@ class TaskMgr(threading.Thread):
         self.server.start()
         self.logger.info('[taskmgr_rpc] start rpc server')
 
+
     def stop(self):
         self.thread_stop = True
         self.server.stop(0)
         self.logger.info('[taskmgr_rpc] stop rpc server')
+
+
+    # this method is called when worker send heart-beat rpc request
+    def on_task_report(self, report):
+        self.logger.info('[on_task_report] receive task report: id %s-%d, status %d' % (report.taskid, report.instanceid, report.instanceStatus))
+        task = self.get_task(report.taskid)
+        if task == None:
+            self.logger.error('[on_task_report] task not found')
+            return
+
+        instance = task.instance_list[report.instanceid]
+        if instance['token'] != report.token:
+            self.logger.warning('[on_task_report] wrong token')
+            return
+        username = task.info.username
+        container_name = username + '-batch-' + task.info.id + '-' + str(report.instanceid) + '-' + report.token
+        self.user_containers[username].remove(container_name)
+
+        if instance['status'] != RUNNING:
+            self.logger.error('[on_task_report] receive task report when instance is not running')
+
+        if instance['status'] == RUNNING and report.instanceStatus != RUNNING:
+            self.cpu_usage[instance['worker']] -= task.info.cluster.instance.cpu
+            self.gpu_usage[instance['worker']] -= task.info.cluster.instance.gpu
+
+        instance['status'] = report.instanceStatus
+        instance['error_msg'] = report.errmsg
+
+        if report.instanceStatus == COMPLETED:
+            self.check_task_completed(task)
+        elif report.instanceStatus == FAILED or report.instanceStatus == TIMEOUT:
+            if instance['try_count'] > task.info.maxRetryCount:
+                self.check_task_completed(task)
+            else:
+                reason = 'FAILED' if report.instanceStatus == FAILED else 'TIMEOUT'
+                self.task_retrying(task, reason, instance['try_count'])
+        elif report.instanceStatus == OUTPUTERROR:
+            self.task_failed(task,"OUTPUTERROR")
+
+
+    def check_task_completed(self, task):
+        if len(task.instance_list) < task.info.instanceCount:
+            return
+        failed = False
+        reason = "FAILED"
+        for instance in task.instance_list:
+            if instance['status'] == RUNNING or instance['status'] == WAITING:
+                return
+            if instance['status'] == FAILED or instance['status'] == TIMEOUT:
+                if instance['try_count'] > task.info.maxRetryCount:
+                    failed = True
+                    if instance['status'] == TIMEOUT:
+                        reason = "TIMEOUT"
+                else:
+                    return
+            if instance['status'] == OUTPUTERROR:
+                failed = True
+                break
+
+        if failed:
+            self.task_failed(task,reason)
+        else:
+            self.task_completed(task)
+
+
+    def task_completed(self, task):
+        task.status = COMPLETED
+
+        if self.jobmgr is None:
+            self.logger.error('[task_completed] jobmgr is None!')
+        else:
+            self.jobmgr.report(task.info.id,'finished')
+        self.logger.info('task %s completed' % task.info.id)
+        self.lazy_delete_list.append(task)
+
+
+    def task_failed(self, task, reason):
+        task.status = FAILED
+
+        if self.jobmgr is None:
+            self.logger.error('[task_failed] jobmgr is None!')
+        else:
+            self.jobmgr.report(task.info.id,'failed', reason, task.info.maxRetryCount+1)
+        self.logger.info('task %s failed' % task.info.id)
+        self.lazy_delete_list.append(task)
+
+    def task_retrying(self, task, reason, tried_times):
+        if self.jobmgr is None:
+            self.logger.error('[task_retrying] jobmgr is None!')
+        else:
+            self.jobmgr.report(task.info.id,'retrying',reason,tried_times)
+
 
     @queue_lock
     def sort_out_task_queue(self):
@@ -115,15 +210,63 @@ class TaskMgr(threading.Thread):
                 self.task_queue.append(task)
             self.task_queue = sorted(self.task_queue, key=lambda x: x.priority)
 
-    # return task, workers
+
+    def task_processor(self, task, instance_id, worker_ip):
+        task.status = RUNNING
+        self.jobmgr.report(task.info.id,'running')
+
+        # properties for transaction
+        task.info.instanceid = instance_id
+        task.info.token = ''.join(random.sample(string.ascii_letters + string.digits, 8))
+
+        instance = task.instance_list[instance_id]
+        instance['status'] = RUNNING
+        instance['try_count'] += 1
+        instance['token'] = task.info.token
+        instance['worker'] = worker_ip
+
+        self.cpu_usage[worker_ip] += task.info.cluster.instance.cpu
+        self.gpu_usage[worker_ip] += task.info.cluster.instance.gpu
+        username = task.info.username
+        container_name = task.info.username + '-batch-' + task.info.id + '-' + str(instance_id) + '-' + task.info.token
+        if not username in self.user_containers.keys():
+            self.user_containers[username] = []
+        self.user_containers[username].append(container_name)
+
+        try:
+            self.logger.info('[task_processor] processing task [%s] instance [%d]' % (task.info.id, task.info.instanceid))
+            channel = grpc.insecure_channel('%s:%s' % (worker_ip, self.worker_port))
+            stub = WorkerStub(channel)
+            response = stub.process_task(task.info)
+            if response.status != Reply.ACCEPTED:
+                raise Exception(response.message)
+        except Exception as e:
+            self.logger.error('[task_processor] rpc error message: %s' % e)
+            instance['status'] = FAILED
+            instance['try_count'] -= 1
+            self.user_containers[username].remove(container_name)
+
+
+    # return task, worker
     def task_scheduler(self):
         # simple FIFO with priority
         self.logger.info('[task_scheduler] scheduling... (%d tasks remains)' % len(self.task_queue))
 
+        # nodes = self.get_all_nodes()
+        # if nodes is None or len(nodes) == 0:
+        #     self.logger.info('[task_scheduler] no nodes found')
+        # else:
+        #     for worker_ip, worker_info in nodes:
+        #         self.logger.info('[task_scheduler] nodes %s' % worker_ip)
+        #         for key in worker_info:
+        #             if key == 'cpu':
+        #                 self.logger.info('[task_scheduler]     %s: %d/%d' % (key, self.get_cpu_usage(worker_ip), worker_info[key]))
+        #             else:
+        #                 self.logger.info('[task_scheduler]     %s: %d' % (key, worker_info[key]))
+
         for task in self.task_queue:
             if task in self.lazy_delete_list:
                 continue
-
             worker = self.find_proper_worker(task)
 
             for index, instance in enumerate(task.instance_list):
@@ -154,35 +297,27 @@ class TaskMgr(threading.Thread):
 
             self.check_task_completed(task)
 
-        return None, None
+        return None, None, None
 
-    def find_proper_workers(self, vnodes_configs):
+    def find_proper_worker(self, task):
         nodes = self.get_all_nodes()
         if nodes is None or len(nodes) == 0:
             self.logger.warning('[task_scheduler] running nodes not found')
             return None
 
-        proper_workers = []
-        for needs in vnodes_configs:
-            for worker_ip, worker_info in nodes:
-                if needs['cpu'] + self.get_cpu_usage(worker_ip) > worker_info['cpu']:
-                    continue
-                elif needs['memory'] > worker_info['memory']:
-                    continue
-                # try not to assign non-gpu task to a worker with gpu
-                #if needs['gpu'] == 0 and worker_info['gpu'] > 0:
-                    #continue
-                elif needs['gpu'] + self.get_gpu_usage(worker_ip) > worker_info['gpu']:
-                    continue
-                else:
-                    worker_info['cpu'] -= needs['cpu']
-                    worker_info['memory'] -= needs['memory']
-                    worker_info['gpu'] -= needs['gpu']
-                    proper_workers.append(worker_ip)
-                    break
-            else:
-                return None
-        return proper_workers
+        for worker_ip, worker_info in nodes:
+            if task.info.cluster.instance.cpu + self.get_cpu_usage(worker_ip) > worker_info['cpu']:
+                continue
+            if task.info.cluster.instance.memory > worker_info['memory']:
+                continue
+            # try not to assign non-gpu task to a worker with gpu
+            if task.info.cluster.instance.gpu == 0 and worker_info['gpu'] > 0:
+                continue
+            if task.info.cluster.instance.gpu + self.get_gpu_usage(worker_ip) > worker_info['gpu']:
+                continue
+            return worker_ip
+        return None
+
 
     def get_all_nodes(self):
         # cache running nodes
@@ -193,9 +328,11 @@ class TaskMgr(threading.Thread):
         all_nodes = [(node_ip, self.get_worker_resource_info(node_ip)) for node_ip in node_ips]
         return all_nodes
 
+
     def is_alive(self, worker):
         nodes = self.nodemgr.get_batch_nodeips()
         return worker in nodes
+
 
     def get_worker_resource_info(self, worker_ip):
         fetcher = self.monitor_fetcher(worker_ip)
@@ -206,6 +343,27 @@ class TaskMgr(threading.Thread):
         info['disk'] = sum([disk['free'] for disk in worker_info['diskinfo']]) / 1024 / 1024 # (Mb)
         info['gpu'] = len(worker_info['gpuinfo'])
         return info
+
+
+    def get_cpu_usage(self, worker_ip):
+        try:
+            return self.cpu_usage[worker_ip]
+        except:
+            self.cpu_usage[worker_ip] = 0
+            return 0
+
+
+    def get_gpu_usage(self, worker_ip):
+        try:
+            return self.gpu_usage[worker_ip]
+        except:
+            self.gpu_usage[worker_ip] = 0
+            return 0
+
+
+    def set_jobmgr(self, jobmgr):
+        self.jobmgr = jobmgr
+
 
     # save the task information into database
     # called when jobmgr assign task to taskmgr
