@@ -85,10 +85,10 @@ def getenv(key):
         return os.environ.get("BATCH_MASTER_PORT","50050")
     elif key == "BATCH_WORKER_PORT":
         return os.environ.get("BATCH_WORKER_PORT","50051")
-    elif key == "BATCH_GATEWAY":
-        return os.environ.get("BATCH_GATEWAY","10.0.3.1")
+    elif key == "BATCH_TASK_CIDR":
+        return os.environ.get("BATCH_TASK_CIDR","4")
     elif key == "BATCH_NET":
-        return os.environ.get("BATCH_NET","10.0.3.0/24")
+        return os.environ.get("BATCH_NET","10.16.0.0/16")
     elif key == "BATCH_MAX_THREAD_WORKER":
         return os.environ.get("BATCH_MAX_THREAD_WORKER","5")
     else:

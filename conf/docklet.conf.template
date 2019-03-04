@@ -201,13 +201,12 @@
 # default: 50051
 # BATCH_WORKER_PORT=50051
 
-# BATCH_GATEWAY: the ip address of gateway for the containers processing
-# batch jobs. default: 10.0.3.1
-# BATCH_GATEWAY=10.0.3.1
+# BATCH_NET: ip addresses range of containers for batch job, default is 10.16.0.0/16
+# BATCH_NET=10.16.0.0/16
 
-# BATCH_NET: ip addresses range of containers for batch job, default is 10.0.3.0/24
-# BATCH_NET=10.0.3.0/24
+# BATCH_TASK_CIDR: 2^(BATCH_TASK_CIDR) is the number of ip addresses for a task, default is 4
+# BATCH_TASK_CIDR=4
 
 # BATCH_MAX_THREAD_WORKER: the maximun number of threads of the rpc server on
 # the batch job worker. default:5
-# BATCH_MAX_THREAD_WORKER=5  
+# BATCH_MAX_THREAD_WORKER=5

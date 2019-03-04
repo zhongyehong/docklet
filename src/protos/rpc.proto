@@ -7,7 +7,7 @@ service Master {
 service Worker {
   rpc start_vnode (VNodeInfo) returns (Reply) {}
 	rpc start_task (TaskInfo) returns (Reply) {}
-	rpc stop_task (ReportMsg) returns (Reply) {}
+	rpc stop_task (TaskInfo) returns (Reply) {}
 	rpc stop_vnode (VNodeInfo) returns (Reply) {}
 }
 

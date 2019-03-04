@@ -59,7 +59,7 @@ def start_task():
 if __name__ == '__main__':
     #for i in range(10):
     #run()
-    start_task()
-    #stop_vnode()
+    #start_task()
+    stop_vnode()
     #time.sleep(4)
     #stop_task()

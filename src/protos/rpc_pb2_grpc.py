@@ -68,7 +68,7 @@ class WorkerStub(object):
         )
     self.stop_task = channel.unary_unary(
         '/Worker/stop_task',
-        request_serializer=rpc__pb2.ReportMsg.SerializeToString,
+        request_serializer=rpc__pb2.TaskInfo.SerializeToString,
         response_deserializer=rpc__pb2.Reply.FromString,
         )
     self.stop_vnode = channel.unary_unary(
@@ -125,7 +125,7 @@ def add_WorkerServicer_to_server(servicer, server):
       ),
       'stop_task': grpc.unary_unary_rpc_method_handler(
           servicer.stop_task,
-          request_deserializer=rpc__pb2.ReportMsg.FromString,
+          request_deserializer=rpc__pb2.TaskInfo.FromString,
           response_serializer=rpc__pb2.Reply.SerializeToString,
       ),
       'stop_vnode': grpc.unary_unary_rpc_method_handler(

@@ -228,10 +228,12 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
         return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
 
     def stop_task(self, request, context):
-        for msg in request.taskmsgs:
-            lxcname = '%s-batch-%s-%s-%s' % (msg.username,msg.taskid,str(msg.vnodeid),msg.token)
-            logger.info("Stop the task with lxc:"+lxcname)
-            subprocess.run("lxc-stop -k -n %s" % lxcname, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+        taskid = request.taskid
+        username = request.username
+        vnodeid = request.vnodeid
+        lxcname = '%s-batch-%s-%s' % (username,taskid,str(vnodeid))
+        logger.info("Stop the task with lxc:"+lxcname)
+        subprocess.run("lxc-stop -k -n %s" % lxcname, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
         return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
 
     # stop and remove container
