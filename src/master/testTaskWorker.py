@@ -44,9 +44,22 @@ def stop_vnode():
     response = stub.stop_vnode(vnodeinfo)
     print("Batch client received: " + str(response.status)+" "+response.message)
 
+def start_task():
+    channel = grpc.insecure_channel('localhost:50051')
+    stub = rpc_pb2_grpc.WorkerStub(channel)
+
+    comm = rpc_pb2.Command(commandLine="ls /root;sleep 5;ls /root", packagePath="/root", envVars={'test1':'10','test2':'20'}) # | awk '{print \"test\\\"\\n\"}'
+    paras = rpc_pb2.Parameters(command=comm, stderrRedirectPath="/root/nfs/batch_{jobid}/", stdoutRedirectPath="/root/nfs/batch_{jobid}/")
+    taskinfo = rpc_pb2.TaskInfo(taskid="test",username="root",vnodeid=1,parameters=paras,timeout=20,token="test")
+
+    response = stub.start_task(taskinfo)
+    print("Batch client received: " + str(response.status)+" "+response.message)
+
+
 if __name__ == '__main__':
     #for i in range(10):
-    run()
+    #run()
+    start_task()
     #stop_vnode()
     #time.sleep(4)
     #stop_task()
