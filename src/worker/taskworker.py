@@ -1,9 +1,10 @@
+#!/usr/bin/python3
 import sys
 if sys.path[0].endswith("worker"):
     sys.path[0] = sys.path[0][:-6]
 from utils import env, tools
-#config = env.getenv("CONFIG")
-config = "/opt/docklet/local/docklet-running.conf"
+config = env.getenv("CONFIG")
+#config = "/opt/docklet/local/docklet-running.conf"
 tools.loadenv(config)
 from utils.log import initlogging
 initlogging("docklet-taskworker")
