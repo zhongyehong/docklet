@@ -19,6 +19,7 @@ from utils import imagemgr,etcdlib,gputools
 from utils.lvmtool import sys_run
 from worker import ossmounter
 from protos import rpc_pb2, rpc_pb2_grpc
+from utils.nettools import netcontrol
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 MAX_RUNNING_TIME = _ONE_DAY_IN_SECONDS
@@ -171,6 +172,7 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
         ipaddr = request.vnode.network.ipaddr
         gateway = request.vnode.network.gateway
         brname = request.vnode.network.brname
+        masterip = request.vnode.network.masterip
 
         #create container
         [success, msg] = self.create_container(taskid, vnodeid, username, image, lxcname, instance_type, ipaddr, gateway, brname)
@@ -195,6 +197,8 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
 
         logger.info('start container %s success' % lxcname)
 
+        netcontrol.setup_gre(brname, masterip)
+
         #add GPU
         [success, msg] = self.add_gpu_device(lxcname,gpu_need)
         if not success:
@@ -206,6 +210,7 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
         return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
 
     def start_task(self, request, context):
+        logger.info('start task with config: ' + str(request))
         taskid = request.taskid
         username = request.username
         vnodeid = request.vnodeid
@@ -228,6 +233,7 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
         return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
 
     def stop_task(self, request, context):
+        logger.info('stop task with config: ' + str(request))
         taskid = request.taskid
         username = request.username
         vnodeid = request.vnodeid
@@ -238,9 +244,11 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
 
     # stop and remove container
     def stop_vnode(self, request, context):
+        logger.info('stop vnode with config: ' + str(request))
         taskid = request.taskid
         username = request.username
         vnodeid = request.vnodeid
+        brname = request.vnode.network.brname
         mount_list = request.vnode.mount
         lxcname = '%s-batch-%s-%s' % (username,taskid,str(vnodeid))
 
@@ -256,6 +264,10 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
             logger.info("delete container %s success" % lxcname)
         else:
             logger.error("delete container %s failed" % lxcname)
+
+        #del ovs bridge
+        if brname is not None:
+            netcontrol.del_bridge(brname)
 
         #release gpu
         self.release_gpu_device(lxcname)

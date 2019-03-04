@@ -39,7 +39,8 @@ def stop_task():
 def stop_vnode():
     channel = grpc.insecure_channel('localhost:50051')
     stub = rpc_pb2_grpc.WorkerStub(channel)
-    vnodeinfo = rpc_pb2.VNodeInfo(taskid="test",username="root",vnodeid=1)
+    network = rpc_pb2.Network(brname="batch-root-test")
+    vnodeinfo = rpc_pb2.VNodeInfo(taskid="test",username="root",vnodeid=1,vnode=rpc_pb2.VNode(network=network))
 
     response = stub.stop_vnode(vnodeinfo)
     print("Batch client received: " + str(response.status)+" "+response.message)
@@ -58,8 +59,8 @@ def start_task():
 
 if __name__ == '__main__':
     #for i in range(10):
-    #run()
+    run()
     #start_task()
-    stop_vnode()
+    #stop_vnode()
     #time.sleep(4)
     #stop_task()

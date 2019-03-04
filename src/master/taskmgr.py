@@ -37,7 +37,8 @@ class Task():
         # priority the bigger the better
         # self.priority the smaller the better
         self.priority = int(time.time()) / 60 / 60 - priority
-        self.network = None
+        self.task_base_ip = None
+        self.ips = None
         self.max_size = max_size
 
         for i in range(self.vnode_nums):
@@ -175,18 +176,18 @@ class TaskMgr(threading.Thread):
         return [True, ""]
 
     @net_lock
-    def acquire_task_net(self, task):
-        self.logger.info("[acquire_task_net] user(%s) task(%s) net(%s)"%(task.taskinfo.username, task.taskinfo.taskid, str(task.network)))
-        if task.network == None:
-            task.network = self.free_nets.pop(0)
-        return task.network
+    def acquire_task_ips(self, task):
+        self.logger.info("[acquire_task_ips] user(%s) task(%s) net(%s)"%(task.taskinfo.username, task.taskinfo.taskid, str(task.task_base_ip)))
+        if task.task_base_ip == None:
+            task.task_base_ip = self.free_nets.pop(0)
+        return task.task_base_ip
 
     @net_lock
-    def release_task_net(self,task):
-        self.logger.info("[release_task_net] user(%s) task(%s) net(%s)"%(task.taskinfo.username, task.taskinfo.taskid, str(task.network)))
-        if task.network == None:
+    def release_task_ips(self,task):
+        self.logger.info("[release_task_ips] user(%s) task(%s) net(%s)"%(task.taskinfo.username, task.taskinfo.taskid, str(task.task_base_ip)))
+        if task.task_base_ip == None:
             return
-        self.free_nets.append(task.network)
+        self.free_nets.append(task.task_base_ip)
         self.logger.error('[release task_net] %s'%str(e))
 
     def setup_tasknet(self, task, workers=None):
@@ -194,9 +195,9 @@ class TaskMgr(threading.Thread):
         username = task.taskinfo.username
         brname = "docklet-batch-%s-%s"%(username, taskid)
         gwname = "Batch-%s-%s"%(username, taskid)
-        if task.network == None:
-            return [False, "task.network is None!"]
-        gatewayip = int_to_ip(self.base_ip + task.network + 1)
+        if task.task_base_ip == None:
+            return [False, "task.task_base_ip is None!"]
+        gatewayip = int_to_ip(self.base_ip + task.task_base_ip + 1)
         gatewayipcidr += "/" + str(32-self.task_cidr)
         netcontrol.new_bridge(brname)
         netcontrol.setup_gw(brname,gwname,gatewayipcidr,0,0)
@@ -218,6 +219,9 @@ class TaskMgr(threading.Thread):
         # properties for transactio
 
         self.acquire_task_net(task)
+        #task.ips = []
+        #for i in
+        #need to create hosts
         [success, gwip] = self.setup_tasknet(task,[w[1] for w in vnodes_workers])
         if not success:
             return [False, gwip]
@@ -242,7 +246,7 @@ class TaskMgr(threading.Thread):
             #if not username in self.user_containers.keys():
                 #self.user_containers[username] = []
             #self.user_containers[username].append(container_name)
-            ipaddr = int_to_ip(self.base_ip + task.network + vid%task.max_size + 2)
+            ipaddr = int_to_ip(self.base_ip + task.task_base_ip + vid%task.max_size + 2)
             brname = "docklet-batch-%s-%s"%(username, taskid)
             networkinfo = Network(ipaddr=ipaddr, gateway=gwip, masterip=self.masterip, brname=brname)
             vnode.network = networkinfo

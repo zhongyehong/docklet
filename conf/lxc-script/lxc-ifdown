@@ -9,7 +9,7 @@
 ovs-vsctl --if-exists del-port $Bridge $5
 cnt=$(ovs-vsctl list-ports ${Bridge} | wc -l)
 if [ "$cnt" = "1" ]; then
-  greport=$(ovs-vsctl list-ports $(Bridge) | grep "^gre-[[:digit:]][[:digit:]]*-[[:digit:]][[:digit:]]*\.[[:digit:]][[:digit:]]*\.[[:digit:]][[:digit:]]*\.[[:digit:]][[:digit:]]*$" | wc -l)
+  greport=$(ovs-vsctl list-ports ${Bridge} | grep "gre" | wc -l)
   if [ "$greport" = "1" ]; then
     ovs-vsctl del-br $Bridge
   fi
