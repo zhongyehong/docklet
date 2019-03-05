@@ -20,6 +20,7 @@ from utils.lvmtool import sys_run
 from worker import ossmounter
 from protos import rpc_pb2, rpc_pb2_grpc
 from utils.nettools import netcontrol
+from master.network import getip
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 MAX_RUNNING_TIME = _ONE_DAY_IN_SECONDS
@@ -52,6 +53,10 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
             self.master_ip = masterip
             logger.info("Get master ip address: %s" % (self.master_ip))
         self.master_port = env.getenv('BATCH_MASTER_PORT')
+
+        # get worker ip
+        self.worker_ip = getip(env.getenv('NETWORK_DEVICE'))
+        logger.info("Worker ip is :%s"%self.worker_ip)
 
         self.imgmgr = imagemgr.ImageMgr()
         self.fspath = env.getenv('FS_PREFIX')
@@ -197,7 +202,8 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
 
         logger.info('start container %s success' % lxcname)
 
-        netcontrol.setup_gre(brname, masterip)
+        if masterip != self.worker_ip:
+            netcontrol.setup_gre(brname, masterip)
 
         #add GPU
         [success, msg] = self.add_gpu_device(lxcname,gpu_need)

@@ -76,6 +76,7 @@ message VNode {
 	Instance instance = 2;		// 实例配置
 	repeated Mount mount = 3;	// 挂载配置
   Network network = 4; //网络配置
+	string hostname = 5; //主机名
 }
 
 message Network {

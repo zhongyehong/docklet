@@ -195,7 +195,7 @@ class ovscontrol(object):
     @staticmethod
     def add_port_internal(bridge, port):
         try:
-            subprocess.run(['ovs-vsctl', 'add-port', str(bridge), str(port), '--', 'set', 'interface', str(port), 'type=internal'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
+            subprocess.run(['ovs-vsctl', '--may-exist', 'add-port', str(bridge), str(port), '--', 'set', 'interface', str(port), 'type=internal'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False, check=True)
             return [True, str(port)]
         except subprocess.CalledProcessError as suberror:
             return [False, "add port failed : %s" % suberror.stdout.decode('utf-8')]

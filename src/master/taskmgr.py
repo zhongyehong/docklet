@@ -47,6 +47,11 @@ class Task():
     def __lt__(self, other):
         return self.priority < other.priority
 
+    def gen_ips_from_base(self,base_ip):
+        self.ips = []
+        for  i in range(task.max_size):
+            self.ips.append(int_to_ip(base_ip + self.task_base_ip + i + 2))
+
     def get_one_resources_need(self):
         return self.vnodeinfo.vnode.instance
 
@@ -219,8 +224,7 @@ class TaskMgr(threading.Thread):
         # properties for transactio
 
         self.acquire_task_net(task)
-        #task.ips = []
-        #for i in
+        task.gen_ips_from_base(self.base_ip)
         #need to create hosts
         [success, gwip] = self.setup_tasknet(task,[w[1] for w in vnodes_workers])
         if not success:
@@ -246,7 +250,7 @@ class TaskMgr(threading.Thread):
             #if not username in self.user_containers.keys():
                 #self.user_containers[username] = []
             #self.user_containers[username].append(container_name)
-            ipaddr = int_to_ip(self.base_ip + task.task_base_ip + vid%task.max_size + 2)
+            ipaddr = task.ips[vid%task.max_size]
             brname = "docklet-batch-%s-%s"%(username, taskid)
             networkinfo = Network(ipaddr=ipaddr, gateway=gwip, masterip=self.masterip, brname=brname)
             vnode.network = networkinfo
