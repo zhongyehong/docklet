@@ -59,14 +59,14 @@ class Task():
     def gen_hosts(self):
         username = self.username
         taskid = self.id
-        # logger.info("Generate hosts for user(%s) task(%s) base_ip(%s)"%(username,taskid,str(self.task_base_ip)))
+        logger.info("Generate hosts for user(%s) task(%s) base_ip(%s)"%(username,taskid,str(self.task_base_ip)))
         fspath = env.getenv('FS_PREFIX')
         if not os.path.isdir("%s/global/users/%s" % (fspath,username)):
             path = env.getenv('DOCKLET_LIB')
             subprocess.call([path+"/master/userinit.sh", username])
-            # logger.info("user %s directory not found, create it" % username)
+            logger.info("user %s directory not found, create it" % username)
 
-        hosts_file = open("%s/global/users/%s/%s.hosts" % (fspath,username,"batch-"+taskid),"w")
+        hosts_file = open("%s/global/users/%s/hosts/%s.hosts" % (fspath,username,"batch-"+taskid),"w")
         hosts_file.write("127.0.0.1 localhost\n")
         i = 0
         for ip in self.ips:
@@ -124,7 +124,7 @@ class TaskMgr(threading.Thread):
         #self.user_containers = {}
 
         self.scheduler_interval = scheduler_interval
-        self.logger = external_logger
+        self.logger = logger
 
         self.master_port = env.getenv('BATCH_MASTER_PORT')
         self.worker_port = env.getenv('BATCH_WORKER_PORT')
@@ -288,16 +288,17 @@ class TaskMgr(threading.Thread):
         taskid = task.id
         username = task.username
         brname = "docklet-batch-%s-%s"%(username, taskid)
-        gwname = "Batch-%s-%s"%(username, taskid)
+        gwname = taskid
         if task.task_base_ip == None:
             return [False, "task.task_base_ip is None!"]
         gatewayip = int_to_ip(self.base_ip + task.task_base_ip + 1)
-        gatewayipcidr = "/" + str(32-self.task_cidr)
+        gatewayipcidr = gatewayip + "/" + str(32-self.task_cidr)
         netcontrol.new_bridge(brname)
         netcontrol.setup_gw(brname,gwname,gatewayipcidr,0,0)
 
         for wip in workers:
-            netcontrol.setup_gre(brname,wip)
+            if wip != self.master_ip:
+                netcontrol.setup_gre(brname,wip)
         return [True, gatewayip]
 
     def remove_tasknet(self, task):
@@ -336,13 +337,14 @@ class TaskMgr(threading.Thread):
             #if not username in self.user_containers.keys():
                 #self.user_containers[username] = []
             #self.user_containers[username].append(container_name)
-            ipaddr = task.ips[vnode_info.vnodeid % task.max_size]
+            ipaddr = task.ips[vnode_info.vnodeid % task.max_size] + "/" + str(32-self.task_cidr)
             brname = "docklet-batch-%s-%s" % (username, sub_task.root_task.id)
             networkinfo = Network(ipaddr=ipaddr, gateway=gwip, masterip=self.master_ip, brname=brname)
             vnode_info.vnode.network.CopyFrom(networkinfo)
 
             placed_workers.append(sub_task.worker)
-            if not self.start_vnode(sub_task):
+            [success,msg] = self.start_vnode(sub_task)
+            if not success:
                 sub_task.waiting_for_retry()
                 sub_task.worker = None
                 start_all_vnode_success = False
@@ -371,6 +373,7 @@ class TaskMgr(threading.Thread):
             self.stop_task(sub_task)
         if sub_task.vnode_started:
             self.stop_vnode(sub_task)
+            #pass
 
     def check_task_completed(self, task):
         if task.status == RUNNING or task.status == WAITING:
@@ -381,6 +384,12 @@ class TaskMgr(threading.Thread):
         if task.at_same_time and task.status == FAILED:
             self.clear_sub_tasks(task.subtask_list)
         # TODO report to jobmgr
+        if self.jobmgr is None:
+            self.logger.error('[task_completed] jobmgr is None!')
+        else:
+            username = task.username
+            taskid = task.id
+            self.jobmgr.report(username,taskid,'finished')
         self.lazy_delete_list.append(task)
         return True
 
@@ -401,7 +410,7 @@ class TaskMgr(threading.Thread):
         # self.user_containers[username].remove(container_name)
 
         if sub_task.status != RUNNING:
-            self.logger.error('[on_task_report] receive task report when instance is not running')
+            self.logger.error('[on_task_report] receive task report when vnode is not running')
 
         sub_task.status = report.subTaskStatus
         sub_task.status_reason = report.errmsg
@@ -461,8 +470,11 @@ class TaskMgr(threading.Thread):
                 proper_workers.append(sub_task.worker)
                 continue
             needs = sub_task.vnode_info.vnode.instance
+            #logger.info(needs)
             proper_worker = None
             for worker_ip, worker_info in nodes:
+                #logger.info(worker_info)
+                #logger.info(self.get_cpu_usage(worker_ip))
                 if needs.cpu + self.get_cpu_usage(worker_ip) > worker_info['cpu']:
                     continue
                 elif needs.memory > worker_info['memory']:
@@ -542,7 +554,7 @@ class TaskMgr(threading.Thread):
             task_id = taskid,
             username = username,
             # all vnode must be started at the same time
-            at_same_time = json_task['at_same_time'],
+            at_same_time = 'atSameTime' in json_task.keys(),
             priority = task_priority,
             max_size = (1 << self.task_cidr) - 2,
             task_infos = [{
@@ -579,8 +591,8 @@ class TaskMgr(threading.Thread):
                     timeout = int(json_task['expTime'])
                 # commands are executed in all vnodes / only excuted in the first vnode
                 # if in traditional mode, commands will be executed in all vnodes
-                ) if (not json_task['at_same_time'] or json_task['multicommand'] or instance_index == 0) else None
-            } for instance_index in range(json_task['instCount'])])
+                ) if (not 'atSameTime' in json_task.keys() or json_task['runon'] == 'all' or vnode_index == 0) else None
+            } for vnode_index in range(int(json_task['vnodeCount']))])
         self.lazy_append_list.append(task)
 
 

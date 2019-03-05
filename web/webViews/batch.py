@@ -56,7 +56,7 @@ class outputBatchJobView(normalView):
     template_path = "batch/batch_output.html"
     jobid = ""
     taskid = ""
-    instid = ""
+    vnodeid = ""
     issue = ""
 
     @classmethod
@@ -65,7 +65,7 @@ class outputBatchJobView(normalView):
         data = {
             'jobid':self.jobid,
             'taskid':self.taskid,
-            'instid':self.instid,
+            'vnodeid':self.vnodeid,
             'issue':self.issue
         }
         result = dockletRequest.post("/batch/job/output/",data,masterips[0].split("@")[0])
@@ -73,6 +73,6 @@ class outputBatchJobView(normalView):
         #logger.debug("job_list: %s" % job_list)
         if result.get('success',"") == "true":
             return self.render(self.template_path, masterip=masterips[0].split("@")[0], jobid=self.jobid,
-                               taskid=self.taskid, instid=self.instid, issue=self.issue, output=output)
+                               taskid=self.taskid, vnodeid=self.vnodeid, issue=self.issue, output=output)
         else:
             return self.error()

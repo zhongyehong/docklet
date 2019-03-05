@@ -36,8 +36,8 @@ WEB_PORT=8888
 USER_PORT=9100
 #cluster net, default is 172.16.0.1/16
 CLUSTER_NET="172.16.0.1/16"
-# ip addresses range of containers for batch job, default is 10.0.3.0/24
-BATCH_NET="10.0.3.0/24"
+# ip addresses range of containers for batch job, default is 10.16.0.0/16
+BATCH_NET="10.16.0.0/16"
 
 . $DOCKLET_CONF/docklet.conf
 

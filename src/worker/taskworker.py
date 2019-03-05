@@ -75,7 +75,7 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
         for gpu in gpus:
             self.gpu_status[gpu['id']] = ""
 
-        #self.start_report()
+        self.start_report()
         logger.info('TaskWorker init success')
 
     def add_gpu_device(self, lxcname, gpu_need):
@@ -194,7 +194,7 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
         conffile.close()
 
         logger.info("Start container %s..." % lxcname)
-        #container = lxc.Container(lxcname)
+        container = lxc.Container(lxcname)
         ret = subprocess.run('lxc-start -n %s'%lxcname,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
         if ret.returncode != 0:
             logger.error('start container %s failed' % lxcname)
@@ -355,15 +355,16 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
             logger.error("Fail to write script file with taskid(%s) vnodeid(%s)" % (str(taskid),str(vnodeid)))
         else:
             try:
-                job_id = taskid.split('_')[1]
+                job_id = taskid.split('_')[0]
             except Exception as e:
                 logger.error(traceback.format_exc())
                 job_id = "_none"
             jobdir = "batch_" + job_id
             logdir = "%s/global/users/%s/data/" % (self.fspath,username) + jobdir
-            if not os.path.exists(logdir):
-                logger.info("Directory:%s not exists, create it." % logdir)
+            try:
                 os.mkdir(logdir)
+            except Exception as e:
+                logger.info("Error when creating logdir :%s "+str(e))
             stdoutname = str(taskid)+"_"+str(vnodeid)+"_stdout.txt"
             stderrname = str(taskid)+"_"+str(vnodeid)+"_stderr.txt"
             try:

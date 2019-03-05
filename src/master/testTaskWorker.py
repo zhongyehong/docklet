@@ -18,7 +18,7 @@ def run():
     inst = rpc_pb2.Instance(cpu=1, memory=1000, disk=1000, gpu=0)
     mnt = rpc_pb2.Mount(localPath="",provider='aliyun',remotePath="test-for-docklet",other="oss-cn-beijing.aliyuncs.com",accessKey="LTAIdl7gmmIhfqA9",secretKey="")
     network = rpc_pb2.Network(ipaddr="10.0.4.2/24",gateway="10.0.4.1",masterip="192.168.0.1",brname="batch-root-test")
-    vnode = rpc_pb2.VNode(image=img, instance=inst, mount=[],network=network)
+    vnode = rpc_pb2.VNode(image=img, instance=inst, mount=[],network=network,hostname="batch-5")
     vnodeinfo = rpc_pb2.VNodeInfo(taskid="test",username="root",vnodeid=1,vnode=vnode)
 
     #task = rpc_pb2.TaskInfo(id="test",username="root",instanceid=1,instanceCount=1,maxRetryCount=1,parameters=paras,cluster=clu,timeout=60000,token=''.join(random.sample(string.ascii_letters + string.digits, 8)))
@@ -59,8 +59,8 @@ def start_task():
 
 if __name__ == '__main__':
     #for i in range(10):
-    run()
+    #run()
     #start_task()
-    #stop_vnode()
+    stop_vnode()
     #time.sleep(4)
     #stop_task()

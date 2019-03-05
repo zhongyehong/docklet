@@ -150,22 +150,22 @@ def add_batch_job(masterip):
 def state_batch_job():
     return stateBatchJobView().as_view()
 
-@app.route("/batch_job/output/<jobid>/<taskid>/<instid>/<issue>/", methods=['GET'])
+@app.route("/batch_job/output/<jobid>/<taskid>/<vnodeid>/<issue>/", methods=['GET'])
 @login_required
-def output_batch_job(jobid, taskid, instid, issue):
+def output_batch_job(jobid, taskid, vnodeid, issue):
     outputBatchJobView.jobid = jobid
     outputBatchJobView.taskid = taskid
-    outputBatchJobView.instid = instid
+    outputBatchJobView.vnodeid = vnodeid
     outputBatchJobView.issue = issue
     return outputBatchJobView().as_view()
 
-@app.route("/batch/job/output/<masterip>/<jobid>/<taskid>/<instid>/<issue>/", methods=['POST'])
+@app.route("/batch/job/output/<masterip>/<jobid>/<taskid>/<vnodeid>/<issue>/", methods=['POST'])
 @login_required
-def output_batch_job_request(masterip, jobid, taskid, instid, issue):
+def output_batch_job_request(masterip, jobid, taskid, vnodeid, issue):
     data = {
         'jobid':jobid,
         'taskid':taskid,
-        'instid':instid,
+        'vnodeid':vnodeid,
         'issue':issue
     }
     result = dockletRequest.post("/batch/job/output/",data,masterip)

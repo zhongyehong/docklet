@@ -20,8 +20,8 @@ FS_PREFIX=/opt/docklet
 
 # cluster net ip range,  default is 172.16.0.1/16
 CLUSTER_NET="172.16.0.1/16"
-# ip addresses range of containers for batch job, default is 10.0.3.0/24
-BATCH_NET="10.0.3.0/24"
+# ip addresses range of containers for batch job, default is 10.16.0.0/16
+BATCH_NET="10.16.0.0/16"
 #configurable-http-proxy public port, default is 8000
 PROXY_PORT=8000
 #configurable-http-proxy api port, default is 8001
