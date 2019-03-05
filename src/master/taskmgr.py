@@ -1,6 +1,7 @@
 import threading
 import time
 import string
+import os
 import random, copy, subprocess
 import json
 from functools import wraps
@@ -52,7 +53,7 @@ class Task():
         if self.task_base_ip == None:
             return
         self.ips = []
-        for  i in range(task.max_size):
+        for i in range(self.max_size):
             self.ips.append(int_to_ip(base_ip + self.task_base_ip + i + 2))
 
     def gen_hosts(self):
@@ -115,7 +116,7 @@ class TaskMgr(threading.Thread):
         threading.Thread.__init__(self)
         self.thread_stop = False
         self.jobmgr = None
-        self.master_ip = self.master_ip
+        self.master_ip = master_ip
         self.task_queue = []
         self.lazy_append_list = []
         self.lazy_delete_list = []
@@ -148,8 +149,8 @@ class TaskMgr(threading.Thread):
         self.free_nets = []
         for i in range((1 << self.task_cidr), (1 << (32-self.batch_cidr)) - 1):
             self.free_nets.append(i)
-        logger.info("Free nets addresses pool %s" % str(self.free_nets))
-        logger.info("Each Batch Net CIDR:%s"%(str(self.task_cidr)))
+        self.logger.info("Free nets addresses pool %s" % str(self.free_nets))
+        self.logger.info("Each Batch Net CIDR:%s"%(str(self.task_cidr)))
 
     def queue_lock(f):
         @wraps(f)
@@ -539,7 +540,7 @@ class TaskMgr(threading.Thread):
                 'vnode_info': VNodeInfo(
                     taskid = taskid,
                     username = username,
-                    vnode = Vnode(
+                    vnode = VNode(
                         image = Image(
                             name = json_task['image'].split('_')[0], #json_task['cluster']['image']['name'],
                             type = image_dict[json_task['image'].split('_')[2]], #json_task['cluster']['image']['type'],
