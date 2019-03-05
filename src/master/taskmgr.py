@@ -374,8 +374,8 @@ class TaskMgr(threading.Thread):
         if sub_task.task_started:
             self.stop_task(sub_task)
         if sub_task.vnode_started:
-            #self.stop_vnode(sub_task)
-            pass
+            self.stop_vnode(sub_task)
+            #pass
 
     def check_task_completed(self, task):
         if task.status == RUNNING or task.status == WAITING:
