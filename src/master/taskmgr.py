@@ -40,9 +40,9 @@ class Task():
 
         self.subtask_list = [SubTask(
                 idx = index,
-                root_task = self, 
-                vnode_info = task_info['vnode_info'], 
-                command_info = task_info['command_info'], 
+                root_task = self,
+                vnode_info = task_info['vnode_info'],
+                command_info = task_info['command_info'],
                 max_retry_count = task_info['max_retry_count']
             ) for (index, task_info) in enumerate(task_infos)]
 
@@ -592,6 +592,9 @@ class TaskMgr(threading.Thread):
             if task.id == taskid:
                 return task
         return None
+
+    def set_jobmgr(self, jobmgr):
+        self.jobmgr = jobmgr
 
     # get names of all the batch containers of the user
     def get_user_batch_containers(self,username):

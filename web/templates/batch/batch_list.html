@@ -51,12 +51,12 @@
                            </thead>
                            <tbody>
                              {% for taskid in job_info['tasks'] %}
-                             {% for instid in range(job_info['tasks_instCount'][taskid]) %}
+                             {% for vnodeid in range(job_info['tasks_vnodeCount'][taskid]) %}
                              <tr>
                                <td>{{ taskid }}</td>
-                               <td>{{ instid }}</td>
-                               <td><a class="btn btn-info btn-xs" href='/batch_job/output/{{ job_info["job_id"] }}/{{ taskid }}/{{ instid }}/stdout/' target="_blank">Stdout</a></td>
-                               <td><a class="btn btn-info btn-xs" href='/batch_job/output/{{ job_info["job_id"] }}/{{ taskid }}/{{ instid }}/stderr/' target="_blank">Stderr</a></td>
+                               <td>{{ vnodeid }}</td>
+                               <td><a class="btn btn-info btn-xs" href='/batch_job/output/{{ job_info["job_id"] }}/{{ taskid }}/{{ vnodeid }}/stdout/' target="_blank">Stdout</a></td>
+                               <td><a class="btn btn-info btn-xs" href='/batch_job/output/{{ job_info["job_id"] }}/{{ taskid }}/{{ vnodeid }}/stderr/' target="_blank">Stderr</a></td>
                              </tr>
                              {% endfor %}
                              {% endfor %}

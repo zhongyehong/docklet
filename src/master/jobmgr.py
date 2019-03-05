@@ -202,16 +202,16 @@ class JobMgr():
             logger.debug('job_id: %s, user: %s' % (job_id, job.user))
             if job.user == user:
                 all_tasks = job.raw_job_info['tasks']
-                tasks_instCount = {}
+                tasks_vnodeCount = {}
                 for task in all_tasks.keys():
-                    tasks_instCount[task] = int(all_tasks[task]['instCount'])
+                    tasks_vnodeCount[task] = int(all_tasks[task]['vnodeCount'])
                 res.append({
                     'job_name': job.job_name,
                     'job_id': job.job_id,
                     'status': job.status,
                     'create_time': job.create_time,
                     'tasks': list(all_tasks.keys()),
-                    'tasks_instCount': tasks_instCount
+                    'tasks_vnodeCount': tasks_vnodeCount
                 })
         return res
 
