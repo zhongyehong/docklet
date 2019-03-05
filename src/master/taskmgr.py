@@ -248,21 +248,25 @@ class TaskMgr(threading.Thread):
         except Exception as e:
             self.logger.error('[task_processor] rpc error message: %s' % e)
             subtask.status_reason = str(e)
+            return [False, e]
         subtask.task_started = True
+        return [True, '']
 
     def stop_task(self, subtask):
         try:
             self.logger.info('[task_processor] Stoping task [%s] vnode [%d]' % (subtask.vnode_info.taskid, subtask.vnode_info.vnodeid))
             channel = grpc.insecure_channel('%s:%s' % (subtask.worker, self.worker_port))
             stub = WorkerStub(channel)
-            response = stub.stop_stask(subtask.command_info)
+            response = stub.stop_task(subtask.command_info)
             if response.status != Reply.ACCEPTED:
                 raise Exception(response.message)
         except Exception as e:
             self.logger.error('[task_processor] rpc error message: %s' % e)
             subtask.status = FAILED
             subtask.status_reason = str(e)
+            return [False, e]
         subtask.task_started = False
+        return [True, '']
 
     @net_lock
     def acquire_task_ips(self, task):
@@ -349,6 +353,8 @@ class TaskMgr(threading.Thread):
         # start tasks
         for sub_task in sub_task_list:
             task_info = sub_task.command_info
+            if task_info is None or sub_task.status == RUNNING:
+                continue
             task_info.token = ''.join(random.sample(string.ascii_letters + string.digits, 8))
 
             if self.start_task(sub_task):
@@ -371,7 +377,7 @@ class TaskMgr(threading.Thread):
             for sub_task in task.subtask_list:
                 if sub_task.status == RUNNING or sub_task.status == WAITING:
                     return False
-        self.logger.info('task %s completed' % task.id)
+        self.logger.info('task %s completed %s' % (task.id, str([sub_task.status for sub_task in task.subtask_list])))
         if task.at_same_time and task.status == FAILED:
             self.clear_sub_tasks(task.subtask_list)
         # TODO report to jobmgr
@@ -387,8 +393,8 @@ class TaskMgr(threading.Thread):
             return
 
         sub_task = task.subtask_list[report.vnodeid]
-        if sub_task.token != report.token:
-            self.logger.warning('[on_task_report] wrong token')
+        if sub_task.command_info.token != report.token:
+            self.logger.warning('[on_task_report] wrong token, %s %s' % (sub_task.command_info.token, report.token))
             return
         username = task.username
         # container_name = username + '-batch-' + task.info.id + '-' + str(report.instanceid) + '-' + report.token
@@ -400,10 +406,14 @@ class TaskMgr(threading.Thread):
         sub_task.status = report.subTaskStatus
         sub_task.status_reason = report.errmsg
 
-        self.clear_sub_task(sub_task)
-
         if report.subTaskStatus == FAILED or report.subTaskStatus == TIMEOUT:
             sub_task.waiting_for_retry()
+        elif report.subTaskStatus == OUTPUTERROR:
+            sub_task.status = FAILED
+            if task.at_same_time:
+                task.status = FAILED
+        elif report.subTaskStatus == COMPLETED:
+            self.clear_sub_task(sub_task)
 
     # return task, workers
     def task_scheduler(self):

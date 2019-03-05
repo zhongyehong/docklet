@@ -31,9 +31,21 @@ class SimulatedTaskController(WorkerServicer):
 	def __init__(self, worker):
 		self.worker = worker
 
-	def process_task(self, task, context):
-		print('[SimulatedTaskController] receive task [%s] instanceid [%d] token [%s]' % (task.id, task.instanceid, task.token))
-		worker.process(task)
+	def start_vnode(self, vnodeinfo, context):
+		print('[SimulatedTaskController] start vnode, taskid [%s] vnodeid [%d]' % (vnodeinfo.taskid, vnodeinfo.vnodeid))
+		return Reply(status=Reply.ACCEPTED,message="")
+	
+	def stop_vnode(self, vnodeinfo, context):
+		print('[SimulatedTaskController] stop vnode, taskid [%s] vnodeid [%d]' % (vnodeinfo.taskid, vnodeinfo.vnodeid))
+		return Reply(status=Reply.ACCEPTED,message="")
+
+	def start_task(self, taskinfo, context):
+		print('[SimulatedTaskController] start task, taskid [%s] vnodeid [%d] token [%s]' % (taskinfo.taskid, taskinfo.vnodeid, taskinfo.token))
+		worker.process(taskinfo)
+		return Reply(status=Reply.ACCEPTED,message="")
+
+	def stop_task(self, taskinfo, context):
+		print('[SimulatedTaskController] stop task, taskid [%s] vnodeid [%d] token [%s]' % (taskinfo.taskid, taskinfo.vnodeid, taskinfo.token))
 		return Reply(status=Reply.ACCEPTED,message="")
 
 
@@ -54,13 +66,15 @@ class SimulatedWorker(threading.Thread):
 			for task in self.tasks:
 				seed = random.random()
 				if seed < 0.25:
-					report(task.id, task.instanceid, RUNNING, task.token)
+					report(task.taskid, task.vnodeid, RUNNING, task.token)
 				elif seed < 0.5:
-					report(task.id, task.instanceid, COMPLETED, task.token)
+					report(task.taskid, task.vnodeid, COMPLETED, task.token)
 					self.tasks.remove(task)
+					break
 				elif seed < 0.75:
-					report(task.id, task.instanceid, FAILED, task.token)
+					report(task.taskid, task.vnodeid, FAILED, task.token)
 					self.tasks.remove(task)
+					break
 				else:
 					pass
 			time.sleep(5)
@@ -166,7 +180,7 @@ def report(taskid, instanceid, status, token):
 	master_port = env.getenv('BATCH_MASTER_PORT')
 	channel = grpc.insecure_channel('%s:%s' % ('0.0.0.0', master_port))
 	stub = MasterStub(channel)
-	response = stub.report(ReportMsg(taskmsgs=TaskMsg(taskid=taskid, username='root', vnodeid=instanceid, subTaskStatus=status, token=token)))
+	response = stub.report(ReportMsg(taskmsgs=[TaskMsg(taskid=taskid, username='root', vnodeid=instanceid, subTaskStatus=status, token=token)]))
 
 
 def stop():
