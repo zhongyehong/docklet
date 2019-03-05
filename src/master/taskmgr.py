@@ -1,7 +1,7 @@
 import threading
 import time
 import string
-import random, copy
+import random, copy, subprocess
 import json
 from functools import wraps
 
@@ -48,9 +48,29 @@ class Task():
         return self.priority < other.priority
 
     def gen_ips_from_base(self,base_ip):
+        if self.task_base_ip == None:
+            return
         self.ips = []
         for  i in range(task.max_size):
             self.ips.append(int_to_ip(base_ip + self.task_base_ip + i + 2))
+
+    def gen_hosts(self):
+        username = self.taskinfo.username
+        taskid = self.taskinfo.taskid
+        logger.info("Generate hosts for user(%s) task(%s) base_ip(%s)"%(username,taskid,str(self.task_base_ip)))
+        fspath = env.getenv('FS_PREFIX')
+        if not os.path.isdir("%s/global/users/%s" % (fspath,username)):
+            path = env.getenv('DOCKLET_LIB')
+            subprocess.call([path+"/master/userinit.sh", username])
+            logger.info("user %s directory not found, create it" % username)
+
+        hosts_file = open("%s/global/users/%s/%s.hosts" % (fspath,username,"batch-"+taskid),"w")
+        hosts_file.write("127.0.0.1 localhost\n")
+        i = 0
+        for ip in self.ips:
+            hosts_file.write(ip+" batch-"+str(i)+"\n")
+            i += 1
+        hosts_file.close()
 
     def get_one_resources_need(self):
         return self.vnodeinfo.vnode.instance
@@ -225,11 +245,12 @@ class TaskMgr(threading.Thread):
 
         self.acquire_task_net(task)
         task.gen_ips_from_base(self.base_ip)
+        task.gen_hosts()
         #need to create hosts
         [success, gwip] = self.setup_tasknet(task,[w[1] for w in vnodes_workers])
         if not success:
+            self.release_task_ips(task)
             return [False, gwip]
-
         token = ''.join(random.sample(string.ascii_letters + string.digits, 8))
         placed_workers = []
 
@@ -237,6 +258,7 @@ class TaskMgr(threading.Thread):
         for vid, worker in vnodes_workers:
             vnodeinfo = copy.copy(task.vnodeinfo)
             vnodeinfo.vnodeid = vid
+            vnodeinfo.vnode.hostname = "batch-"+str(vid%task.max_size)
             vnode = task.subtask_list[vid]
             vnode['status'] = RUNNING
             vnode['try_count'] += 1
@@ -253,7 +275,7 @@ class TaskMgr(threading.Thread):
             ipaddr = task.ips[vid%task.max_size]
             brname = "docklet-batch-%s-%s"%(username, taskid)
             networkinfo = Network(ipaddr=ipaddr, gateway=gwip, masterip=self.masterip, brname=brname)
-            vnode.network = networkinfo
+            vnodeinfo.vnode.network = networkinfo
 
             try:
                 self.logger.info('[task_processor] starting vnode for task [%s] instance [%d]' % (task.vnodeinfo.id, vid))

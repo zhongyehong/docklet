@@ -178,9 +178,10 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
         gateway = request.vnode.network.gateway
         brname = request.vnode.network.brname
         masterip = request.vnode.network.masterip
+        hostname = request.vnode.hostname
 
         #create container
-        [success, msg] = self.create_container(taskid, vnodeid, username, image, lxcname, instance_type, ipaddr, gateway, brname)
+        [success, msg] = self.create_container(taskid, vnodeid, username, image, lxcname, instance_type, ipaddr, gateway, brname, hostname)
         if not success:
             return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED, message=msg)
 
@@ -285,7 +286,7 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
 
 
     #accquire ip and create a container
-    def create_container(self,taskid,vnodeid,username,image,lxcname,quota,ipaddr,gateway,brname):
+    def create_container(self,taskid,vnodeid,username,image,lxcname,quota,ipaddr,gateway,brname,hostname):
         # prepare image and filesystem
         status = self.imgmgr.prepareFS(username,image,lxcname,str(quota.disk))
         if not status:
@@ -302,7 +303,8 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
 
         def config_prepare(content):
             content = content.replace("%ROOTFS%",rootfs)
-            content = content.replace("%HOSTNAME%","batch-%s" % str(vnodeid))
+            content = content.replace("%HOSTNAME%",hostname)
+            content = content.replace("%TASKID%",taskid)
             content = content.replace("%CONTAINER_MEMORY%",str(quota.memory))
             content = content.replace("%CONTAINER_CPU%",str(quota.cpu*100000))
             content = content.replace("%FS_PREFIX%",self.fspath)
