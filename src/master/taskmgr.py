@@ -59,12 +59,12 @@ class Task():
     def gen_hosts(self):
         username = self.username
         taskid = self.id
-        logger.info("Generate hosts for user(%s) task(%s) base_ip(%s)"%(username,taskid,str(self.task_base_ip)))
+        # logger.info("Generate hosts for user(%s) task(%s) base_ip(%s)"%(username,taskid,str(self.task_base_ip)))
         fspath = env.getenv('FS_PREFIX')
         if not os.path.isdir("%s/global/users/%s" % (fspath,username)):
             path = env.getenv('DOCKLET_LIB')
             subprocess.call([path+"/master/userinit.sh", username])
-            logger.info("user %s directory not found, create it" % username)
+            # logger.info("user %s directory not found, create it" % username)
 
         hosts_file = open("%s/global/users/%s/%s.hosts" % (fspath,username,"batch-"+taskid),"w")
         hosts_file.write("127.0.0.1 localhost\n")
@@ -124,7 +124,7 @@ class TaskMgr(threading.Thread):
         #self.user_containers = {}
 
         self.scheduler_interval = scheduler_interval
-        self.logger = logger
+        self.logger = external_logger
 
         self.master_port = env.getenv('BATCH_MASTER_PORT')
         self.worker_port = env.getenv('BATCH_WORKER_PORT')
@@ -149,8 +149,8 @@ class TaskMgr(threading.Thread):
         self.free_nets = []
         for i in range((1 << self.task_cidr), (1 << (32-self.batch_cidr)) - 1):
             self.free_nets.append(i)
-        self.logger.info("Free nets addresses pool %s" % str(self.free_nets))
-        self.logger.info("Each Batch Net CIDR:%s"%(str(self.task_cidr)))
+        # self.logger.info("Free nets addresses pool %s" % str(self.free_nets))
+        # self.logger.info("Each Batch Net CIDR:%s"%(str(self.task_cidr)))
 
     def queue_lock(f):
         @wraps(f)
@@ -288,7 +288,7 @@ class TaskMgr(threading.Thread):
         if task.task_base_ip == None:
             return [False, "task.task_base_ip is None!"]
         gatewayip = int_to_ip(self.base_ip + task.task_base_ip + 1)
-        gatewayipcidr += "/" + str(32-self.task_cidr)
+        gatewayipcidr = "/" + str(32-self.task_cidr)
         netcontrol.new_bridge(brname)
         netcontrol.setup_gw(brname,gwname,gatewayipcidr,0,0)
 
@@ -323,21 +323,21 @@ class TaskMgr(threading.Thread):
         # start vc
         for sub_task in sub_task_list:
             vnode_info = sub_task.vnode_info
-            vnode_info.vnode.hostname = "batch-"+str(vid%task.max_size)
+            vnode_info.vnode.hostname = "batch-" + str(vnode_info.vnodeid % task.max_size)
             if sub_task.vnode_started:
                 continue
 
-            username = sub_task.username
+            username = sub_task.root_task.username
             #container_name = task.info.username + '-batch-' + task.info.id + '-' + str(instance_id) + '-' + task.info.token
             #if not username in self.user_containers.keys():
                 #self.user_containers[username] = []
             #self.user_containers[username].append(container_name)
-            ipaddr = task.ips[vid % task.max_size]
-            brname = "docklet-batch-%s-%s" % (username, taskid)
-            networkinfo = Network(ipaddr=ipaddr, gateway=gwip, masterip=self.masterip, brname=brname)
-            vnode_info.vnode.network = networkinfo
+            ipaddr = task.ips[vnode_info.vnodeid % task.max_size]
+            brname = "docklet-batch-%s-%s" % (username, sub_task.root_task.id)
+            networkinfo = Network(ipaddr=ipaddr, gateway=gwip, masterip=self.master_ip, brname=brname)
+            vnode_info.vnode.network.CopyFrom(networkinfo)
 
-            placed_workers.append(worker)
+            placed_workers.append(sub_task.worker)
             if not self.start_vnode(sub_task):
                 sub_task.waiting_for_retry()
                 sub_task.worker = None
