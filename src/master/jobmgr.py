@@ -213,6 +213,7 @@ class JobMgr():
                     'tasks': list(all_tasks.keys()),
                     'tasks_vnodeCount': tasks_vnodeCount
                 })
+        res.sort(key=lambda x:x['create_time'],reverse=True)
         return res
 
     # user: username
