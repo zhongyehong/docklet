@@ -437,14 +437,16 @@ class TaskMgr(threading.Thread):
         for task in self.task_queue:
             if task in self.lazy_delete_list:
                 continue
+            self.logger.info('task %s sub_tasks %s' % (task.id, str([sub_task.status for sub_task in task.subtask_list])))
             if self.check_task_completed(task):
                 continue
+            self.logger.info("test")
 
             if task.at_same_time:
                 # parallel tasks
                 workers = self.find_proper_workers(task.subtask_list)
                 if len(workers) == 0:
-                    return None, None
+                    continue
                 else:
                     for i in range(len(workers)):
                         task.subtask_list[i].worker = workers[i]
@@ -475,9 +477,15 @@ class TaskMgr(threading.Thread):
                 proper_workers.append(sub_task.worker)
                 continue
             needs = sub_task.vnode_info.vnode.instance
+            self.logger.info('sub_task %s-%d' %(sub_task.root_task.id, sub_task.vnode_info.vnodeid))
+            self.logger.info(str(needs))
             #logger.info(needs)
             proper_worker = None
             for worker_ip, worker_info in nodes:
+                self.logger.info('worker ip' + worker_ip)
+                self.logger.info('cpu usage: ' + str(self.get_cpu_usage(worker_ip)))
+                self.logger.info('gpu usage: ' + str(self.get_gpu_usage(worker_ip)))
+                self.logger.info('worker_info: ' + str(worker_info))
                 #logger.info(worker_info)
                 #logger.info(self.get_cpu_usage(worker_ip))
                 if needs.cpu + (not all_res) * self.get_cpu_usage(worker_ip) > worker_info['cpu']:
@@ -633,7 +641,8 @@ class TaskMgr(threading.Thread):
 
     # get names of all the batch containers of the user
     def get_user_batch_containers(self,username):
-        if not username in self.user_containers.keys():
-            return []
-        else:
-            return self.user_containers[username]
+        return []
+        # if not username in self.user_containers.keys():
+        #     return []
+        # else:
+        #     return self.user_containers[username]
