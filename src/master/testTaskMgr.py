@@ -15,12 +15,15 @@ class SimulatedNodeMgr():
 class SimulatedMonitorFetcher():
 	def __init__(self, ip):
 		self.info = {}
-		self.info['cpuconfig'] = [1,1,1,1]
+		self.info['cpuconfig'] = [1,1,1,1,1,1,1,1]
 		self.info['meminfo'] = {}
-		self.info['meminfo']['free'] = 4 * 1024 * 1024 # (kb) simulate 4 GB memory
+		self.info['meminfo']['free'] = 8 * 1024 * 1024 # (kb) simulate 8 GB memory
+		self.info['meminfo']['buffers'] = 8 * 1024 * 1024
+		self.info['meminfo']['cached'] = 8 * 1024 * 1024
 		self.info['diskinfo'] = []
 		self.info['diskinfo'].append({})
-		self.info['diskinfo'][0]['free'] = 8 * 1024 * 1024 * 1024 # (b) simulate 8 GB disk
+		self.info['diskinfo'][0]['free'] = 16 * 1024 * 1024 * 1024 # (b) simulate 16 GB disk
+		self.info['gpuinfo'] = [1,1]
 
 
 class SimulatedTaskController(WorkerServicer):
@@ -28,9 +31,21 @@ class SimulatedTaskController(WorkerServicer):
 	def __init__(self, worker):
 		self.worker = worker
 
-	def process_task(self, task, context):
-		print('[SimulatedTaskController] receive task [%s] instanceid [%d] token [%s]' % (task.id, task.instanceid, task.token))
-		worker.process(task)
+	def start_vnode(self, vnodeinfo, context):
+		print('[SimulatedTaskController] start vnode, taskid [%s] vnodeid [%d]' % (vnodeinfo.taskid, vnodeinfo.vnodeid))
+		return Reply(status=Reply.ACCEPTED,message="")
+	
+	def stop_vnode(self, vnodeinfo, context):
+		print('[SimulatedTaskController] stop vnode, taskid [%s] vnodeid [%d]' % (vnodeinfo.taskid, vnodeinfo.vnodeid))
+		return Reply(status=Reply.ACCEPTED,message="")
+
+	def start_task(self, taskinfo, context):
+		print('[SimulatedTaskController] start task, taskid [%s] vnodeid [%d] token [%s]' % (taskinfo.taskid, taskinfo.vnodeid, taskinfo.token))
+		worker.process(taskinfo)
+		return Reply(status=Reply.ACCEPTED,message="")
+
+	def stop_task(self, taskinfo, context):
+		print('[SimulatedTaskController] stop task, taskid [%s] vnodeid [%d] token [%s]' % (taskinfo.taskid, taskinfo.vnodeid, taskinfo.token))
 		return Reply(status=Reply.ACCEPTED,message="")
 
 
@@ -51,13 +66,15 @@ class SimulatedWorker(threading.Thread):
 			for task in self.tasks:
 				seed = random.random()
 				if seed < 0.25:
-					report(task.id, task.instanceid, RUNNING, task.token)
+					report(task.taskid, task.vnodeid, RUNNING, task.token)
 				elif seed < 0.5:
-					report(task.id, task.instanceid, COMPLETED, task.token)
+					report(task.taskid, task.vnodeid, COMPLETED, task.token)
 					self.tasks.remove(task)
+					break
 				elif seed < 0.75:
-					report(task.id, task.instanceid, FAILED, task.token)
+					report(task.taskid, task.vnodeid, FAILED, task.token)
 					self.tasks.remove(task)
+					break
 				else:
 					pass
 			time.sleep(5)
@@ -87,31 +104,26 @@ class SimulatedJobMgr(threading.Thread):
 	def report(self, task):
 		print('[SimulatedJobMgr] task[%s] status %d' % (task.info.id, task.status))
 
-	def assignTask(self, taskmgr, taskid, instance_count, retry_count, timeout, cpu, memory, disk):
+	def assignTask(self, taskmgr, taskid, instance_count, retry_count, timeout, cpu, memory, disk, gpu):
 		task = {}
-		task['instanceCount'] = instance_count
-		task['maxRetryCount'] = retry_count
-		task['timeout'] = timeout
-		task['parameters'] = {}
-		task['parameters']['command'] = {}
-		task['parameters']['command']['commandLine'] = 'ls'
-		task['parameters']['command']['packagePath'] = ''
-		task['parameters']['command']['envVars'] = {'a':'1'}
-		task['parameters']['stderrRedirectPath'] = ''
-		task['parameters']['stdoutRedirectPath'] = ''
-		task['cluster'] = {}
-		task['cluster']['image'] = {}
-		task['cluster']['image']['name'] = ''
-		task['cluster']['image']['type'] = 1
-		task['cluster']['image']['owner'] = ''
-		task['cluster']['instance'] = {}
-		task['cluster']['instance']['cpu'] = cpu
-		task['cluster']['instance']['memory'] = memory
-		task['cluster']['instance']['disk'] = disk
-		task['cluster']['instance']['gpu'] = 0
-		task['cluster']['mount'] = [{'remotePath':'', 'localPath':''}]
+		task['instCount'] = instance_count
+		task['retryCount'] = retry_count
+		task['expTime'] = timeout
+		task['at_same_time'] = True
+		task['multicommand'] = True
+		task['command'] = 'ls'
+		task['srcAddr'] = ''
+		task['envVars'] = {'a':'1'}
+		task['stdErrRedPth'] = ''
+		task['stdOutRedPth'] = ''
+		task['image'] = 'root_root_base'
+		task['cpuSetting'] = cpu
+		task['memorySetting'] = memory
+		task['diskSetting'] = disk
+		task['gpuSetting'] = 0
+		task['mapping'] = []
 
-		taskmgr.add_task('root', taskid, json.dumps(task))
+		taskmgr.add_task('root', taskid, task)
 
 
 class SimulatedLogger():
@@ -135,11 +147,11 @@ def test():
 	jobmgr = SimulatedJobMgr()
 	jobmgr.start()
 
-	taskmgr = master.taskmgr.TaskMgr(SimulatedNodeMgr(), SimulatedMonitorFetcher, scheduler_interval=2, external_logger=SimulatedLogger())
-	taskmgr.set_jobmgr(jobmgr)
+	taskmgr = master.taskmgr.TaskMgr(SimulatedNodeMgr(), SimulatedMonitorFetcher, master_ip='', scheduler_interval=2, external_logger=SimulatedLogger())
+	# taskmgr.set_jobmgr(jobmgr)
 	taskmgr.start()
 
-	add('task_0', instance_count=2, retry_count=2, timeout=60, cpu=2, memory=2048, disk=2048)
+	add('task_0', instance_count=2, retry_count=2, timeout=60, cpu=2, memory=2048, disk=2048, gpu=0)
 
 
 def test2():
@@ -148,18 +160,18 @@ def test2():
 	jobmgr = SimulatedJobMgr()
 	jobmgr.start()
 
-	taskmgr = master.taskmgr.TaskMgr(SimulatedNodeMgr(), SimulatedMonitorFetcher, scheduler_interval=2, external_logger=SimulatedLogger())
+	taskmgr = master.taskmgr.TaskMgr(SimulatedNodeMgr(), SimulatedMonitorFetcher, master_ip='', scheduler_interval=2, external_logger=SimulatedLogger())
 	taskmgr.set_jobmgr(jobmgr)
 	taskmgr.start()
 
-	add('task_0', instance_count=2, retry_count=2, timeout=60, cpu=2, memory=2048, disk=2048)
+	add('task_0', instance_count=2, retry_count=2, timeout=60, cpu=2, memory=2048, disk=2048, gpu=0)
 
 
 
-def add(taskid, instance_count, retry_count, timeout, cpu, memory, disk):
+def add(taskid, instance_count, retry_count, timeout, cpu, memory, disk, gpu):
 	global jobmgr
 	global taskmgr
-	jobmgr.assignTask(taskmgr, taskid, instance_count, retry_count, timeout, cpu, memory, disk)
+	jobmgr.assignTask(taskmgr, taskid, instance_count, retry_count, timeout, cpu, memory, disk, gpu)
 
 
 def report(taskid, instanceid, status, token):
@@ -168,7 +180,7 @@ def report(taskid, instanceid, status, token):
 	master_port = env.getenv('BATCH_MASTER_PORT')
 	channel = grpc.insecure_channel('%s:%s' % ('0.0.0.0', master_port))
 	stub = MasterStub(channel)
-	response = stub.report(ReportMsg(taskmsgs=TaskMsg(taskid=taskid, instanceid=instanceid, instanceStatus=status, token=token)))
+	response = stub.report(ReportMsg(taskmsgs=[TaskMsg(taskid=taskid, username='root', vnodeid=instanceid, subTaskStatus=status, token=token)]))
 
 
 def stop():

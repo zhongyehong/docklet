@@ -69,7 +69,7 @@ class BatchJob(object):
                     self.tasks_cnt['pending'] -= 1
                     self.tasks_cnt['scheduling'] += 1
                     self.tasks[task_idx]['status'] = 'scheduling'
-                task_name = self.user + '_' + self.job_id + '_' + task_idx
+                task_name = self.job_id + '_' + task_idx
                 ret_tasks.append([task_name, self.tasks[task_idx]['config'], self.job_priority])
         self.log_status()
         return ret_tasks
@@ -124,7 +124,7 @@ class BatchJob(object):
                 self.tasks_cnt['pending'] -= 1
                 self.tasks_cnt['scheduling'] += 1
                 self.tasks[out_idx]['status'] = 'scheduling'
-                task_name = self.user + '_' + self.job_id + '_' + out_idx
+                task_name = self.job_id + '_' + out_idx
                 ret_tasks.append([task_name, self.tasks[out_idx]['config'], self.job_priority])
         self.log_status()
         return ret_tasks
@@ -202,17 +202,18 @@ class JobMgr():
             logger.debug('job_id: %s, user: %s' % (job_id, job.user))
             if job.user == user:
                 all_tasks = job.raw_job_info['tasks']
-                tasks_instCount = {}
+                tasks_vnodeCount = {}
                 for task in all_tasks.keys():
-                    tasks_instCount[task] = int(all_tasks[task]['instCount'])
+                    tasks_vnodeCount[task] = int(all_tasks[task]['vnodeCount'])
                 res.append({
                     'job_name': job.job_name,
                     'job_id': job.job_id,
                     'status': job.status,
                     'create_time': job.create_time,
                     'tasks': list(all_tasks.keys()),
-                    'tasks_instCount': tasks_instCount
+                    'tasks_vnodeCount': tasks_vnodeCount
                 })
+        res.sort(key=lambda x:x['create_time'],reverse=True)
         return res
 
     # user: username
@@ -250,16 +251,16 @@ class JobMgr():
         return self.add_task_taskmgr(job.user, tasks)
 
     # report task status from taskmgr when running, failed and finished
-    # task_name: user + '_' + job_id + '_' + task_idx
+    # task_name: job_id + '_' + task_idx
     # status: 'running', 'finished', 'retrying', 'failed'
     # reason: reason for failure or retrying, such as "FAILED", "TIMEOUT", "OUTPUTERROR"
     # tried_times: how many times the task has been tried.
-    def report(self, task_name, status, reason="", tried_times=1):
+    def report(self, user, task_name, status, reason="", tried_times=1):
         split_task_name = task_name.split('_')
-        if len(split_task_name) != 3:
+        if len(split_task_name) != 2:
             logger.error("Illegal task_name(%s) report from taskmgr" % task_name)
             return
-        user, job_id, task_idx = split_task_name
+        job_id, task_idx = split_task_name
         job  = self.job_map[job_id]
         if status == "running":
             job.update_task_running(task_idx)
@@ -274,8 +275,8 @@ class JobMgr():
             job.update_task_failed(task_idx, reason, tried_times)
 
     # Get Batch job stdout or stderr from its file
-    def get_output(self, username, jobid, taskid, instid, issue):
-        filename = username + "_" + jobid + "_" + taskid + "_" + instid + "_" + issue + ".txt"
+    def get_output(self, username, jobid, taskid, vnodeid, issue):
+        filename = jobid + "_" + taskid + "_" + vnodeid + "_" + issue + ".txt"
         fpath = "%s/global/users/%s/data/batch_%s/%s" % (self.fspath,username,jobid,filename)
         logger.info("Get output from:%s" % fpath)
         try:

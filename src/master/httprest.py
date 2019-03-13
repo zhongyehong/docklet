@@ -885,11 +885,11 @@ def get_output(user,beans,form):
     global G_jobmgr
     jobid = form.get("jobid","")
     taskid = form.get("taskid","")
-    instid = form.get("instid","")
+    vnodeid = form.get("vnodeid","")
     issue = form.get("issue","")
     result = {
         'success': 'true',
-        'data': G_jobmgr.get_output(user,jobid,taskid,instid,issue)
+        'data': G_jobmgr.get_output(user,jobid,taskid,vnodeid,issue)
     }
     return json.dumps(result)
 
@@ -1099,7 +1099,7 @@ if __name__ == '__main__':
     # server = http.server.HTTPServer((masterip, masterport), DockletHttpHandler)
     logger.info("starting master server")
 
-    G_taskmgr = taskmgr.TaskMgr(G_nodemgr, monitor.Fetcher)
+    G_taskmgr = taskmgr.TaskMgr(G_nodemgr, monitor.Fetcher, ipaddr)
     G_jobmgr = jobmgr.JobMgr(G_taskmgr)
     G_taskmgr.set_jobmgr(G_jobmgr)
     G_taskmgr.start()

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Docklet | Batch {{ issue }}: {{ jobid }}/{{ taskid }}/{{ instid }}</title>
+  <title>Docklet | Batch {{ issue }}: {{ jobid }}/{{ taskid }}/{{ vnodeid }}</title>
   <!-- Tell the browser to be responsive to screen width -->
   <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
   <link rel="shortcut icon" href="/static/img/favicon.ico">
@@ -29,7 +29,7 @@
 <body>
   <h3>Jobid: {{ jobid }}</h3>
   <h3>Taskid: {{ taskid }}</h3>
-  <h3>Instanceid: {{ instid }}</h3>
+  <h3>VNodeid: {{ vnodeid }}</h3>
   <h4><small>The output of {{ issue }} will be updated in every 2 seconds.</small></h4>
   <hr>
   <pre id="output">{{ output }}</pre>
@@ -51,7 +51,7 @@
     function updateOutput()
     {
       var host = window.location.host;
-      url = "//" + host + "/batch/job/output/" + "{{ masterip }}" + "/" + "{{ jobid }}" + "/" + "{{ taskid }}" + "/" + "{{ instid }}" + "/" + "{{ issue }}" + "/";
+      url = "//" + host + "/batch/job/output/" + "{{ masterip }}" + "/" + "{{ jobid }}" + "/" + "{{ taskid }}" + "/" + "{{ vnodeid }}" + "/" + "{{ issue }}" + "/";
       $.post(url,{},function(data){
         $("#output").text(String(data.data));
       },"json");
