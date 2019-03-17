@@ -74,6 +74,11 @@ class BatchJob(object):
         self.log_status()
         return ret_tasks
 
+    @data_lock
+    def stop_tasks(self):
+        for task_idx in self.tasks.keys():
+            self.tasks[task_idx]['status'] = 'stopped'
+
     # update status of this job based
     def _update_job_status(self):
         allcnt = len(self.tasks.keys())
@@ -170,7 +175,6 @@ class JobMgr():
     # load job information from etcd
     # initial a job queue and job schedueler
     def __init__(self, taskmgr):
-        self.job_queue = []
         self.job_map = {}
         self.taskmgr = taskmgr
         self.fspath = env.getenv('FS_PREFIX')
@@ -192,6 +196,27 @@ class JobMgr():
             #logger.error(err)
             return [False, err.args[0]]
         return [True, "add batch job success"]
+
+    # user: username
+    # jobid: the id of job
+    def stop_job(self, user, job_id):
+        logger.info("[jobmgr] stop job(id:%s) user(%s)"%(job_id, user))
+        try:
+            job = self.job_map[job_id]
+            if job.status == 'done' or job.status == 'failed':
+                return [True,""]
+            if job.user != user:
+                raise Exception("Wrong User.")
+            for task_idx in job.tasks.keys():
+                taskid = job_id + '_' + task_idx
+                task = self.taskmgr.get_task(taskid)
+                self.taskmgr.stop_remove_task(task)
+            job.status = 'stopped'
+        except Exception as err:
+            logger.error(traceback.format_exc())
+            #logger.error(err)
+            return [False, err.args[0]]
+        return [True,""]
 
     # user: username
     # list a user's all job

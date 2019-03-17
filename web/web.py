@@ -145,6 +145,13 @@ def add_batch_job(masterip):
     addBatchJobView.job_data = request.form
     return addBatchJobView().as_view()
 
+@app.route("/batch_job/<masterip>/stop/<jobid>/", methods=['GET'])
+@login_required
+def stop_batch_job(masterip,jobid):
+    stopBatchJobView.masterip = masterip
+    stopBatchJobView.jobid = jobid
+    return stopBatchJobView().as_view()
+
 @app.route("/batch_job/state/", methods=['GET'])
 @login_required
 def state_batch_job():
