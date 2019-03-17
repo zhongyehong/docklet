@@ -199,7 +199,7 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
         if ret.returncode != 0:
             logger.error('start container %s failed' % lxcname)
             self.imgmgr.deleteFS(lxcname)
-            return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED,message="Can't start the container")
+            return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED,message="Can't start the container(%s)"%lxcname)
 
         logger.info('start container %s success' % lxcname)
 
@@ -213,6 +213,12 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
             container.stop()
             self.imgmgr.deleteFS(lxcname)
             return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED,message="Fail to add gpu device. " + msg)
+
+        #start ssh service
+        cmd = "lxc-attach -n %s -- service ssh start" % lxcname
+        ret = subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
+        if ret.returncode != 0:
+            return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED,message="Fail to start ssh service. lxc(%s)"%lxcname)
 
         return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
 
