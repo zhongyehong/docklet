@@ -444,23 +444,35 @@ class TaskMgr(threading.Thread):
 
             if task.at_same_time:
                 # parallel tasks
+                if not self.has_waiting(task.subtask_list):
+                    continue
                 workers = self.find_proper_workers(task.subtask_list)
                 if len(workers) == 0:
-                    continue
+                    return None, None
                 else:
                     for i in range(len(workers)):
                         task.subtask_list[i].worker = workers[i]
                     return task, task.subtask_list
             else:
                 # traditional tasks
+                has_waiting = False
                 for sub_task in task.subtask_list:
                     if sub_task.status == WAITING:
+                        has_waiting = True
                         workers = self.find_proper_workers([sub_task])
                         if len(workers) > 0:
                             sub_task.worker = workers[0]
                             return task, [sub_task]
+                if has_waiting:
+                    return None, None
 
         return None, None
+
+    def has_waiting(self, sub_task_list):
+        for sub_task in sub_task_list:
+            if sub_task.status == WAITING:
+                return True
+        return False
 
     def find_proper_workers(self, sub_task_list, all_res=False):
         nodes = self.get_all_nodes()
