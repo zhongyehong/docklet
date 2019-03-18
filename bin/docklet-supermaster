@@ -18,9 +18,6 @@ DOCKLET_USER=$DOCKLET_HOME/user
 # default working directory, default to /opt/docklet
 FS_PREFIX=/opt/docklet
 
-RUN_DIR=$FS_PREFIX/local/run
-LOG_DIR=$FS_PREFIX/local/log
-
 #configurable-http-proxy public port, default is 8000
 PROXY_PORT=8000
 #configurable-http-proxy api port, default is 8001
@@ -42,6 +39,9 @@ BATCH_NET="10.16.0.0/16"
 . $DOCKLET_CONF/docklet.conf
 
 export FS_PREFIX
+
+RUN_DIR=$FS_PREFIX/local/run
+LOG_DIR=$FS_PREFIX/local/log
 
 # This next line determines what user the script runs as.
 DAEMON_USER=root

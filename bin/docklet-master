@@ -18,9 +18,6 @@ DOCKLET_USER=$DOCKLET_HOME/user
 # default working directory, default to /opt/docklet
 FS_PREFIX=/opt/docklet
 
-RUN_DIR=$FS_PREFIX/local/run
-LOG_DIR=$FS_PREFIX/local/log
-
 #network interface , default is eth0
 NETWORK_DEVICE=eth0
 #etcd server address, default is localhost:2379
@@ -43,6 +40,9 @@ DISTRIBUTED_GATEWAY=False
 . $DOCKLET_CONF/docklet.conf
 
 export FS_PREFIX
+
+RUN_DIR=$FS_PREFIX/local/run
+LOG_DIR=$FS_PREFIX/local/log
 
 # This next line determines what user the script runs as.
 DAEMON_USER=root
