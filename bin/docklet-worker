@@ -28,12 +28,12 @@ PROXY_PORT=8000
 PROXY_API_PORT=8001
 DISTRIBUTED_GATEWAY=False
 
-RUN_DIR=$FS_PREFIX/local/run
-LOG_DIR=$FS_PREFIX/local/log
-
 . $DOCKLET_CONF/docklet.conf
 
 export FS_PREFIX
+
+RUN_DIR=$FS_PREFIX/local/run
+LOG_DIR=$FS_PREFIX/local/log
 
 # This next line determines what user the script runs as.
 DAEMON_USER=root
