@@ -197,7 +197,10 @@ class TaskMgr(threading.Thread):
     def sort_out_task_queue(self):
         while self.lazy_delete_list:
             task = self.lazy_delete_list.pop(0)
-            self.task_queue.remove(task)
+            try:
+                self.task_queue.remove(task)
+            except Exception as err:
+                self.logger.warning(str(err))
         if self.lazy_append_list:
             while self.lazy_append_list:
                 task = self.lazy_append_list.pop(0)
@@ -238,7 +241,7 @@ class TaskMgr(threading.Thread):
         self.gpu_usage[subtask.worker] -= subtask.vnode_info.vnode.instance.gpu
         return [True, '']
 
-    def start_task(self, subtask):
+    def start_subtask(self, subtask):
         try:
             self.logger.info('[task_processor] Starting task [%s] vnode [%d]' % (subtask.vnode_info.taskid, subtask.vnode_info.vnodeid))
             channel = grpc.insecure_channel('%s:%s' % (subtask.worker, self.worker_port))
@@ -253,7 +256,7 @@ class TaskMgr(threading.Thread):
         subtask.task_started = True
         return [True, '']
 
-    def stop_task(self, subtask):
+    def stop_subtask(self, subtask):
         try:
             self.logger.info('[task_processor] Stoping task [%s] vnode [%d]' % (subtask.vnode_info.taskid, subtask.vnode_info.vnodeid))
             channel = grpc.insecure_channel('%s:%s' % (subtask.worker, self.worker_port))
@@ -361,7 +364,7 @@ class TaskMgr(threading.Thread):
                 continue
             task_info.token = ''.join(random.sample(string.ascii_letters + string.digits, 8))
 
-            [success, msg] = self.start_task(sub_task)
+            [success, msg] = self.start_subtask(sub_task)
             if success:
                 sub_task.status = RUNNING
             else:
@@ -373,11 +376,20 @@ class TaskMgr(threading.Thread):
 
     def clear_sub_task(self, sub_task):
         if sub_task.task_started:
-            self.stop_task(sub_task)
+            self.stop_subtask(sub_task)
             #pass
         if sub_task.vnode_started:
             self.stop_vnode(sub_task)
             #pass
+
+    def stop_remove_task(self, task):
+        if task is None:
+            return
+        self.logger.info("[taskmgr] stop and remove task(%s)"%task.id)
+        self.clear_sub_tasks(task.subtask_list)
+        self.release_task_ips(task)
+        self.remove_tasknet(task)
+        self.lazy_delete_list.append(task)
 
     def check_task_completed(self, task):
         if task.status == RUNNING or task.status == WAITING:
@@ -386,16 +398,10 @@ class TaskMgr(threading.Thread):
                     return False
         self.logger.info('task %s completed %s' % (task.id, str([sub_task.status for sub_task in task.subtask_list])))
         if task.at_same_time and task.status == FAILED:
-            self.clear_sub_tasks(task.subtask_list)
             self.jobmgr.report(task.username,task.id,"failed","",task.subtask_list[0].max_retry_count+1)
         else:
             self.jobmgr.report(task.username,task.id,'finished')
-        for sub_task in task.subtask_list:
-            if sub_task.command_info == None and sub_task.status == RUNNING:
-                self.clear_sub_task(sub_task)
-        self.release_task_ips(task)
-        self.remove_tasknet(task)
-        self.lazy_delete_list.append(task)
+        self.stop_remove_task(task)
         return True
 
     # this method is called when worker send heart-beat rpc request
@@ -576,6 +582,11 @@ class TaskMgr(threading.Thread):
             "base": Image.BASE,
             "public": Image.PUBLIC
         }
+        max_size = (1 << self.task_cidr) - 2
+        if int(json_task['vnodeCount']) > max_size:
+            # tell jobmgr
+            self.jobmgr.report(username,taskid,"failed","vnodeCount exceed limits.")
+            return False
         task = Task(
             task_id = taskid,
             username = username,

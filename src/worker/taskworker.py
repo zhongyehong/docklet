@@ -61,6 +61,7 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
         self.imgmgr = imagemgr.ImageMgr()
         self.fspath = env.getenv('FS_PREFIX')
         self.confpath = env.getenv('DOCKLET_CONF')
+        self.rm_all_batch_containers()
 
         self.taskmsgs = []
         self.msgslock = threading.Lock()
@@ -77,6 +78,21 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
 
         self.start_report()
         logger.info('TaskWorker init success')
+
+    def stop_and_rm_containers(self,lxcname):
+        logger.info("Stop the container with name:"+lxcname)
+        subprocess.run("lxc-stop -k -n %s" % lxcname, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+        return self.imgmgr.deleteFS(lxcname)
+
+    def rm_all_batch_containers(self):
+        for con in lxc.list_containers():
+            keys = con.split('-')
+            if len(keys) < 2 or keys[1] != 'batch':
+                continue
+            if self.stop_and_rm_containers(con):
+                logger.info("delete container %s success" % con)
+            else:
+                logger.error("delete container %s failed" % con)
 
     def add_gpu_device(self, lxcname, gpu_need):
         if gpu_need < 1:
@@ -199,7 +215,7 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
         if ret.returncode != 0:
             logger.error('start container %s failed' % lxcname)
             self.imgmgr.deleteFS(lxcname)
-            return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED,message="Can't start the container")
+            return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED,message="Can't start the container(%s)"%lxcname)
 
         logger.info('start container %s success' % lxcname)
 
@@ -213,6 +229,12 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
             container.stop()
             self.imgmgr.deleteFS(lxcname)
             return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED,message="Fail to add gpu device. " + msg)
+
+        #start ssh service
+        cmd = "lxc-attach -n %s -- service ssh start" % lxcname
+        ret = subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
+        if ret.returncode != 0:
+            return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED,message="Fail to start ssh service. lxc(%s)"%lxcname)
 
         return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
 

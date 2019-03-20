@@ -204,7 +204,7 @@
 # BATCH_NET: ip addresses range of containers for batch job, default is 10.16.0.0/16
 # BATCH_NET=10.16.0.0/16
 
-# BATCH_TASK_CIDR: 2^(BATCH_TASK_CIDR) is the number of ip addresses for a task, default is 4
+# BATCH_TASK_CIDR: 2^(BATCH_TASK_CIDR)-2 is the number of ip addresses for a task, default is 4
 # BATCH_TASK_CIDR=4
 
 # BATCH_MAX_THREAD_WORKER: the maximun number of threads of the rpc server on

@@ -879,6 +879,17 @@ def list_job(user,beans,form):
     }
     return json.dumps(result)
 
+@app.route("/batch/job/stop/", methods=['POST'])
+@login_required
+def stop_job(user,beans,form):
+    global G_jobmgr
+    jobid = form.get("jobid","")
+    [success,msg] = G_jobmgr.stop_job(user,jobid)
+    if success:
+        return json.dumps({'success':'true', 'action':'stop job'})
+    else:
+        return json.dumps({'success':'false', 'message': msg})
+
 @app.route("/batch/job/output/", methods=['POST'])
 @login_required
 def get_output(user,beans,form):
