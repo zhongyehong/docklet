@@ -3,6 +3,7 @@ from webViews.view import normalView
 from webViews.log import logger
 from webViews.checkname import checkname
 from webViews.dockletrequest import dockletRequest
+import json
 
 class batchJobListView(normalView):
     template_path = "batch/batch_list.html"
@@ -10,9 +11,12 @@ class batchJobListView(normalView):
     @classmethod
     def get(self):
         masterips = dockletRequest.post_to_all()
-        result = dockletRequest.post("/batch/job/list/",{},masterips[0].split("@")[0])
-        job_list = result.get("data")
-        logger.debug("job_list: %s" % job_list)
+        job_list = {}
+        for ipname in masterips:
+            ip = ipname.split("@")[0]
+            result = dockletRequest.post("/batch/job/list/",{},ip)
+            job_list[ip] = result.get("data")
+            logger.debug("job_list[%s]: %s" % (ip,job_list[ip]))
         if True:
             return self.render(self.template_path, masterips=masterips, job_list=job_list)
         else:
@@ -24,7 +28,10 @@ class createBatchJobView(normalView):
     @classmethod
     def get(self):
         masterips = dockletRequest.post_to_all()
-        images = dockletRequest.post("/image/list/",{},masterips[0].split("@")[0]).get("images")
+        images = {}
+        for master in masterips:
+            images[master.split("@")[0]] = dockletRequest.post("/image/list/",{},master.split("@")[0]).get("images")
+        logger.info(images)
         if True:
             return self.render(self.template_path, masterips=masterips, images=images)
         else:
@@ -67,6 +74,7 @@ class stopBatchJobView(normalView):
 
 class outputBatchJobView(normalView):
     template_path = "batch/batch_output.html"
+    masterip = ""
     jobid = ""
     taskid = ""
     vnodeid = ""
@@ -74,18 +82,17 @@ class outputBatchJobView(normalView):
 
     @classmethod
     def get(self):
-        masterips = dockletRequest.post_to_all()
         data = {
             'jobid':self.jobid,
             'taskid':self.taskid,
             'vnodeid':self.vnodeid,
             'issue':self.issue
         }
-        result = dockletRequest.post("/batch/job/output/",data,masterips[0].split("@")[0])
+        result = dockletRequest.post("/batch/job/output/",data,self.masterip)
         output = result.get("data")
         #logger.debug("job_list: %s" % job_list)
         if result.get('success',"") == "true":
-            return self.render(self.template_path, masterip=masterips[0].split("@")[0], jobid=self.jobid,
+            return self.render(self.template_path, masterip=self.masterip, jobid=self.jobid,
                                taskid=self.taskid, vnodeid=self.vnodeid, issue=self.issue, output=output)
         else:
             return self.error()

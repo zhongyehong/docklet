@@ -157,9 +157,10 @@ def stop_batch_job(masterip,jobid):
 def state_batch_job():
     return stateBatchJobView().as_view()
 
-@app.route("/batch_job/output/<jobid>/<taskid>/<vnodeid>/<issue>/", methods=['GET'])
+@app.route("/batch_job/output/<masterip>/<jobid>/<taskid>/<vnodeid>/<issue>/", methods=['GET'])
 @login_required
-def output_batch_job(jobid, taskid, vnodeid, issue):
+def output_batch_job(masterip, jobid, taskid, vnodeid, issue):
+    outputBatchJobView.masterip = masterip
     outputBatchJobView.jobid = jobid
     outputBatchJobView.taskid = taskid
     outputBatchJobView.vnodeid = vnodeid
