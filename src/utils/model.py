@@ -441,7 +441,7 @@ class Batchjob(db.Model):
     __bind_key__ = 'batch'
     id = db.Column(db.String(9), primary_key=True)
     username = db.Column(db.String(10))
-    name = db.Column(db.Sting(30))
+    name = db.Column(db.String(30))
     priority = db.Column(db.Integer)
     status = db.Column(db.String(10))
     failed_reason = db.Column(db.Text)
@@ -450,14 +450,79 @@ class Batchjob(db.Model):
     billing = db.Column(db.Integer)
     tasks = db.relationship('Batchtask', backref='batchjob', lazy='dynamic')
 
+    def __init__(self,id,username,name,priority):
+        self.id = id
+        self.username = username
+        self.name = name
+        self.priority = priority
+        self.status = "pending"
+        self.failed_reason = ""
+        self.create_time = datetime.now()
+        self.end_time = None
+        self.billing = 0
+
+    def __repr__(self):
+        info = {}
+        info['job_id'] = self.id
+        info['username'] = self.username
+        info['job_name'] = self.name
+        info['priority'] = self.priority
+        info['status'] = self.status
+        info['failed_reason'] = self.failed_reason
+        info['create_time'] = self.create_time.strftime("%Y-%m-%d %H:%M:%S")
+        if self.end_time is None:
+            info['end_time'] = "------"
+        else:
+            info['end_time'] = self.end_time.strftime("%Y-%m-%d %H:%M:%S")
+        if self.billing == 0:
+            info['billing'] = '--'
+        else:
+            info['billing'] = self.billing
+        return json.dumps(info)
+
 class Batchtask(db.Model):
     __bind_key__ = 'batch'
-    id = db.Column(db.String(12), primary_key=True)
-    idx = db.Column(db.Integer)
-    jobid = db.Column(db.String(9) db.ForeignKey('batchjob.id'))
+    id = db.Column(db.String(15), primary_key=True)
+    idx = db.Column(db.String(10))
+    jobid = db.Column(db.String(9), db.ForeignKey('batchjob.id'))
     status = db.Column(db.String(15))
     failed_reason = db.Column(db.Text)
     schedueled_time = db.Column(db.DateTime)
     end_time = db.Column(db.DateTime)
     billing = db.Column(db.Integer)
     config = db.Column(db.Text)
+    tried_times = db.Column(db.Integer)
+
+    def __init__(self, id, idx, config):
+        self.id = id
+        self.idx = idx
+        self.status = "pending"
+        self.failed_reason = ""
+        self.schedueled_time = None
+        self.end_time = None
+        self.billing = 0
+        self.config = json.dumps(config)
+        self.tried_times = 0
+
+    def __repr__(self):
+        info = {}
+        info['id'] = self.id
+        info['idx'] = self.idx
+        info['jobid'] = self.jobid
+        info['status'] = self.status
+        info['failed_reason'] = self.failed_reason
+        if self.schedueled_time is None:
+            info['schedueled_time'] = "------"
+        else:
+            info['schedueled_time'] = self.schedueled_time.strftime("%Y-%m-%d %H:%M:%S")
+        if self.end_time is None:
+            info['end_time'] = "------"
+        else:
+            info['end_time'] = self.end_time.strftime("%Y-%m-%d %H:%M:%S")
+        if self.billing == 0:
+            info['billing'] = "--"
+        else:
+            info['billing'] = self.billing
+        info['config'] = json.loads(self.config)
+        info['tried_times'] = self.tried_times
+        return json.dumps(info)

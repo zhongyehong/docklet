@@ -29,6 +29,7 @@ class Task():
         self.id = task_id
         self.username = username
         self.status = WAITING
+        self.failed_reason = ""
         # if all the vnodes must be started at the same time
         self.at_same_time = at_same_time
         # priority the bigger the better
@@ -90,11 +91,12 @@ class SubTask():
         self.try_count = 0
         self.worker = None
 
-    def waiting_for_retry(self):
+    def waiting_for_retry(self,reason=""):
         self.try_count += 1
         self.status = WAITING if self.try_count <= self.max_retry_count else FAILED
-        if self.status == FAILED and self.root_task.at_same_time:
+        if self.status == FAILED:
             self.root_task.status = FAILED
+            self.failed_reason = reason
 
 
 class TaskReporter(MasterServicer):
@@ -349,7 +351,8 @@ class TaskMgr(threading.Thread):
             placed_workers.append(sub_task.worker)
             [success, msg] = self.start_vnode(sub_task)
             if not success:
-                sub_task.waiting_for_retry()
+                sub_task.waiting_for_retry("Fail to start vnode.")
+                self.jobmgr.report(task.username, task.id, 'retrying', "Fail to start vnode.")
                 sub_task.worker = None
                 start_all_vnode_success = False
 
@@ -368,7 +371,8 @@ class TaskMgr(threading.Thread):
             if success:
                 sub_task.status = RUNNING
             else:
-                sub_task.waiting_for_retry()
+                sub_task.waiting_for_retry("Failt to start task.")
+                self.jobmgr.report(task.username, task.id, 'retrying', "Fail to start task.")
 
     def clear_sub_tasks(self, sub_task_list):
         for sub_task in sub_task_list:
@@ -397,8 +401,8 @@ class TaskMgr(threading.Thread):
                 if sub_task.command_info != None and (sub_task.status == RUNNING or sub_task.status == WAITING):
                     return False
         self.logger.info('task %s completed %s' % (task.id, str([sub_task.status for sub_task in task.subtask_list])))
-        if task.at_same_time and task.status == FAILED:
-            self.jobmgr.report(task.username,task.id,"failed","",task.subtask_list[0].max_retry_count+1)
+        if task.status == FAILED:
+            self.jobmgr.report(task.username,task.id,"failed",task.failed_reason,task.subtask_list[0].max_retry_count+1)
         else:
             self.jobmgr.report(task.username,task.id,'finished')
         self.stop_remove_task(task)
@@ -427,11 +431,12 @@ class TaskMgr(threading.Thread):
         sub_task.status_reason = report.errmsg
 
         if report.subTaskStatus == FAILED or report.subTaskStatus == TIMEOUT:
-            sub_task.waiting_for_retry()
+            sub_task.waiting_for_retry(report.errmsg)
+            self.jobmgr.report(task.username, task.id, 'retrying', report.errmsg)
         elif report.subTaskStatus == OUTPUTERROR:
             sub_task.status = FAILED
-            if task.at_same_time:
-                task.status = FAILED
+            task.status = FAILED
+            task.failed_reason = report.errmsg
         elif report.subTaskStatus == COMPLETED:
             self.clear_sub_task(sub_task)
 
