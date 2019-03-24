@@ -44,6 +44,7 @@ app.config['SQLALCHEMY_BINDS'] = {
     'history': 'sqlite:///'+fsdir+'/global/sys/HistoryTable.db',
     'beansapplication': 'sqlite:///'+fsdir+'/global/sys/BeansApplication.db',
     'system': 'sqlite:///'+fsdir+'/global/sys/System.db',
+    'batch':'sqlite:///'+fsdir+'/global/sys/Batch.db',
     'login': 'sqlite:///'+fsdir+'/global/sys/Login.db'
     }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
@@ -435,3 +436,28 @@ class Image(db.Model):
 
     def __repr__(self):
         return "{\"id\":\"%d\",\"imagename\":\"%s\",\"hasPrivate\":\"%s\",\"hasPublic\":\"%s\",\"ownername\":\"%s\",\"updatetime\":\"%s\",\"description\":\"%s\"}" % (self.id,self.imagename,str(self.hasPrivate),str(self.hasPublic),self.create_time.strftime("%Y-%m-%d %H:%M:%S"),self.ownername,self.description)
+
+class Batchjob(db.Model):
+    __bind_key__ = 'batch'
+    id = db.Column(db.String(9), primary_key=True)
+    username = db.Column(db.String(10))
+    name = db.Column(db.Sting(30))
+    priority = db.Column(db.Integer)
+    status = db.Column(db.String(10))
+    failed_reason = db.Column(db.Text)
+    create_time = db.Column(db.DateTime)
+    end_time = db.Column(db.DateTime)
+    billing = db.Column(db.Integer)
+    tasks = db.relationship('Batchtask', backref='batchjob', lazy='dynamic')
+
+class Batchtask(db.Model):
+    __bind_key__ = 'batch'
+    id = db.Column(db.String(12), primary_key=True)
+    idx = db.Column(db.Integer)
+    jobid = db.Column(db.String(9) db.ForeignKey('batchjob.id'))
+    status = db.Column(db.String(15))
+    failed_reason = db.Column(db.Text)
+    schedueled_time = db.Column(db.DateTime)
+    end_time = db.Column(db.DateTime)
+    billing = db.Column(db.Integer)
+    config = db.Column(db.Text)
