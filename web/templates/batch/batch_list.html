@@ -33,7 +33,7 @@
 					 </p>
                  {% for master in masterips %}
                  {% for job_info in job_list[master.split('@')[0]] %}
-                 <div class="modal inmodal" id='OutputModal_{{ master }}_{{ job_info['job_id'] }}' tabindex="-1" role="dialog" aria-hidden="true">
+                 <div class="modal inmodal" id='OutputModal_{{ master.split('@')[1] }}_{{ job_info['job_id'] }}' tabindex="-1" role="dialog" aria-hidden="true">
                    <div class="modal-dialog">
                      <div class="modal-content animated fadeIn">
                        <div class="modal-header">
@@ -99,7 +99,7 @@
                             <td>Tasks</td>
 				            <td><a href="/batch_job/{{master.split("@")[0]}}/stop/{{ job_info['job_id'] }}/"><button type="button"  class="btn btn-xs btn-warning"> &nbsp;Stop&nbsp;&nbsp; </button></a></td>
                             <td>{{ job_info['create_time'] }}</td>
-                            <td><a role="button" class="btn btn-info btn-xs" id='{{ master }}_{{ job_info['job_id'] }}_output' data-toggle="modal" data-target='#OutputModal_{{ master }}_{{ job_info['job_id'] }}'>Get Output</a></td>
+                            <td><a role="button" class="btn btn-info btn-xs" id='{{ master }}_{{ job_info['job_id'] }}_output' data-toggle="modal" data-target='#OutputModal_{{ master.split('@')[1] }}_{{ job_info['job_id'] }}'>Get Output</a></td>
                         </tr>
                     {% endfor %}
                     {% endfor %}
@@ -118,7 +118,7 @@
 
 <script type="text/javascript">
 $(document).ready(function() {
-   $(".table-batch").DataTable({"scrollX":true,"order":[[ 5, "desc" ]]});
+   $(".table-batch").DataTable({"scrollX":true,"order":[[ 6, "desc" ]]});
    $(".table-output").DataTable({
    "lengthChange":false});
 });

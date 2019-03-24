@@ -147,6 +147,7 @@
 
     $("select#masterselector").change(function() {
       var masterip=$(this).children('option:selected').val();
+      $("#form").attr("action","/batch_job/"+ masterip +"/add/");
       var mastername=$(this).children('option:selected').html();
       console.log(masterip);
       var host = window.location.host;
