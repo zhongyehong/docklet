@@ -47,7 +47,7 @@ class Task():
                 max_retry_count = task_info['max_retry_count']
             ) for (index, task_info) in enumerate(task_infos)]
 
-    def get_billing(self,running_time):
+    def get_billing(self):
         billing_beans = 0
         running_time = 0
         cpu_price = 1 / 3600.0  # /core*s
@@ -60,6 +60,8 @@ class Task():
             mem_beans = subtask.vnode_info.vnode.instance.memory / 1024.0 * tmp_time * mem_price
             disk_beans = subtask.vnode_info.vnode.instance.disk / 1024.0 * tmp_time * disk_price
             gpu_beans = subtask.vnode_info.vnode.instance.gpu * tmp_time * gpu_price
+            logger.info("subtask:%s running_time=%f beans for: cpu=%f mem_beans=%f disk_beans=%f gpu_beans=%f"
+                        %(self.id, tmp_time, cpu_beans, mem_beans, disk_beans, gpu_beans ))
             beans = math.ceil(cpu_beans + mem_beans + disk_beans + gpu_beans)
             running_time += tmp_time
             billing_beans += beans
@@ -426,6 +428,7 @@ class TaskMgr(threading.Thread):
         self.logger.info('task %s finished, status %d, subtasks: %s' % (task.id, task.status, str([sub_task.status for sub_task in task.subtask_list])))
         self.stop_remove_task(task)
         running_time, billing = task.get_billing()
+        self.logger.info('task %s running_time:%s billing:%d'%(task.id, str(running_time), billing))
         running_time = math.ceil(running_time)
         if task.status == FAILED:
             self.jobmgr.report(task.username,task.id,"failed",task.failed_reason,task.subtask_list[0].max_retry_count+1, running_time, billing)

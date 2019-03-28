@@ -792,6 +792,7 @@ def resetall_system(user, beans, form):
 
 @app.route("/batch/job/add/", methods=['POST'])
 @login_required
+@beans_check
 def add_job(user,beans,form):
     global G_jobmgr
     job_data = form.to_dict()
