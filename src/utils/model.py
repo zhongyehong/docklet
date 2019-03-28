@@ -474,10 +474,7 @@ class Batchjob(db.Model):
             info['end_time'] = "------"
         else:
             info['end_time'] = self.end_time.strftime("%Y-%m-%d %H:%M:%S")
-        if self.billing == 0:
-            info['billing'] = '--'
-        else:
-            info['billing'] = self.billing
+        info['billing'] = self.billing
         return json.dumps(info)
 
 class Batchtask(db.Model):
@@ -487,8 +484,9 @@ class Batchtask(db.Model):
     jobid = db.Column(db.String(9), db.ForeignKey('batchjob.id'))
     status = db.Column(db.String(15))
     failed_reason = db.Column(db.Text)
-    schedueled_time = db.Column(db.DateTime)
+    start_time = db.Column(db.DateTime)
     end_time = db.Column(db.DateTime)
+    running_time = db.Column(db.Integer)
     billing = db.Column(db.Integer)
     config = db.Column(db.Text)
     tried_times = db.Column(db.Integer)
@@ -498,8 +496,9 @@ class Batchtask(db.Model):
         self.idx = idx
         self.status = "pending"
         self.failed_reason = ""
-        self.schedueled_time = None
+        self.start_time = None
         self.end_time = None
+        self.running_time = 0
         self.billing = 0
         self.config = json.dumps(config)
         self.tried_times = 0
@@ -511,18 +510,16 @@ class Batchtask(db.Model):
         info['jobid'] = self.jobid
         info['status'] = self.status
         info['failed_reason'] = self.failed_reason
-        if self.schedueled_time is None:
-            info['schedueled_time'] = "------"
+        if self.start_time is None:
+            info['start_time'] = "------"
         else:
-            info['schedueled_time'] = self.schedueled_time.strftime("%Y-%m-%d %H:%M:%S")
+            info['start_time'] = self.start_time.strftime("%Y-%m-%d %H:%M:%S")
         if self.end_time is None:
             info['end_time'] = "------"
         else:
             info['end_time'] = self.end_time.strftime("%Y-%m-%d %H:%M:%S")
-        if self.billing == 0:
-            info['billing'] = "--"
-        else:
-            info['billing'] = self.billing
+        info['running_time'] = self.running_time
+        info['billing'] = self.billing
         info['config'] = json.loads(self.config)
         info['tried_times'] = self.tried_times
         return json.dumps(info)

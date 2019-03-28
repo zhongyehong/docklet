@@ -126,7 +126,7 @@ class BatchJob(object):
 
     # a task has finished, update dependency and return tasks without dependencies
     @data_lock
-    def finish_task(self, task_idx):
+    def finish_task(self, task_idx, running_time, billing):
         if task_idx not in self.tasks.keys():
             logger.error('Task_idx %s not in job. user:%s job_name:%s job_id:%s'%(task_idx, self.user, self.job_name, self.job_id))
             return []
@@ -136,6 +136,9 @@ class BatchJob(object):
         self.tasks[task_idx]['status'] = 'finished'
         self.tasks[task_idx]['db'].status = 'finished'
         self.tasks[task_idx]['db'].tried_times += 1
+        self.tasks[task_idx]['db'].running_time = running_time
+        self.tasks[task_idx]['db'].billing = billing
+        self.job_db.billing += billing
         self.tasks_cnt['finished'] += 1
 
         if task_idx not in self.dependency_out.keys():
@@ -177,7 +180,7 @@ class BatchJob(object):
 
     # update failed status of task
     @data_lock
-    def update_task_failed(self, task_idx, reason, tried_times):
+    def update_task_failed(self, task_idx, reason, tried_times, running_time, billing):
         logger.debug("Update status of task(idx:%s) of BatchJob(id:%s) failed. reason:%s tried_times:%d" % (task_idx, self.job_id, reason, int(tried_times)))
         old_status = self.tasks[task_idx]['status']
         self.tasks_cnt[old_status] -= 1
@@ -186,6 +189,9 @@ class BatchJob(object):
         self.tasks[task_idx]['db'].status = 'failed'
         self.tasks[task_idx]['db'].failed_reason = reason
         self.tasks[task_idx]['db'].tried_times += 1
+        self.tasks[task_idx]['db'].running_time = running_time
+        self.tasks[task_idx]['db'].billing = billing
+        self.job_db.billing += billing
         self._update_job_status()
         self.log_status()
 
@@ -326,7 +332,7 @@ class JobMgr():
     # status: 'running', 'finished', 'retrying', 'failed'
     # reason: reason for failure or retrying, such as "FAILED", "TIMEOUT", "OUTPUTERROR"
     # tried_times: how many times the task has been tried.
-    def report(self, user, task_name, status, reason="", tried_times=1):
+    def report(self, user, task_name, status, reason="", tried_times=1, running_time=0, billing=0):
         split_task_name = task_name.split('_')
         if len(split_task_name) != 2:
             logger.error("[jobmgr report]Illegal task_name(%s) report from taskmgr" % task_name)
@@ -339,7 +345,7 @@ class JobMgr():
         if status == "running":
             job.update_task_running(task_idx)
         elif status == "finished":
-            next_tasks = job.finish_task(task_idx)
+            next_tasks = job.finish_task(task_idx, running_time, billing)
             if len(next_tasks) == 0:
                 del self.job_map[job_id]
                 return
@@ -347,7 +353,7 @@ class JobMgr():
         elif status == "retrying":
             job.update_task_retrying(task_idx, reason, tried_times)
         elif status == "failed":
-            job.update_task_failed(task_idx, reason, tried_times)
+            job.update_task_failed(task_idx, reason, tried_times, running_time, billing)
             del self.job_map[job_id]
 
     # Get Batch job stdout or stderr from its file
