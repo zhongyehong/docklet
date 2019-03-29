@@ -297,7 +297,7 @@ class TaskMgr(threading.Thread):
 
     def stop_subtask(self, subtask):
         try:
-            self.logger.info('[task_processor] Stoping task [%s] vnode [%d]' % (subtask.vnode_info.taskid, subtask.vnode_info.vnodeid))
+            self.logger.info('[task_processor] Stopping task [%s] vnode [%d]' % (subtask.vnode_info.taskid, subtask.vnode_info.vnodeid))
             channel = grpc.insecure_channel('%s:%s' % (subtask.worker, self.worker_port))
             stub = WorkerStub(channel)
             response = stub.stop_task(subtask.command_info)
@@ -423,7 +423,7 @@ class TaskMgr(threading.Thread):
             self.stop_vnode(sub_task)
             #pass
 
-    @data_lock('task_stop_lock')
+    @data_lock('stop_lock')
     def lazy_stop_task(self, taskid):
         self.lazy_stop_list.append(taskid)
 

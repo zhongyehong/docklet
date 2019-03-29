@@ -293,7 +293,7 @@ class JobMgr():
     def stop_job(self, user, job_id):
         logger.info("[jobmgr] stop job(id:%s) user(%s)"%(job_id, user))
         if job_id not in self.job_map.keys():
-            return [False,"Job id %s does not exists! Maybe it has been finished."]
+            return [False,"Job id %s does not exists! Maybe it has been finished."%job_id]
         try:
             job = self.job_map[job_id]
             if job.job_db.status == 'done' or job.job_db.status == 'failed':
@@ -304,6 +304,7 @@ class JobMgr():
                 taskid = job_id + '_' + task_idx
                 self.taskmgr.lazy_stop_task(taskid)
             job.stop_job()
+            del self.job_map[job_id]
         except Exception as err:
             logger.error(traceback.format_exc())
             #logger.error(err)
