@@ -3,7 +3,7 @@ import time
 import string
 import os
 import random, copy, subprocess
-import json
+import json, math
 from functools import wraps
 
 # must import logger after initlogging, ugly
@@ -29,6 +29,7 @@ class Task():
         self.id = task_id
         self.username = username
         self.status = WAITING
+        self.failed_reason = ""
         # if all the vnodes must be started at the same time
         self.at_same_time = at_same_time
         # priority the bigger the better
@@ -45,6 +46,26 @@ class Task():
                 command_info = task_info['command_info'],
                 max_retry_count = task_info['max_retry_count']
             ) for (index, task_info) in enumerate(task_infos)]
+
+    def get_billing(self):
+        billing_beans = 0
+        running_time = 0
+        cpu_price = 1 / 3600.0  # /core*s
+        mem_price = 1 / 3600.0 # /GB*s
+        disk_price = 1 / 3600.0 # /GB*s
+        gpu_price = 100 / 3600.0 # /core*s
+        for subtask in self.subtask_list:
+            tmp_time = subtask.running_time
+            cpu_beans = subtask.vnode_info.vnode.instance.cpu * tmp_time * cpu_price
+            mem_beans = subtask.vnode_info.vnode.instance.memory / 1024.0 * tmp_time * mem_price
+            disk_beans = subtask.vnode_info.vnode.instance.disk / 1024.0 * tmp_time * disk_price
+            gpu_beans = subtask.vnode_info.vnode.instance.gpu * tmp_time * gpu_price
+            logger.info("subtask:%s running_time=%f beans for: cpu=%f mem_beans=%f disk_beans=%f gpu_beans=%f"
+                        %(self.id, tmp_time, cpu_beans, mem_beans, disk_beans, gpu_beans ))
+            beans = math.ceil(cpu_beans + mem_beans + disk_beans + gpu_beans)
+            running_time += tmp_time
+            billing_beans += beans
+        return running_time, billing_beans
 
     def __lt__(self, other):
         return self.priority < other.priority
@@ -87,16 +108,18 @@ class SubTask():
         self.task_started = False
         self.start_at = 0
         self.end_at = 0
+        self.running_time = 0
         self.status = WAITING
         self.status_reason = ''
         self.try_count = 0
         self.worker = None
 
-    def waiting_for_retry(self):
+    def waiting_for_retry(self,reason=""):
         self.try_count += 1
         self.status = WAITING if self.try_count <= self.max_retry_count else FAILED
-        if self.status == FAILED and self.root_task.at_same_time:
+        if self.status == FAILED:
             self.root_task.status = FAILED
+            self.failed_reason = reason
 
 
 class TaskReporter(MasterServicer):
@@ -240,6 +263,7 @@ class TaskMgr(threading.Thread):
             return [False, e]
         subtask.vnode_started = False
         subtask.end_at = time.time()
+        subtask.running_time += subtask.end_at - subtask.start_at
         self.cpu_usage[subtask.worker] -= subtask.vnode_info.vnode.instance.cpu
         self.gpu_usage[subtask.worker] -= subtask.vnode_info.vnode.instance.gpu
         return [True, '']
@@ -352,7 +376,8 @@ class TaskMgr(threading.Thread):
             placed_workers.append(sub_task.worker)
             [success, msg] = self.start_vnode(sub_task)
             if not success:
-                sub_task.waiting_for_retry()
+                sub_task.waiting_for_retry("Fail to start vnode.")
+                self.jobmgr.report(task.username, task.id, 'retrying', "Fail to start vnode.")
                 sub_task.worker = None
                 start_all_vnode_success = False
 
@@ -371,7 +396,8 @@ class TaskMgr(threading.Thread):
             if success:
                 sub_task.status = RUNNING
             else:
-                sub_task.waiting_for_retry()
+                sub_task.waiting_for_retry("Failt to start task.")
+                self.jobmgr.report(task.username, task.id, 'retrying', "Fail to start task.")
 
     def clear_sub_tasks(self, sub_task_list):
         for sub_task in sub_task_list:
@@ -400,11 +426,14 @@ class TaskMgr(threading.Thread):
                 if sub_task.command_info != None and (sub_task.status == RUNNING or sub_task.status == WAITING):
                     return False
         self.logger.info('task %s finished, status %d, subtasks: %s' % (task.id, task.status, str([sub_task.status for sub_task in task.subtask_list])))
-        if task.at_same_time and task.status == FAILED:
-            self.jobmgr.report(task.username,task.id,"failed","",task.subtask_list[0].max_retry_count+1)
-        else:
-            self.jobmgr.report(task.username,task.id,'finished')
         self.stop_remove_task(task)
+        running_time, billing = task.get_billing()
+        self.logger.info('task %s running_time:%s billing:%d'%(task.id, str(running_time), billing))
+        running_time = math.ceil(running_time)
+        if task.status == FAILED:
+            self.jobmgr.report(task.username,task.id,"failed",task.failed_reason,task.subtask_list[0].max_retry_count+1, running_time, billing)
+        else:
+            self.jobmgr.report(task.username,task.id,'finished',running_time=running_time,billing=billing)
         return True
 
     # this method is called when worker send heart-beat rpc request
@@ -430,12 +459,12 @@ class TaskMgr(threading.Thread):
         sub_task.status_reason = report.errmsg
 
         if report.subTaskStatus == FAILED or report.subTaskStatus == TIMEOUT:
-            sub_task.waiting_for_retry()
+            sub_task.waiting_for_retry(report.errmsg)
+            self.jobmgr.report(task.username, task.id, 'retrying', report.errmsg)
         elif report.subTaskStatus == OUTPUTERROR:
             sub_task.status = FAILED
-            if task.at_same_time:
-                task.status = FAILED
-            self.clear_sub_task(sub_task)
+            task.status = FAILED
+            task.failed_reason = report.errmsg
         elif report.subTaskStatus == COMPLETED:
             self.clear_sub_task(sub_task)
 
