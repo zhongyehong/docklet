@@ -121,6 +121,9 @@ class BatchJob(object):
     def update_task_running(self, task_idx):
         logger.debug("Update status of task(idx:%s) of BatchJob(id:%s) running." % (task_idx, self.job_id))
         old_status = self.tasks[task_idx]['status']
+        if old_status == 'stopped':
+            logger.info("Task(idx:%s) of BatchJob(id:%s) has been stopped."% (task_idx, self.job_id))
+            return
         self.tasks_cnt[old_status] -= 1
         self.tasks[task_idx]['status'] = 'running'
         self.tasks[task_idx]['db'] = Batchtask.query.get(self.tasks[task_idx]['id'])
@@ -138,6 +141,9 @@ class BatchJob(object):
             return []
         logger.debug("Task(idx:%s) of BatchJob(id:%s) has finished(running_time=%d,billing=%d). Update dependency..." % (task_idx, self.job_id, running_time, billing))
         old_status = self.tasks[task_idx]['status']
+        if old_status == 'stopped':
+            logger.info("Task(idx:%s) of BatchJob(id:%s) has been stopped."% (task_idx, self.job_id))
+            return
         self.tasks_cnt[old_status] -= 1
         self.tasks[task_idx]['status'] = 'finished'
         self.tasks[task_idx]['db'] = Batchtask.query.get(self.tasks[task_idx]['id'])
@@ -178,6 +184,9 @@ class BatchJob(object):
     def update_task_retrying(self, task_idx, reason, tried_times):
         logger.debug("Update status of task(idx:%s) of BatchJob(id:%s) retrying. reason:%s tried_times:%d" % (task_idx, self.job_id, reason, int(tried_times)))
         old_status = self.tasks[task_idx]['status']
+        if old_status == 'stopped':
+            logger.info("Task(idx:%s) of BatchJob(id:%s) has been stopped."% (task_idx, self.job_id))
+            return
         self.tasks_cnt[old_status] -= 1
         self.tasks_cnt['retrying'] += 1
         self.tasks[task_idx]['db'] = Batchtask.query.get(self.tasks[task_idx]['id'])
@@ -194,6 +203,9 @@ class BatchJob(object):
     def update_task_failed(self, task_idx, reason, tried_times, running_time, billing):
         logger.debug("Update status of task(idx:%s) of BatchJob(id:%s) failed. reason:%s tried_times:%d" % (task_idx, self.job_id, reason, int(tried_times)))
         old_status = self.tasks[task_idx]['status']
+        if old_status == 'stopped':
+            logger.info("Task(idx:%s) of BatchJob(id:%s) has been stopped."% (task_idx, self.job_id))
+            return
         self.tasks_cnt[old_status] -= 1
         self.tasks_cnt['failed'] += 1
         self.tasks[task_idx]['status'] = 'failed'
@@ -290,8 +302,7 @@ class JobMgr():
                 raise Exception("Wrong User.")
             for task_idx in job.tasks.keys():
                 taskid = job_id + '_' + task_idx
-                task = self.taskmgr.get_task(taskid)
-                self.taskmgr.stop_remove_task(task)
+                self.taskmgr.lazy_stop_task(taskid)
             job.stop_job()
         except Exception as err:
             logger.error(traceback.format_exc())
