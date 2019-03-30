@@ -44,7 +44,7 @@ app.config['SQLALCHEMY_BINDS'] = {
     'history': 'sqlite:///'+fsdir+'/global/sys/HistoryTable.db',
     'beansapplication': 'sqlite:///'+fsdir+'/global/sys/BeansApplication.db',
     'system': 'sqlite:///'+fsdir+'/global/sys/System.db',
-    'batch':'sqlite:///'+fsdir+'/global/sys/Batch.db',
+    'batch':'sqlite:///'+fsdir+'/global/sys/Batch.db?check_same_thread=False',
     'login': 'sqlite:///'+fsdir+'/global/sys/Login.db'
     }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True

@@ -228,6 +228,10 @@ class TaskMgr(threading.Thread):
             if task.id in self.lazy_stop_list:
                 self.stop_remove_task(task)
                 self.lazy_delete_list.append(task)
+                running_time, billing = task.get_billing()
+                self.logger.info('task %s stopped, running_time:%s billing:%d'%(task.id, str(running_time), billing))
+                running_time = math.ceil(running_time)
+                self.jobmgr.report(task.username, task.id,'stopped',running_time=running_time,billing=billing)
 
         while self.lazy_delete_list:
             task = self.lazy_delete_list.pop(0)
@@ -236,7 +240,14 @@ class TaskMgr(threading.Thread):
             except Exception as err:
                 self.logger.warning(str(err))
 
-        self.lazy_append_list = [t for t in self.lazy_append_list if t.id not in self.lazy_stop_list]
+        new_append_list = []
+        for task in self.lazy_append_list:
+            if task.id in self.lazy_stop_list:
+                self.jobmgr.report(task.username, task.id, 'stopped')
+            else:
+                new_append_list.append(task)
+
+        self.lazy_append_list = new_append_list
         self.lazy_stop_list.clear()
         if self.lazy_append_list:
             self.task_queue.extend(self.lazy_append_list)
