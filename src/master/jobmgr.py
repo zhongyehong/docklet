@@ -104,11 +104,14 @@ class BatchJob(object):
         allcnt = len(self.tasks.keys())
         if self.tasks_cnt['failed'] != 0:
             self.job_db.status = 'failed'
+            self.job_db.end_time = datetime.now()
         elif self.tasks_cnt['finished'] == allcnt:
             self.job_db.status = 'done'
+            self.job_db.end_time = datetime.now()
         elif self.job_db.status == 'stopping':
             if self.tasks_cnt['running'] == 0 and self.tasks_cnt['scheduling'] == 0 and self.tasks_cnt['retrying'] == 0:
                 self.job_db.status = 'stopped'
+                self.job_db.end_time = datetime.now()
         elif self.tasks_cnt['running'] != 0 or self.tasks_cnt['retrying'] != 0:
             self.job_db.status = 'running'
         else:
@@ -127,6 +130,7 @@ class BatchJob(object):
         self.tasks[task_idx]['status'] = 'running'
         self.tasks[task_idx]['db'] = Batchtask.query.get(self.tasks[task_idx]['id'])
         self.tasks[task_idx]['db'].status = 'running'
+        self.tasks[task_idx]['db'].start_time = datetime.now()
         self.tasks_cnt['running'] += 1
         self.job_db = Batchjob.query.get(self.job_id)
         self._update_job_status()
@@ -149,6 +153,7 @@ class BatchJob(object):
         self.tasks[task_idx]['db'].status = 'finished'
         self.tasks[task_idx]['db'].tried_times += 1
         self.tasks[task_idx]['db'].running_time = running_time
+        self.tasks[task_idx]['db'].end_time = datetime.now()
         self.tasks[task_idx]['db'].billing = billing
         self.job_db = Batchjob.query.get(self.job_id)
         self.job_db.billing += billing
@@ -209,6 +214,7 @@ class BatchJob(object):
         self.tasks[task_idx]['db'].status = 'failed'
         self.tasks[task_idx]['db'].failed_reason = reason
         self.tasks[task_idx]['db'].tried_times += 1
+        self.tasks[task_idx]['db'].end_time = datetime.now()
         self.tasks[task_idx]['db'].running_time = running_time
         self.tasks[task_idx]['db'].billing = billing
         self.job_db = Batchjob.query.get(self.job_id)
@@ -228,6 +234,7 @@ class BatchJob(object):
         self.tasks[task_idx]['status'] = 'stopped'
         self.tasks[task_idx]['db'] = Batchtask.query.get(self.tasks[task_idx]['id'])
         self.tasks[task_idx]['db'].status = 'stopped'
+        self.tasks[task_idx]['db'].end_time = datetime.now()
         self.tasks[task_idx]['db'].running_time = running_time
         self.tasks[task_idx]['db'].billing = billing
         self.job_db = Batchjob.query.get(self.job_id)
@@ -380,7 +387,7 @@ class JobMgr():
 
     # report task status from taskmgr when running, failed and finished
     # task_name: job_id + '_' + task_idx
-    # status: 'running', 'finished', 'retrying', 'failed'
+    # status: 'running', 'finished', 'retrying', 'failed', 'stopped'
     # reason: reason for failure or retrying, such as "FAILED", "TIMEOUT", "OUTPUTERROR"
     # tried_times: how many times the task has been tried.
     def report(self, user, task_name, status, reason="", tried_times=1, running_time=0, billing=0):
