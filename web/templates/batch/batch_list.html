@@ -80,9 +80,10 @@
                             <th>ID</th>
                             <th>Name</th>
                             <th>Status</th>
-                            <th>Tasks</th>
                             <th>Operations</th>
                             <th>Create Time</th>
+                            <th>End Time</th>
+                            <th>billing</th>
                             <th>Stdout and Stderr</th>
                         </tr>
                     <thead>
@@ -95,10 +96,15 @@
                             <td>{{ job_info['job_name'] }}</td>
                             <td>
                             {{ job_info['status'] }}
-                          </td>
-                            <td>Tasks</td>
-				            <td><a href="/batch_job/{{master.split("@")[0]}}/stop/{{ job_info['job_id'] }}/"><button type="button"  class="btn btn-xs btn-warning"> &nbsp;Stop&nbsp;&nbsp; </button></a></td>
+                            </td>
+                            {% if job_info['status'] == 'done' or job_info['status'] == 'failed' or job_info['status'] == 'stopping' or job_info['status'] == 'stopped'%}
+                            <td><button type="button"  class="btn btn-xs btn-default"> &nbsp;Stop&nbsp;&nbsp; </button></td>
+                            {% else %}
+                            <td><a href="/batch_job/{{master.split("@")[0]}}/stop/{{ job_info['job_id'] }}/"><button type="button"  class="btn btn-xs btn-danger"> &nbsp;Stop&nbsp;&nbsp; </button></a></td>
+                            {% endif %}
                             <td>{{ job_info['create_time'] }}</td>
+                            <td>{{ job_info['end_time'] }}</td>
+                            <td>{{ job_info['billing'] }} <img src='/static/img/bean.png' /></td>
                             <td><a role="button" class="btn btn-info btn-xs" id='{{ master }}_{{ job_info['job_id'] }}_output' data-toggle="modal" data-target='#OutputModal_{{ master.split('@')[1] }}_{{ job_info['job_id'] }}'>Get Output</a></td>
                         </tr>
                     {% endfor %}
@@ -118,7 +124,7 @@
 
 <script type="text/javascript">
 $(document).ready(function() {
-   $(".table-batch").DataTable({"scrollX":true,"order":[[ 6, "desc" ]]});
+   $(".table-batch").DataTable({"scrollX":true,"order":[[ 5, "desc" ]]});
    $(".table-output").DataTable({
    "lengthChange":false});
 });
