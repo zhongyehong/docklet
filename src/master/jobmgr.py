@@ -353,9 +353,17 @@ class JobMgr():
     # user: username
     # jobid: the id of job
     # get the information of a job, including the status, json description and other information
-    # call get_task to get the task information
     def get_job(self, user, job_id):
-        pass
+        job = Batchjob.query.get(job_id)
+        if job is None:
+            return [False, "Jobid(%s) does not exist."%job_id]
+        if job.username != user:
+            return [False, "Wrong User!"]
+        jobdata = json.loads(str(job))
+        tasks = job.tasks.all()
+        tasksdata = [json.loads(str(t)) for t in tasks]
+        jobdata['tasks'] = tasksdata
+        return [True, jobdata]
 
     # check if a job exists
     def is_job_exist(self, job_id):
@@ -408,6 +416,8 @@ class JobMgr():
             taskdb.status = status
             if status == 'failed':
                 taskdb.failed_reason = reason
+            if status == 'failed' or status == 'stopped' or status == 'finished':
+                taskdb.end_time = datetime.now()
             if billing > 0:
                 taskdb.running_time = running_time
                 taskdb.billing = billing

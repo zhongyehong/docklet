@@ -3,6 +3,13 @@
 
 {% block panel_title %}Batch Job{% endblock %}
 
+{% block css_src %}
+<link href="//cdn.bootcss.com/datatables/1.10.11/css/dataTables.bootstrap.min.css" rel="stylesheet">
+<link href="//cdn.bootcss.com/datatables/1.10.11/css/jquery.dataTables_themeroller.css" rel="stylesheet">
+<link href="/static/dist/css/modalconfig.css" rel="stylesheet">
+
+{% endblock %}
+
 {% block panel_list %}
 <ol class="breadcrumb">
   <li>
@@ -85,6 +92,7 @@
                             <th>End Time</th>
                             <th>billing</th>
                             <th>Stdout and Stderr</th>
+                            <th>Detailed Info</th>
                         </tr>
                     <thead>
                     <tbody>
@@ -100,12 +108,13 @@
                             {% if job_info['status'] == 'done' or job_info['status'] == 'failed' or job_info['status'] == 'stopping' or job_info['status'] == 'stopped'%}
                             <td><button type="button"  class="btn btn-xs btn-default"> &nbsp;Stop&nbsp;&nbsp; </button></td>
                             {% else %}
-                            <td><a href="/batch_job/{{master.split("@")[0]}}/stop/{{ job_info['job_id'] }}/"><button type="button"  class="btn btn-xs btn-danger"> &nbsp;Stop&nbsp;&nbsp; </button></a></td>
+                            <td><a href="/batch_job/{{master.split("@")[0]}}/stop/{{ job_info['job_id'] }}/"><button type="button"  class="btn btn-xs btn-danger"> &nbsp;Stop&nbsp; </button></a></td>
                             {% endif %}
                             <td>{{ job_info['create_time'] }}</td>
                             <td>{{ job_info['end_time'] }}</td>
                             <td>{{ job_info['billing'] }} <img src='/static/img/bean.png' /></td>
                             <td><a role="button" class="btn btn-info btn-xs" id='{{ master }}_{{ job_info['job_id'] }}_output' data-toggle="modal" data-target='#OutputModal_{{ master.split('@')[1] }}_{{ job_info['job_id'] }}'>Get Output</a></td>
+                            <td><a href="/batch_job/{{master.split("@")[0]}}/info/{{ job_info['job_id'] }}/"><button type="button"  class="btn btn-xs btn-info"> &nbsp;Info&nbsp; </button></a></td>
                         </tr>
                     {% endfor %}
                     {% endfor %}

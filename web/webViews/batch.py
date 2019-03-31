@@ -35,15 +35,25 @@ class createBatchJobView(normalView):
         return self.render(self.template_path, masterips=masterips, images=images)
 
 
-class stateBatchJobView(normalView):
-    template_path = "batch/batch_state.html"
+class infoBatchJobView(normalView):
+    template_path = "batch/batch_info.html"
+    error_path = "error.html"
+    masterip = ""
+    jobid = ""
 
     @classmethod
     def get(self):
-        if True:
-            return self.render(self.template_path)
+        data = {
+            'jobid':self.jobid
+        }
+        result = dockletRequest.post("/batch/job/info/",data,self.masterip)
+        data = result.get("data")
+        logger.info(str(data))
+        #logger.debug("job_list: %s" % job_list)
+        if result.get('success',"") == "true":
+            return self.render(self.template_path, masterip=self.masterip, jobinfo=data)
         else:
-            return self.error()
+            return self.render(self.error_path, message = result.get('message'))
 
 class addBatchJobView(normalView):
     template_path = "batch/batch_list.html"

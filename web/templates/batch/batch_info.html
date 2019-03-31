@@ -1,0 +1,129 @@
+{% extends 'base_AdminLTE.html' %}
+
+{% block title %}Docklet | Batch Job Info{% endblock %}
+
+{% block panel_title %}Info for {{ jobinfo['job_id'] }}{% endblock %}
+
+{% block css_src %}
+<link href="//cdn.bootcss.com/datatables/1.10.11/css/dataTables.bootstrap.min.css" rel="stylesheet">
+<link href="//cdn.bootcss.com/datatables/1.10.11/css/jquery.dataTables_themeroller.css" rel="stylesheet">
+<link href="/static/dist/css/modalconfig.css" rel="stylesheet">
+
+{% endblock %}
+
+{% block panel_list %}
+<ol class="breadcrumb">
+  <li>
+      <a href="/dashboard/"><i class="fa fa-dashboard"></i>Home</a>
+  </li>
+  <li>
+      <a href='/batch_jobs/'>Batch Job</a>
+  </li>
+  <li class='active'>
+      <strong>Info</strong>
+  </li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+<div class="col-md-12">
+  <div class="box box-info">
+       <div class="box-header with-border">
+         <h3 class="box-title">Overview</h3>
+
+         <div class="box-tools pull-right">
+           <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+           </button>
+           <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+         </div>
+       </div>
+              <div class="box-body table-responsive">
+                  <table class="table table-bordered">
+                      <thead>
+                      <tr>
+                        <th>Job ID</th>
+                        <th>Name</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Create Time</th>
+                        <th>End Time</th>
+                        <th>Billing</th>
+                      </tr>
+                      </thead>
+                      <tbody>
+                      <tr>
+                          <td>{{ jobinfo['job_id'] }}</td>
+                          <td>{{ jobinfo['job_name'] }}</td>
+                          <td>{{ jobinfo['priority'] }}</td>
+                          <td>{{ jobinfo['status'] }}</td>
+                          <td>{{ jobinfo['create_time'] }}</td>
+                          <td>{{ jobinfo['end_time'] }}</td>
+                          <td>{{ jobinfo['billing'] }} <img src='/static/img/bean.png' /></td>
+                      </tr>
+                      </tbody>
+                  </table>
+
+              </div>
+          </div>
+      </div>
+</div>
+
+<div class="row">
+<div class="col-md-12">
+  <div class="box box-info">
+       <div class="box-header with-border">
+         <h3 class="box-title">Tasks Overview</h3>
+
+         <div class="box-tools pull-right">
+           <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+           </button>
+           <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+         </div>
+       </div>
+              <div class="box-body table-responsive">
+                  <table width="100%" cellspacing="0" style="margin: 0 auto;" id="table-tasks" class="table table-striped table-bordered table-hover">
+                      <thead>
+                      <tr>
+                        <th>Task Index</th>
+                        <th>Status</th>
+                        <th>Failed Reason(if fails)</th>
+                        <th>Tried Times</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Total Running Time</th>
+                        <th>Billing</th>
+                      </tr>
+                      </thead>
+                      <tbody>
+                      {% for task in jobinfo['tasks'] %}
+                      <tr>
+                          <td>{{ task['idx'] }}</td>
+                          <td>{{ task['status'] }}</td>
+                          <td>{{ task['failed_reason'] }}</td>
+                          <td>{{ task['tried_times'] }}</td>
+                          <td>{{ task['start_time'] }}</td>
+                          <td>{{ task['end_time'] }}</td>
+                          <td>{{ task['running_time'] }} s</td>
+                          <td>{{ task['billing'] }} <img src='/static/img/bean.png' /></td>
+                      </tr>
+                      {% endfor %}
+                      </tbody>
+                  </table>
+
+              </div>
+          </div>
+      </div>
+</div>
+{% endblock %}
+
+{% block script_src %}
+<script src="//cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.min.js"></script>
+<script src="//cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.min.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function() {
+   $("#table-tasks").DataTable({"scrollX":true,"order":[[ 0, "asc" ]]});
+});
+</script>
+{% endblock %}
