@@ -360,7 +360,7 @@ class JobMgr():
         if job.username != user:
             return [False, "Wrong User!"]
         jobdata = json.loads(str(job))
-        tasks = job.tasks.all()
+        tasks = job.tasks.order_by(Batchtask.idx).all()
         tasksdata = [json.loads(str(t)) for t in tasks]
         jobdata['tasks'] = tasksdata
         return [True, jobdata]
