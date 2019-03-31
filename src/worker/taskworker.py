@@ -432,7 +432,7 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
                         self.add_msg(taskid,username,vnodeid,rpc_pb2.COMPLETED,token,"")
                     else:
                         logger.info("Task(%s-%s-%s) failed." % (str(taskid),str(vnodeid),token))
-                        self.add_msg(taskid,username,vnodeid,rpc_pb2.FAILED,token,"")
+                        self.add_msg(taskid,username,vnodeid,rpc_pb2.FAILED,token,"Runtime Error. More information in stderr log.")
 
     def add_msg(self,taskid,username,vnodeid,status,token,errmsg):
         self.msgslock.acquire()

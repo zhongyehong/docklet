@@ -44,6 +44,7 @@ app.config['SQLALCHEMY_BINDS'] = {
     'history': 'sqlite:///'+fsdir+'/global/sys/HistoryTable.db',
     'beansapplication': 'sqlite:///'+fsdir+'/global/sys/BeansApplication.db',
     'system': 'sqlite:///'+fsdir+'/global/sys/System.db',
+    'batch':'sqlite:///'+fsdir+'/global/sys/Batch.db?check_same_thread=False',
     'login': 'sqlite:///'+fsdir+'/global/sys/Login.db'
     }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
@@ -435,3 +436,90 @@ class Image(db.Model):
 
     def __repr__(self):
         return "{\"id\":\"%d\",\"imagename\":\"%s\",\"hasPrivate\":\"%s\",\"hasPublic\":\"%s\",\"ownername\":\"%s\",\"updatetime\":\"%s\",\"description\":\"%s\"}" % (self.id,self.imagename,str(self.hasPrivate),str(self.hasPublic),self.create_time.strftime("%Y-%m-%d %H:%M:%S"),self.ownername,self.description)
+
+class Batchjob(db.Model):
+    __bind_key__ = 'batch'
+    id = db.Column(db.String(9), primary_key=True)
+    username = db.Column(db.String(10))
+    name = db.Column(db.String(30))
+    priority = db.Column(db.Integer)
+    status = db.Column(db.String(10))
+    failed_reason = db.Column(db.Text)
+    create_time = db.Column(db.DateTime)
+    end_time = db.Column(db.DateTime)
+    billing = db.Column(db.Integer)
+    tasks = db.relationship('Batchtask', backref='batchjob', lazy='dynamic')
+
+    def __init__(self,id,username,name,priority):
+        self.id = id
+        self.username = username
+        self.name = name
+        self.priority = priority
+        self.status = "pending"
+        self.failed_reason = ""
+        self.create_time = datetime.now()
+        self.end_time = None
+        self.billing = 0
+
+    def __repr__(self):
+        info = {}
+        info['job_id'] = self.id
+        info['username'] = self.username
+        info['job_name'] = self.name
+        info['priority'] = self.priority
+        info['status'] = self.status
+        info['failed_reason'] = self.failed_reason
+        info['create_time'] = self.create_time.strftime("%Y-%m-%d %H:%M:%S")
+        if self.end_time is None:
+            info['end_time'] = "------"
+        else:
+            info['end_time'] = self.end_time.strftime("%Y-%m-%d %H:%M:%S")
+        info['billing'] = self.billing
+        return json.dumps(info)
+
+class Batchtask(db.Model):
+    __bind_key__ = 'batch'
+    id = db.Column(db.String(15), primary_key=True)
+    idx = db.Column(db.String(10))
+    jobid = db.Column(db.String(9), db.ForeignKey('batchjob.id'))
+    status = db.Column(db.String(15))
+    failed_reason = db.Column(db.Text)
+    start_time = db.Column(db.DateTime)
+    end_time = db.Column(db.DateTime)
+    running_time = db.Column(db.Integer)
+    billing = db.Column(db.Integer)
+    config = db.Column(db.Text)
+    tried_times = db.Column(db.Integer)
+
+    def __init__(self, id, idx, config):
+        self.id = id
+        self.idx = idx
+        self.status = "pending"
+        self.failed_reason = ""
+        self.start_time = None
+        self.end_time = None
+        self.running_time = 0
+        self.billing = 0
+        self.config = json.dumps(config)
+        self.tried_times = 0
+
+    def __repr__(self):
+        info = {}
+        info['id'] = self.id
+        info['idx'] = self.idx
+        info['jobid'] = self.jobid
+        info['status'] = self.status
+        info['failed_reason'] = self.failed_reason
+        if self.start_time is None:
+            info['start_time'] = "------"
+        else:
+            info['start_time'] = self.start_time.strftime("%Y-%m-%d %H:%M:%S")
+        if self.end_time is None:
+            info['end_time'] = "------"
+        else:
+            info['end_time'] = self.end_time.strftime("%Y-%m-%d %H:%M:%S")
+        info['running_time'] = self.running_time
+        info['billing'] = self.billing
+        info['config'] = json.loads(self.config)
+        info['tried_times'] = self.tried_times
+        return json.dumps(info)

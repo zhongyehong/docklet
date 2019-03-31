@@ -1,0 +1,238 @@
+{% extends 'base_AdminLTE.html' %}
+
+{% block title %}Docklet | Batch Job Info{% endblock %}
+
+{% block panel_title %}Info for {{ jobinfo['job_id'] }}{% endblock %}
+
+{% block css_src %}
+<link href="//cdn.bootcss.com/datatables/1.10.11/css/dataTables.bootstrap.min.css" rel="stylesheet">
+<link href="//cdn.bootcss.com/datatables/1.10.11/css/jquery.dataTables_themeroller.css" rel="stylesheet">
+<link href="/static/dist/css/modalconfig.css" rel="stylesheet">
+
+{% endblock %}
+
+{% block panel_list %}
+<ol class="breadcrumb">
+  <li>
+      <a href="/dashboard/"><i class="fa fa-dashboard"></i>Home</a>
+  </li>
+  <li>
+      <a href='/batch_jobs/'>Batch Job</a>
+  </li>
+  <li class='active'>
+      <strong>Info</strong>
+  </li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+<div class="col-md-12">
+  <div class="box box-info">
+       <div class="box-header with-border">
+         <h3 class="box-title">Overview</h3>
+
+         <div class="box-tools pull-right">
+           <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+           </button>
+           <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+         </div>
+       </div>
+              <div class="box-body table-responsive">
+                  <table class="table table-bordered">
+                      <thead>
+                      <tr>
+                        <th>Job ID</th>
+                        <th>Name</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Create Time</th>
+                        <th>End Time</th>
+                        <th>Billing</th>
+                      </tr>
+                      </thead>
+                      <tbody>
+                      <tr>
+                          <td>{{ jobinfo['job_id'] }}</td>
+                          <td>{{ jobinfo['job_name'] }}</td>
+                          <td>{{ jobinfo['priority'] }}</td>
+                          <td>{{ jobinfo['status'] }}</td>
+                          <td>{{ jobinfo['create_time'] }}</td>
+                          <td>{{ jobinfo['end_time'] }}</td>
+                          <td>{{ jobinfo['billing'] }} <img src='/static/img/bean.png' /></td>
+                      </tr>
+                      </tbody>
+                  </table>
+
+              </div>
+          </div>
+      </div>
+</div>
+
+<div class="row">
+<div class="col-md-12">
+  <div class="box box-info">
+       <div class="box-header with-border">
+         <h3 class="box-title">Tasks Overview</h3>
+
+         <div class="box-tools pull-right">
+           <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+           </button>
+           <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+         </div>
+       </div>
+              <div class="box-body table-responsive">
+                  <table width="100%" cellspacing="0" style="margin: 0 auto;" id="table-tasks" class="table table-striped table-bordered table-hover">
+                      <thead>
+                      <tr>
+                        <th>Task Index</th>
+                        <th>Status</th>
+                        <th>Failed Reason(if fails)</th>
+                        <th>Tried Times</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Total Running Time</th>
+                        <th>Billing</th>
+                      </tr>
+                      </thead>
+                      <tbody>
+                      {% for task in jobinfo['tasks'] %}
+                      <tr>
+                          <td>{{ task['idx'] }}</td>
+                          <td>{{ task['status'] }}</td>
+                          <td>{{ task['failed_reason'] }}</td>
+                          <td>{{ task['tried_times'] }}</td>
+                          <td>{{ task['start_time'] }}</td>
+                          <td>{{ task['end_time'] }}</td>
+                          <td>{{ task['running_time'] }} s</td>
+                          <td>{{ task['billing'] }} <img src='/static/img/bean.png' /></td>
+                      </tr>
+                      {% endfor %}
+                      </tbody>
+                  </table>
+
+              </div>
+          </div>
+      </div>
+</div>
+
+<div class="row">
+<div class="col-md-12">
+  <div class="box box-info">
+       <div class="box-header with-border">
+         <h3 class="box-title">Tasks Configs</h3>
+
+         <div class="box-tools pull-right">
+           <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i>
+           </button>
+           <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+         </div>
+       </div>
+              <div class="box-body">
+                  {% for task in jobinfo['tasks'] %}
+                  <div class="panel panel-default" id="task_pannel_{{ task['idx'] }}">
+                    <div class="panel-heading">
+                      <h4 class="panel-title">
+                        <a data-toggle="collapse" data-panel="#accordion" href="#collapse{{ task['idx'] }}">
+                          Task #{{ task['idx'] }}
+                        </a>
+                      </h4>
+                    </div>
+                    <div id="collapse{{ task['idx'] }}" class="panel-collapse collapse in">
+                      <div class="panel-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead>
+                                <tr>
+                                  <th>CPU Cores</th>
+                                  <th>Memory</th>
+                                  <th>GPU</th>
+                                  <th>Disk</th>
+                                  <th>VNode Number</th>
+                                  <th>Max Retry Times</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>{{ task['config']['cpuSetting'] }}</td>
+                                    <td>{{ task['config']['memorySetting'] }} MB</td>
+                                    <td>{{ task['config']['gpuSetting'] }}</td>
+                                    <td>{{ task['config']['diskSetting'] }} MB</td>
+                                    <td>{{ task['config']['vnodeCount'] }}</td>
+                                    <td>{{ task['config']['retryCount'] }}</td>
+                                </tr>
+                                </tbody>
+                                <thead>
+                                <tr>
+                                  <th>Running Path</th>
+                                  <th>Expire Time</th>
+                                  <th>Stdout Redirect Path</th>
+                                  <th>Stderr Redirect Path</th>
+                                  <th>Dependency</th>
+                                  <th>Command</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>{{ task['config']['srcAddr'] }}</td>
+                                    <td>{{ task['config']['expTime'] }} seconds</td>
+                                    <td>{{ task['config']['stdOutRedPth'] }}</td>
+                                    <td>{{ task['config']['stdErrRedPth'] }}</td>
+                                    <td>{{ task['config']['dependency'] }}</td>
+                                    <td>{{ task['config']['command'] }}</td>
+                                </tr>
+                                </tbody>
+                                <thead>
+                                <tr>
+                                  <th>Run on</th>
+                                  <th>Start at the Same Time</th>
+                                  <th>Image Name</th>
+                                  <th>Image Owner</th>
+                                  <th>Image Type</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    {% if task['config']['runon'] == 'all' %}
+                                    <td>all vnodes</td>
+                                    {% else %}
+                                    <td>master vnode</td>
+                                    {% endif %}
+                                    {% if 'atSameTime' in task['config'].keys() %}
+                                    <td>True</td>
+                                    {% else %}
+                                    <td>False</td>
+                                    {% endif %}
+                                    {% if task['config']['image'] == 'base_base_base' %}
+                                    <td>base</td>
+                                    <td>docklet</td>
+                                    <td>public</td>
+                                    {% else %}
+                                    <td>{{ task['config']['image'].split('_')[0] }}</td>
+                                    <td>{{ task['config']['image'].split('_')[1] }}</td>
+                                    <td>{{ task['config']['image'].split('_')[2] }}</td>
+                                    {% endif %}
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+              </div>
+          </div>
+      </div>
+</div>
+{% endblock %}
+
+{% block script_src %}
+<script src="//cdn.bootcss.com/datatables/1.10.11/js/jquery.dataTables.min.js"></script>
+<script src="//cdn.bootcss.com/datatables/1.10.11/js/dataTables.bootstrap.min.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function() {
+   $("#table-tasks").DataTable({"scrollX":true,"order":[[ 0, "asc" ]]});
+});
+</script>
+{% endblock %}
