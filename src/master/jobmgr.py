@@ -400,7 +400,18 @@ class JobMgr():
         job_id, task_idx = split_task_name
         if job_id not in self.job_map.keys():
             logger.error("[jobmgr report]jobid(%s) does not exist. task_name(%s)" % (job_id,task_name))
-            #TODO: update data in db
+            #update data in db
+            taskdb = Batchtask.query.get(task_name)
+            if (taskdb is None or taskdb.status == 'finished' or
+               taskdb.status == 'failed' or taskdb.status == 'stopped'):
+                return
+            taskdb.status = status
+            if status == 'failed':
+                taskdb.failed_reason = reason
+            if billing > 0:
+                taskdb.running_time = running_time
+                taskdb.billing = billing
+            db_commit()
             return
         job  = self.job_map[job_id]
         if status == "running":
