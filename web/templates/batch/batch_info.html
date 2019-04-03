@@ -216,6 +216,7 @@
                                 </tbody>
                             </table>
                         </div>
+                        {% if 'mapping' in task['config'].keys() %}
                         <div class="table-responsive">
                             <table class="table table-bordered table-hover">
                                 <thead>
@@ -240,6 +241,7 @@
                                 </tbody>
                             </table>
                           </div>
+                          {% endif %}
                       </div>
                     </div>
                   </div>

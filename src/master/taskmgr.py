@@ -499,13 +499,14 @@ class TaskMgr(threading.Thread):
         if sub_task.status != RUNNING:
             self.logger.error('[on_task_report] receive task report when vnode is not running')
 
-        sub_task.status = report.subTaskStatus
+        #sub_task.status = report.subTaskStatus
         sub_task.status_reason = report.errmsg
         sub_task.task_started = False
 
         if report.subTaskStatus == FAILED or report.subTaskStatus == TIMEOUT:
             self.clear_sub_task(sub_task)
             sub_task.waiting_for_retry(report.errmsg)
+            self.logger.info('task %s report failed, status %d, subtasks: %s' % (task.id, task.status, str([sub_task.status for sub_task in task.subtask_list])))
             if sub_task.status == WAITING:
                 self.jobmgr.report(task.username, task.id, 'retrying', report.errmsg)
         elif report.subTaskStatus == OUTPUTERROR:
