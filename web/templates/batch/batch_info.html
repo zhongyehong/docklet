@@ -216,6 +216,30 @@
                                 </tbody>
                             </table>
                         </div>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead>
+                                  <tr>
+                                    <th>Provider</th>
+                                    <th>Bucket Name</th>
+                                    <th>AccessKey ID</th>
+                                    <th>Endpoint</th>
+                                    <th>Mount Path</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {% for key in task['config']['mapping'].keys() %}
+                                  <tr>
+                                    <td>{{ task['config']['mapping'][key]['mappingProvider'] }}</td>
+                                    <td>{{ task['config']['mapping'][key]['mappingBucketName'] }}</td>
+                                    <td>{{ task['config']['mapping'][key]['mappingAccessKey'] }}</td>
+                                    <td>{{ task['config']['mapping'][key]['mappingEndpoint'] }}</td>
+                                    <td>{{ task['config']['mapping'][key]['mappingMountpath'] }}</td>
+                                  </tr>
+                                  {% endfor %}
+                                </tbody>
+                            </table>
+                          </div>
                       </div>
                     </div>
                   </div>
