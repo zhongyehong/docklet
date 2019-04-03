@@ -27,7 +27,7 @@ class OssMounter(object):
         # umount oss
         pass
 
-class aliyunOssMounter(OssMounter):
+class AliyunOssMounter(OssMounter):
 
     @staticmethod
     def mount_oss(datapath, mount_info):
@@ -42,7 +42,7 @@ class aliyunOssMounter(OssMounter):
 
         cmd = "chmod 640 /etc/passwd-ossfs"
         [success1, msg] = OssMounter.execute_cmd(cmd)
-        mountpath = datapath+"/"+mount_info.remotePath
+        mountpath = datapath+"/Aliyun/"+mount_info.remotePath
         logger.info("Mount oss %s %s" % (mount_info.remotePath, mountpath))
         if not os.path.isdir(mountpath):
             os.makedirs(mountpath)

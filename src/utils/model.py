@@ -461,6 +461,12 @@ class Batchjob(db.Model):
         self.end_time = None
         self.billing = 0
 
+    def clear(self):
+        self.status = "pending"
+        self.failed_reason = ""
+        self.end_time = None
+        self.billing = 0
+
     def __repr__(self):
         info = {}
         info['job_id'] = self.id
@@ -503,6 +509,15 @@ class Batchtask(db.Model):
         self.config = json.dumps(config)
         self.tried_times = 0
 
+    def clear(self):
+        self.status = "pending"
+        self.failed_reason = ""
+        self.start_time = None
+        self.end_time = None
+        self.running_time = 0
+        self.billing = 0
+        self.tried_times = 0
+        
     def __repr__(self):
         info = {}
         info['id'] = self.id

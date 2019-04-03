@@ -17,8 +17,19 @@ def db_commit():
         raise
 
 class BatchJob(object):
-    def __init__(self, jobid, user, job_info):
-        self.job_db = Batchjob(jobid,user,job_info['jobName'],int(job_info['jobPriority']))
+    def __init__(self, jobid, user, job_info, old_job_db=None):
+        if old_job_db is None:
+            self.job_db = Batchjob(jobid,user,job_info['jobName'],int(job_info['jobPriority']))
+        else:
+            self.job_db = old_job_db
+            self.job_db.clear()
+            job_info = {}
+            job_info['jobName'] = self.job_db.name
+            job_info['jobPriority'] = self.job_db.priority
+            all_tasks = self.job_db.tasks.all()
+            job_info['tasks'] = {}
+            for t in all_tasks:
+                job_info['tasks'][t.idx] = json.loads(t.config)
         self.user = user
         #self.raw_job_info = job_info
         self.job_id = jobid
@@ -35,8 +46,12 @@ class BatchJob(object):
         self.tasks_cnt['pending'] = len(raw_tasks.keys())
         for task_idx in raw_tasks.keys():
             task_info = raw_tasks[task_idx]
-            task_db = Batchtask(jobid+"_"+task_idx, task_idx, task_info)
-            self.job_db.tasks.append(task_db)
+            if old_job_db is None:
+                task_db = Batchtask(jobid+"_"+task_idx, task_idx, task_info)
+                self.job_db.tasks.append(task_db)
+            else:
+                task_db = Batchtask.query.get(jobid+"_"+task_idx)
+                task_db.clear()
             self.tasks[task_idx] = {}
             self.tasks[task_idx]['id'] = jobid+"_"+task_idx
             self.tasks[task_idx]['config'] = task_info
@@ -54,7 +69,8 @@ class BatchJob(object):
                     self.dependency_out[d] = []
                 self.dependency_out[d].append(task_idx)
 
-        db.session.add(self.job_db)
+        if old_job_db is None:
+            db.session.add(self.job_db)
         db_commit()
 
         self.log_status()
@@ -259,6 +275,7 @@ class JobMgr():
     # load job information from etcd
     # initial a job queue and job schedueler
     def __init__(self, taskmgr):
+        logger.info("Init jobmgr...")
         try:
             Batchjob.query.all()
         except:
@@ -269,6 +286,22 @@ class JobMgr():
         self.lock = threading.Lock()
         self.userpoint = "http://" + env.getenv('USER_IP') + ":" + str(env.getenv('USER_PORT'))
         self.auth_key = env.getenv('AUTH_KEY')
+
+        self.recover_jobs()
+
+    def recover_jobs(self):
+        logger.info("Rerun the unfailed and unfinished jobs...")
+        try:
+            rejobs = Batchjob.query.filter(~Batchjob.status.in_(['done','failed']))
+            rejobs = rejobs.order_by(Batchjob.create_time).all()
+            for rejob in rejobs:
+                logger.info("Rerun job: "+rejob.id)
+                logger.debug(str(rejob))
+                job = BatchJob(rejob.id, rejob.username, None, rejob)
+                self.job_map[job.job_id] = job
+                self.process_job(job)
+        except Exception as err:
+            logger.error(traceback.format_exc())
 
     def charge_beans(self,username,billing):
         logger.debug("Charge user(%s) for %d beans"%(username, billing))

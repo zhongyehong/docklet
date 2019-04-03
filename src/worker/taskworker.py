@@ -202,11 +202,12 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
             return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED, message=msg)
 
         #mount oss
+        rootfs = "/var/lib/lxc/%s/rootfs" % lxcname
         self.mount_oss("%s/global/users/%s/oss" % (self.fspath,username), mount_list)
         conffile = open("/var/lib/lxc/%s/config" % lxcname, 'a+')
-        mount_str = "lxc.mount.entry = %s/global/users/%s/oss/%s %s/root/oss/%s none bind,rw,create=dir 0 0"
+        mount_str = "lxc.mount.entry = %s/global/users/%s/oss/%s/%s %s/root/oss/%s none bind,rw,create=dir 0 0"
         for mount in mount_list:
-            conffile.write("\n"+ mount_str % (self.fspath, username, mount.remotePath, rootfs, mount.remotePath))
+            conffile.write("\n"+ mount_str % (self.fspath, username, mount.provider, mount.remotePath, rootfs, mount.remotePath))
         conffile.close()
 
         logger.info("Start container %s..." % lxcname)
