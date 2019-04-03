@@ -692,8 +692,13 @@ class TaskMgr(threading.Thread):
                             disk = int(json_task['diskSetting']),
                             gpu = int(json_task['gpuSetting'])),
                         mount = [Mount(
-                                    localPath = json_task['mapping'][mapping_key]['mappingLocalDir'],
-                                    remotePath=json_task['mapping'][mapping_key]['mappingRemoteDir'])
+                                    provider = json_task['mapping'][mapping_key]['mappingProvider'],
+                                    localPath = json_task['mapping'][mapping_key]['mappingMountpath'],
+                                    remotePath = json_task['mapping'][mapping_key]['mappingBucketName'],
+                                    accessKey = json_task['mapping'][mapping_key]['mappingAccessKey'],
+                                    secretKey = json_task['mapping'][mapping_key]['mappingSecretKey'],
+                                    other = json_task['mapping'][mapping_key]['mappingEndpoint']
+                                    )
                                 for mapping_key in json_task['mapping']] if 'mapping' in json_task else []
                         ),
                 ),

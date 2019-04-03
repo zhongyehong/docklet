@@ -121,15 +121,20 @@
         $("#collapse" + obj.id).collapse('hide');
     }
 
+    function chmountPath(obj,task_num,mapping_num) {
+      cellid = 'mapping_mountpath_' + task_num + '_' + mapping_num;
+      $('#'+cellid).val("/root/oss/"+obj.value);
+    }
+
     function removeMapping(obj) {
         $("#mapping_" + obj.id).remove();
     }
 
-    function addMapping(obj) {
+    function addMapping(obj,task_num) {
         mapping_number += 1;
         var table = $("#storage_mapping_" + obj.id)[0];
         var new_mapping = table.insertRow();
-        new_mapping.id = "mapping_" + task_number + "_" + mapping_number;
+        new_mapping.id = "mapping_" + task_num + "_" + mapping_number;
         var provider = new_mapping.insertCell();
         var bucket_name = new_mapping.insertCell();
         var accessKey = new_mapping.insertCell();
@@ -137,20 +142,20 @@
         var endpoint = new_mapping.insertCell();
         var mountpath = new_mapping.insertCell();
         var remove = new_mapping.insertCell();
-        bucket_name.innerHTML = '<input type="text" class="form-control" name="mappingBucketName_' + task_number + '_' + mapping_number + '" id="mapping_bucketname_'
-                             + task_number + '_' + mapping_number + '" required/>';
-        accessKey.innerHTML = '<input type="text" class="form-control" name="mappingAccessKey_' + task_number + '_' + mapping_number + '" id="mapping_accessKey_'
-                             + task_number + '_' + mapping_number + '" required/>';
-        secretKey.innerHTML = '<input type="text" class="form-control" name="mappingSecretKey_' + task_number + '_' + mapping_number + '" id="mapping_secretKey_'
-                             + task_number + '_' + mapping_number + '" required/>';
-        endpoint.innerHTML = 'http://<input type="text" class="form-control" name="mappingEndpoint_' + task_number + '_' + mapping_number + '" id="mapping_endpoint_'
-                             + task_number + '_' + mapping_number + '" required/>';
-        mountpath.innerHTML = '<input type="text" class="form-control" name="mappingMountpath_' + task_number + '_' + mapping_number + '" id="mapping_mountpath_'
-                             + task_number + '_' + mapping_number + '" required/>';
-        provider.innerHTML = '<select class="form-control" name="mappingProvider_' + task_number + '_' + mapping_number + '" id="mapping_provider_'
-                          + task_number + '_' + mapping_number + '">'
+        bucket_name.innerHTML = '<input type="text" class="form-control" name="mappingBucketName_' + task_num + '_' + mapping_number + '" id="mapping_bucketname_'
+                             + task_num + '_' + mapping_number + '" onKeyUp="chmountPath(this,'+task_num+','+mapping_number+');" required/>';
+        accessKey.innerHTML = '<input type="text" class="form-control" name="mappingAccessKey_' + task_num + '_' + mapping_number + '" id="mapping_accessKey_'
+                             + task_num + '_' + mapping_number + '" required/>';
+        secretKey.innerHTML = '<input type="text" class="form-control" name="mappingSecretKey_' + task_num + '_' + mapping_number + '" id="mapping_secretKey_'
+                             + task_num + '_' + mapping_number + '" required/>';
+        endpoint.innerHTML = 'http://<input type="text" class="form-control" name="mappingEndpoint_' + task_num + '_' + mapping_number + '" id="mapping_endpoint_'
+                             + task_num + '_' + mapping_number + '" required/>';
+        mountpath.innerHTML = '<input type="text" class="form-control" name="mappingMountpath_' + task_num + '_' + mapping_number + '" id="mapping_mountpath_'
+                             + task_num + '_' + mapping_number + '" readonly="true" required/>';
+        provider.innerHTML = '<select class="form-control" name="mappingProvider_' + task_num + '_' + mapping_number + '" id="mapping_provider_'
+                          + task_num + '_' + mapping_number + '">'
                           +'<option>Aliyun</option></select>';
-        remove.innerHTML = '<div class="box-tool pull-left"><button type="button" id="' + task_number + '_' + mapping_number +'" onclick="removeMapping(this)" class="btn btn-xs btn-danger">'
+        remove.innerHTML = '<div class="box-tool pull-left"><button type="button" id="' + task_num + '_' + mapping_number +'" onclick="removeMapping(this)" class="btn btn-xs btn-danger">'
                           +'Remove</button></div>';
     }
 
@@ -217,7 +222,7 @@
     function addTask() {
       task_number += 1;
       var masterip=$("select#masterselector").children('option:selected').val();
-      mapping_number = 0;
+      //mapping_number = 0;
       var task_html = '';
       task_html +=
             '<div class="panel panel-default" id="task_pannel_' + task_number + '">'
@@ -334,7 +339,7 @@
            +'</div>'
            +'<div class="form-group">'
            +'<label class="col-sm-2 control-label">Object Storage Mapping<br/>'
-           +'<button type="button" id="' + task_number + '" class="btn btn-primary btn-xs" title="add an external storage mapping" onclick="addMapping(this)">'
+           +'<button type="button" id="' + task_number + '" class="btn btn-primary btn-xs" title="add an external storage mapping" onclick="addMapping(this,'+task_number+')">'
            +'Add<i class="fa fa-plus"></i></button></label>'
            +'<div class="col-sm-10"><table class="table table-bordered" id="storage_mapping_' + task_number + '">'
            +'<thead>'
