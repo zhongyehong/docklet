@@ -515,6 +515,7 @@ class TaskMgr(threading.Thread):
             task.status = FAILED
             task.failed_reason = report.errmsg
         elif report.subTaskStatus == COMPLETED:
+            sub_task.status = report.subTaskStatus
             self.clear_sub_task(sub_task)
 
     # return task, workers
