@@ -82,6 +82,16 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
     def stop_and_rm_containers(self,lxcname):
         logger.info("Stop the container with name:"+lxcname)
         subprocess.run("lxc-stop -k -n %s" % lxcname, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+        lxcpath = "/var/lib/lxc/%s" % lxcname
+        try:
+            mount_info = []
+            for provider in os.listdir(lxcpath+"/oss"):
+                for bkname in os.listdir(lxcpath+"/oss/"+provider):
+                    mount_info.append(rpc_pb2.Mount(provider=provider,remotePath=bkname))
+            self.umount_oss(lxcpath+"/oss", mount_info)
+        except Exception as err:
+            logger.info(err)
+            pass
         return self.imgmgr.deleteFS(lxcname)
 
     def rm_all_batch_containers(self):
@@ -202,12 +212,13 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
             return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED, message=msg)
 
         #mount oss
-        rootfs = "/var/lib/lxc/%s/rootfs" % lxcname
-        self.mount_oss("%s/global/users/%s/oss" % (self.fspath,username), mount_list)
-        conffile = open("/var/lib/lxc/%s/config" % lxcname, 'a+')
-        mount_str = "lxc.mount.entry = %s/global/users/%s/oss/%s/%s %s/root/oss/%s none bind,rw,create=dir 0 0"
+        lxcpath = "/var/lib/lxc/%s" % lxcname
+        rootfs = lxcpath + "/rootfs"
+        self.mount_oss(lxcpath + "/oss", mount_list)
+        conffile = open(lxcpath + "/config", 'a+')
+        mount_str = "lxc.mount.entry = "+ lxcpath +"/oss/%s/%s %s/root/oss/%s none bind,rw,create=dir 0 0"
         for mount in mount_list:
-            conffile.write("\n"+ mount_str % (self.fspath, username, mount.provider, mount.remotePath, rootfs, mount.remotePath))
+            conffile.write("\n"+ mount_str % (mount.provider, mount.remotePath, rootfs, mount.remotePath))
         conffile.close()
 
         logger.info("Start container %s..." % lxcname)
@@ -215,6 +226,7 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
         ret = subprocess.run('lxc-start -n %s'%lxcname,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
         if ret.returncode != 0:
             logger.error('start container %s failed' % lxcname)
+            self.umount_oss("/var/lib/lxc/%s/oss" % (lxcname), mount_list)
             self.imgmgr.deleteFS(lxcname)
             return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED,message="Can't start the container(%s)"%lxcname)
 
@@ -228,6 +240,7 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
         if not success:
             logger.error("Fail to add gpu device. " + msg)
             container.stop()
+            self.umount_oss("/var/lib/lxc/%s/oss" % (lxcname), mount_list)
             self.imgmgr.deleteFS(lxcname)
             return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED,message="Fail to add gpu device. " + msg)
 
@@ -235,6 +248,10 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
         cmd = "lxc-attach -n %s -- service ssh start" % lxcname
         ret = subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True)
         if ret.returncode != 0:
+            logger.error('Fail to start ssh service of container %s' % lxcname)
+            container.stop()
+            self.umount_oss("/var/lib/lxc/%s/oss" % (lxcname), mount_list)
+            self.imgmgr.deleteFS(lxcname)
             return rpc_pb2.Reply(status=rpc_pb2.Reply.REFUSED,message="Fail to start ssh service. lxc(%s)"%lxcname)
 
         return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
@@ -289,6 +306,9 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
         else:
             logger.error("stop container %s failed" % lxcname)
 
+        #umount oss
+        self.umount_oss("/var/lib/lxc/%s/oss" % (lxcname), mount_list)
+
         logger.info("deleting container:%s" % lxcname)
         if self.imgmgr.deleteFS(lxcname):
             logger.info("delete container %s success" % lxcname)
@@ -301,9 +321,6 @@ class TaskWorker(rpc_pb2_grpc.WorkerServicer):
 
         #release gpu
         self.release_gpu_device(lxcname)
-
-        #umount oss
-        self.umount_oss("%s/global/users/%s/oss" % (self.fspath,username), mount_list)
 
         return rpc_pb2.Reply(status=rpc_pb2.Reply.ACCEPTED,message="")
 
