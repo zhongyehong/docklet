@@ -42,19 +42,31 @@ class AliyunOssMounter(OssMounter):
 
         cmd = "chmod 640 /etc/passwd-ossfs"
         [success1, msg] = OssMounter.execute_cmd(cmd)
+        if not success1:
+            logger.error("Aliyun OSS mount chmod err:%s" % msg)
+            return [False, msg]
         mountpath = datapath+"/Aliyun/"+mount_info.remotePath
         logger.info("Mount oss %s %s" % (mount_info.remotePath, mountpath))
         if not os.path.isdir(mountpath):
             os.makedirs(mountpath)
         cmd = "ossfs %s %s -ourl=%s" % (mount_info.remotePath, mountpath, mount_info.other)
         [success, msg] = OssMounter.execute_cmd(cmd)
+        if not success:
+            logger.error("Aliyun OSS mount err:%s" % msg)
+            return [False, msg]
         return [True,""]
 
     @staticmethod
     def umount_oss(datapath, mount_info):
-        mountpath = datapath + "/" + mount_info.remotePath
+        mountpath = datapath+"/Aliyun/"+mount_info.remotePath
         logger.info("UMount oss %s %s" % (mount_info.remotePath, mountpath))
         cmd = "fusermount -u %s" % (mountpath)
         [success, msg] = OssMounter.execute_cmd(cmd)
+        if not success:
+            logger.error("Aliyun OSS umount err:%s"%msg)
+            return [False,msg]
         [success, msg] = OssMounter.execute_cmd("rm -rf %s" % mountpath)
+        if not success:
+            logger.error("Aliyun OSS umount err:%s"%msg)
+            return [False,msg]
         return [True,""]
