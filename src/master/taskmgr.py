@@ -417,7 +417,8 @@ class TaskMgr(threading.Thread):
             [success, msg] = self.start_vnode(sub_task)
             if not success:
                 sub_task.waiting_for_retry("Fail to start vnode.")
-                self.jobmgr.report(task.username, task.id, 'retrying', "Fail to start vnode.")
+                if sub_task.status == WAITING:
+                    self.jobmgr.report(task.username, task.id, 'retrying', "Fail to start vnode.")
                 sub_task.worker = None
                 start_all_vnode_success = False
 
@@ -436,8 +437,9 @@ class TaskMgr(threading.Thread):
             if success:
                 sub_task.status = RUNNING
             else:
-                sub_task.waiting_for_retry("Failt to start task.")
-                self.jobmgr.report(task.username, task.id, 'retrying', "Fail to start task.")
+                sub_task.waiting_for_retry("Fail to start task.")
+                if sub_task.status == WAITING:
+                    self.jobmgr.report(task.username, task.id, 'retrying', "Fail to start task.")
 
     def clear_sub_tasks(self, sub_task_list):
         for sub_task in sub_task_list:
