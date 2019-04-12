@@ -171,6 +171,7 @@ class BatchJob(object):
         self.tasks[task_idx]['db'].running_time = running_time
         self.tasks[task_idx]['db'].end_time = datetime.now()
         self.tasks[task_idx]['db'].billing = billing
+        self.tasks[task_idx]['db'].failed_reason = ""
         self.job_db = Batchjob.query.get(self.job_id)
         self.job_db.billing += billing
         self.tasks_cnt['finished'] += 1
