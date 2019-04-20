@@ -120,7 +120,7 @@ class VclusterMgr(object):
             return [False, "the size of disk is not big enough for the image"]
         clustersize = int(self.defaultsize)
         logger.info ("starting cluster %s with %d containers for %s" % (clustername, int(clustersize), username))
-        workers = self.nodemgr.get_nodeips()
+        workers = self.nodemgr.get_base_nodeips()
         image_json = json.dumps(image)
         groupname = json.loads(user_info)["data"]["group"]
         groupquota = json.loads(user_info)["data"]["groupinfo"]
@@ -206,7 +206,7 @@ class VclusterMgr(object):
             return [False, "cluster:%s not found" % clustername]
         if self.imgmgr.get_image_size(image) + 100 > int(setting["disk"]):
             return [False, "the size of disk is not big enough for the image"]
-        workers = self.nodemgr.get_nodeips()
+        workers = self.nodemgr.get_base_nodeips()
         if (len(workers) == 0):
             logger.warning("no workers to start containers, scale out failed")
             return [False, "no workers are running"]

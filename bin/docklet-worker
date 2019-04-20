@@ -20,18 +20,20 @@ FS_PREFIX=/opt/docklet
 
 # cluster net ip range,  default is 172.16.0.1/16
 CLUSTER_NET="172.16.0.1/16"
+# ip addresses range of containers for batch job, default is 10.16.0.0/16
+BATCH_NET="10.16.0.0/16"
 #configurable-http-proxy public port, default is 8000
 PROXY_PORT=8000
 #configurable-http-proxy api port, default is 8001
 PROXY_API_PORT=8001
 DISTRIBUTED_GATEWAY=False
 
-RUN_DIR=$FS_PREFIX/local/run
-LOG_DIR=$FS_PREFIX/local/log
-
 . $DOCKLET_CONF/docklet.conf
 
 export FS_PREFIX
+
+RUN_DIR=$FS_PREFIX/local/run
+LOG_DIR=$FS_PREFIX/local/log
 
 # This next line determines what user the script runs as.
 DAEMON_USER=root
@@ -42,6 +44,13 @@ DAEMON_NAME=docklet-worker
 DAEMON_OPTS=
 # The process ID of the script when it runs is stored here:
 PIDFILE=$RUN_DIR/$DAEMON_NAME.pid
+
+# settings for docklet batch worker, which is required for batch job processing system
+BATCH_ON=True
+DAEMON_BATCH=$DOCKLET_LIB/worker/taskworker.py
+DAEMON_NAME_BATCH=docklet-taskworker
+PIDFILE_BATCH=$RUN_DIR/batch.pid
+DAEMON_OPTS_BATCH=
 
 # settings for docklet proxy, which is required for web access
 DAEMON_PROXY=`which configurable-http-proxy`
@@ -83,6 +92,7 @@ pre_start () {
     # iptables for NAT network for containers to access web
     iptables -t nat -F
     iptables -t nat -A POSTROUTING -s $CLUSTER_NET -j MASQUERADE
+    iptables -t nat -A POSTROUTING -s $BATCH_NET -j MASQUERADE
 
 	if [ ! -d $FS_PREFIX/local/basefs ]; then
 		log_daemon_msg "basefs does not exist, run prepare.sh first" && exit 1
@@ -95,9 +105,24 @@ pre_start () {
 
 do_start() {
     pre_start
+
+    DAEMON_OPTS=$1
     log_daemon_msg "Starting $DAEMON_NAME in $FS_PREFIX"
     #python3 $DAEMON
     start-stop-daemon --start --oknodo --background --pidfile $PIDFILE --make-pidfile --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON -- $DAEMON_OPTS
+    log_end_msg $?
+}
+
+do_start_batch () {
+    if [ "$BATCH_ON" = "False" ]
+    then
+        return 1
+    fi
+    log_daemon_msg "Starting $DAEMON_NAME_BATCH in $FS_PREFIX"
+
+    DAEMON_OPTS_BATCH=""
+
+    start-stop-daemon --start --background --pidfile $PIDFILE_BATCH --make-pidfile --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON_BATCH -- $DAEMON_OPTS_BATCH
     log_end_msg $?
 }
 
@@ -115,6 +140,16 @@ do_start_proxy () {
 do_stop () {
     log_daemon_msg "Stopping $DAEMON_NAME daemon"
     start-stop-daemon --stop --quiet --oknodo --remove-pidfile --pidfile $PIDFILE --retry 10
+    log_end_msg $?
+}
+
+do_stop_batch () {
+    if [ "$BATCH_ON" = "False" ]
+    then
+        return 1
+    fi
+    log_daemon_msg "Stopping $DAEMON_NAME_BATCH daemon"
+    start-stop-daemon --stop --quiet --oknodo --remove-pidfile --pidfile $PIDFILE_BATCH --retry 10
     log_end_msg $?
 }
 
@@ -145,12 +180,14 @@ do_stop_meter() {
 
 case "$1" in
     start)
-        do_start
+        do_start "normal-worker"
+        do_start_batch
         do_start_proxy
         ;;
 
     stop)
         do_stop
+        do_stop_batch
         do_stop_proxy
         ;;
     start-meter)
@@ -159,6 +196,16 @@ case "$1" in
 
     stop-meter)
         do_stop_meter
+        ;;
+
+    start_batch)
+	do_start "batch-worker"
+        do_start_batch
+        ;;
+
+    stop_batch)
+	do_stop
+        do_stop_batch
         ;;
 
     start_proxy)
@@ -176,13 +223,16 @@ case "$1" in
 
     restart)
         do_stop
+        do_stop_batch
         do_stop_proxy
-        do_start
+        do_start "normal-worker"
+        do_start_batch
         do_start_proxy
         ;;
 
     status)
         status_of_proc -p $PIDFILE "$DAEMON" "$DAEMON_NAME" && exit 0 || exit $?
+        status_of_proc -p $PIDFILE_BATCH "$DAEMON_BATCH" "$DAEMON_NAME_BATCH" || status=$?
         status_of_proc -p $PIDFILE_PROXY "$DAEMON_PROXY" "$DAEMON_NAME_PROXY" || status=$?
         ;;
     *)

@@ -41,6 +41,7 @@ from webViews.reportbug import *
 from webViews.authenticate.auth import login_required, administration_required,activated_required
 from webViews.authenticate.register import registerView
 from webViews.authenticate.login import loginView, logoutView
+from webViews.batch import *
 import webViews.dockletrequest
 from webViews import cookie_tool
 import traceback
@@ -126,6 +127,59 @@ def config():
 def reportBug():
     reportBugView.bugmessage = request.form['bugmessage']
     return reportBugView.as_view()
+
+@app.route("/batch_jobs/", methods=['GET'])
+@login_required
+def batch_job():
+    return batchJobListView().as_view()
+
+@app.route("/batch_job/create/", methods=['GET'])
+@login_required
+def create_batch_job():
+    return createBatchJobView().as_view()
+
+@app.route("/batch_job/<masterip>/add/", methods=['POST'])
+@login_required
+def add_batch_job(masterip):
+    addBatchJobView.masterip = masterip
+    addBatchJobView.job_data = request.form
+    return addBatchJobView().as_view()
+
+@app.route("/batch_job/<masterip>/stop/<jobid>/", methods=['GET'])
+@login_required
+def stop_batch_job(masterip,jobid):
+    stopBatchJobView.masterip = masterip
+    stopBatchJobView.jobid = jobid
+    return stopBatchJobView().as_view()
+
+@app.route("/batch_job/<masterip>/info/<jobid>/", methods=['GET'])
+@login_required
+def info_batch_job(masterip,jobid):
+    infoBatchJobView.masterip = masterip
+    infoBatchJobView.jobid = jobid
+    return infoBatchJobView().as_view()
+
+@app.route("/batch_job/output/<masterip>/<jobid>/<taskid>/<vnodeid>/<issue>/", methods=['GET'])
+@login_required
+def output_batch_job(masterip, jobid, taskid, vnodeid, issue):
+    outputBatchJobView.masterip = masterip
+    outputBatchJobView.jobid = jobid
+    outputBatchJobView.taskid = taskid
+    outputBatchJobView.vnodeid = vnodeid
+    outputBatchJobView.issue = issue
+    return outputBatchJobView().as_view()
+
+@app.route("/batch/job/output/<masterip>/<jobid>/<taskid>/<vnodeid>/<issue>/", methods=['POST'])
+@login_required
+def output_batch_job_request(masterip, jobid, taskid, vnodeid, issue):
+    data = {
+        'jobid':jobid,
+        'taskid':taskid,
+        'vnodeid':vnodeid,
+        'issue':issue
+    }
+    result = dockletRequest.post("/batch/job/output/",data,masterip)
+    return json.dumps(result)
 
 @app.route("/workspace/create/", methods=['GET'])
 #@activated_required
