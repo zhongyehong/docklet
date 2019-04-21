@@ -738,7 +738,7 @@ class VclusterMgr(object):
         con_db = Container.query.get(containername)
         if con_db is None:
             return [False, 'Container not found']
-        if host == new_host:
+        if con_db.host == new_host:
             return [False, 'Container has been on the new host']
 
         oldworker = self.nodemgr.ip_to_rpc(con_db.host)
@@ -757,7 +757,7 @@ class VclusterMgr(object):
         proxy_server_ip = self.networkmgr.usrgws[username]
         [status, proxy_public_ip] = self.etcd.getkey("machines/publicIP/"+proxy_server_ip)
         if not status:
-            self.imagemgr.removeImage(username,imagename)
+            self.imgmgr.removeImage(username,imagename)
             logger.error("Fail to get proxy_public_ip %s."%(proxy_server_ip))
             return [False, "Fail to get proxy server public IP."]
         uid = user_info['data']['id']
@@ -771,22 +771,22 @@ class VclusterMgr(object):
         gateway = self.networkmgr.get_usergw(username)
         image = {'name':imagename,'type':'private','owner':username }
         logger.info("Migrate: proxy_ip:%s uid:%s setting:%s clusterid:%s cid:%s hostname:%s gateway:%s image:%s"
-                    %(proxy_public_ip, str(uid), str(setting), clusterid, cid, hostname, gateway, str(image))
+                    %(proxy_public_ip, str(uid), str(setting), clusterid, cid, hostname, gateway, str(image)))
         logger.info("Migrate: create container(%s) on new host %s"%(containername, new_host))
 
         worker = self.nodemgr.ip_to_rpc(new_host)
         if worker is None:
-            self.imagemgr.removeImage(username,imagename)
+            self.imgmgr.removeImage(username,imagename)
             return [False, "New host worker can't be found or has been stopped."]
         status,msg = worker.create_container(containername, proxy_public_ip, username, uid, json.dumps(setting),
                      clustername, str(clusterid), str(cid), hostname, con_db.ip, gateway, json.dumps(image))
         if not status:
-            self.imagemgr.removeImage(username,imagename)
+            self.imgmgr.removeImage(username,imagename)
             return [False, msg]
         con_db.host = new_host
         db.session.commit()
         oldworker.delete_container(containername)
-        self.imagemgr.removeImage(username,imagename)
+        self.imgmgr.removeImage(username,imagename)
         return [True,""]
 
     def migrate_cluster(self, clustername, username, new_host_list, user_info):
@@ -809,11 +809,12 @@ class VclusterMgr(object):
                 if prestatus == 'running':
                     self.start_cluster(clustername, username, user_info)
                 return [False, msg]
-            if prestatus == 'running':
-                status, msg = self.start_cluster(clustername, username, user_info)
-                if not status:
-                    return [False, msg]
-            return [True, ""]
+        logger.info("[Migrate] prestatus:%s for cluster(%s) user(%s)"%(prestatus, clustername, username))
+        if prestatus == 'running':
+            status, msg = self.start_cluster(clustername, username, user_info)
+            if not status:
+                return [False, msg]
+        return [True, ""]
 
     def is_cluster(self, clustername, username):
         [status, clusters] = self.list_clusters(username)

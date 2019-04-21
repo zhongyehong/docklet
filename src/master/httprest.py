@@ -397,11 +397,10 @@ def migrate_cluster():
     user = request.form.get('username',None)
     if user is None:
         return json.dumps({'success':'false', 'message':'User is required!'})
-    clustername = form.get('clustername', None)
+    clustername = request.form.get('clustername', None)
     if (clustername == None):
         return json.dumps({'success':'false', 'message':'clustername is null'})
-    containername = form.get('containername', None)
-    new_hosts = form.get('new_hosts', None)
+    new_hosts = request.form.get('new_hosts', None)
     if (new_hosts == None):
         return json.dumps({'success':'false', 'message':'new_hosts is null'})
     new_host_list = new_hosts.split(',')
@@ -412,17 +411,23 @@ def migrate_cluster():
         res = post_to_user("/master/user/groupinfo/", {'auth_key':auth_key})
         groups = json.loads(res['groups'])
         quotas = {}
+        for group in groups:
+            #logger.info(group)
+            quotas[group['name']] = group['quotas']
         rc_info = post_to_user("/master/user/recoverinfo/", {'username':user,'auth_key':auth_key})
-        groupname = re_info['groupname']
+        groupname = rc_info['groupname']
         user_info = {"data":{"id":rc_info['uid'],"groupinfo":quotas[groupname]}}
 
-        [status,msg] = G_vclustermgr.migrate_cluster(clustername, username, new_host_list, user_info)
+        logger.info("Migrate cluster for user(%s) cluster(%s) to new_hosts(%s). user_info(%s)"
+                    %(clustername, user, str(new_host_list), user_info))
+
+        [status,msg] = G_vclustermgr.migrate_cluster(clustername, user, new_host_list, user_info)
         if not status:
             logger.error(msg)
             return json.dumps({'success':'false', 'message': msg})
         return json.dumps({'success':'true', 'action':'migrate_container'})
     except Exception as ex:
-        logger.error(str(ex))
+        logger.error(traceback.format_exc())
         return json.dumps({'success':'false', 'message': str(ex)})
     finally:
         G_ulockmgr.release(user)
