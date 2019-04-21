@@ -389,6 +389,44 @@ def save_cluster(user, beans, form):
     finally:
         G_ulockmgr.release(user)
 
+@app.route("/admin/migrate_cluster/", methods=['POST'])
+@auth_key_required
+def migrate_cluster():
+    global G_vclustermgr
+    global G_ulockmgr
+    user = request.form.get('username',None)
+    if user is None:
+        return json.dumps({'success':'false', 'message':'User is required!'})
+    clustername = form.get('clustername', None)
+    if (clustername == None):
+        return json.dumps({'success':'false', 'message':'clustername is null'})
+    containername = form.get('containername', None)
+    new_hosts = form.get('new_hosts', None)
+    if (new_hosts == None):
+        return json.dumps({'success':'false', 'message':'new_hosts is null'})
+    new_host_list = new_hosts.split(',')
+    G_ulockmgr.acquire(user)
+    auth_key = env.getenv('AUTH_KEY')
+    try:
+        logger.info ("handle request : migrate cluster to %s. user:%s clustername:%s" % (str(new_hosts), user, clustername))
+        res = post_to_user("/master/user/groupinfo/", {'auth_key':auth_key})
+        groups = json.loads(res['groups'])
+        quotas = {}
+        rc_info = post_to_user("/master/user/recoverinfo/", {'username':user,'auth_key':auth_key})
+        groupname = re_info['groupname']
+        user_info = {"data":{"id":rc_info['uid'],"groupinfo":quotas[groupname]}}
+
+        [status,msg] = G_vclustermgr.migrate_cluster(clustername, username, new_host_list, user_info)
+        if not status:
+            logger.error(msg)
+            return json.dumps({'success':'false', 'message': msg})
+        return json.dumps({'success':'true', 'action':'migrate_container'})
+    except Exception as ex:
+        logger.error(str(ex))
+        return json.dumps({'success':'false', 'message': str(ex)})
+    finally:
+        G_ulockmgr.release(user)
+
 
 @app.route("/image/list/", methods=['POST'])
 @login_required
