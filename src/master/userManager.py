@@ -411,6 +411,7 @@ class userManager:
                 "success":'true',
                 "data":{
                     "username" : user.username,
+                    "id": user.id,
                     "password" : user.password,
                     "avatar" : user.avatar,
                     "nickname" : user.nickname,
@@ -440,6 +441,7 @@ class userManager:
             "success": 'true',
             "data":{
                 "username" : user.username,
+                "id": user.id,
                 "password" : user.password,
                 "avatar" : user.avatar,
                 "nickname" : user.nickname,

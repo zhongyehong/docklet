@@ -728,6 +728,94 @@ class VclusterMgr(object):
             full_clusters.append(single_cluster)'''
         return [True, clusters]
 
+    def migrate_container(self, clustername, username, containername, new_host, user_info):
+        [status, info] = self.get_clusterinfo(clustername, username)
+        if not status:
+            return [False, "cluster not found"]
+        if info['status'] != 'stopped':
+            return [False, 'cluster is not stopped']
+
+        con_db = Container.query.get(containername)
+        if con_db is None:
+            return [False, 'Container not found']
+        if con_db.host == new_host:
+            return [False, 'Container has been on the new host']
+
+        oldworker = self.nodemgr.ip_to_rpc(con_db.host)
+        if oldworker is None:
+            return [False, "Old host worker can't be found or has been stopped."]
+        oldworker.stop_container(containername)
+        imagename = "migrate-" + containername + "-" + datetime.datetime.now().strftime("%Y-%m-%d")
+        logger.info("Save Image for container:%s imagename:%s host:%s"%(containername, imagename, con_db.host))
+        status,msg = oldworker.create_image(username,imagename,containername,"",10000)
+        if not status:
+            return [False, msg]
+        #con_db.lastsave = datetime.datetime.now()
+        #con_db.image = imagename
+
+        self.networkmgr.load_usrgw(username)
+        proxy_server_ip = self.networkmgr.usrgws[username]
+        [status, proxy_public_ip] = self.etcd.getkey("machines/publicIP/"+proxy_server_ip)
+        if not status:
+            self.imgmgr.removeImage(username,imagename)
+            logger.error("Fail to get proxy_public_ip %s."%(proxy_server_ip))
+            return [False, "Fail to get proxy server public IP."]
+        uid = user_info['data']['id']
+        setting = {
+                'cpu': con_db.setting_cpu,
+                'memory': con_db.setting_mem,
+                'disk': con_db.setting_disk
+                }
+        _, clusterid, cid = containername.split('-')
+        hostname = "host-"+str(cid)
+        gateway = self.networkmgr.get_usergw(username)
+        image = {'name':imagename,'type':'private','owner':username }
+        logger.info("Migrate: proxy_ip:%s uid:%s setting:%s clusterid:%s cid:%s hostname:%s gateway:%s image:%s"
+                    %(proxy_public_ip, str(uid), str(setting), clusterid, cid, hostname, gateway, str(image)))
+        logger.info("Migrate: create container(%s) on new host %s"%(containername, new_host))
+
+        worker = self.nodemgr.ip_to_rpc(new_host)
+        if worker is None:
+            self.imgmgr.removeImage(username,imagename)
+            return [False, "New host worker can't be found or has been stopped."]
+        status,msg = worker.create_container(containername, proxy_public_ip, username, uid, json.dumps(setting),
+                     clustername, str(clusterid), str(cid), hostname, con_db.ip, gateway, json.dumps(image))
+        if not status:
+            self.imgmgr.removeImage(username,imagename)
+            return [False, msg]
+        con_db.host = new_host
+        db.session.commit()
+        oldworker.delete_container(containername)
+        self.imgmgr.removeImage(username,imagename)
+        return [True,""]
+
+    def migrate_cluster(self, clustername, username, new_host_list, user_info):
+        [status, info] = self.get_clusterinfo(clustername, username)
+        if not status:
+            return [False, "cluster not found"]
+        prestatus = info['status']
+        self.stop_cluster(clustername, username)
+        for container in info['containers']:
+            if container['host'] in new_host_list:
+                continue
+            random.shuffle(new_host_list)
+            for new_host in new_host_list:
+                status,msg = self.migrate_container(clustername,username,container['containername'],new_host,user_info)
+                if status:
+                    break
+                else:
+                    logger.error(msg)
+            else:
+                if prestatus == 'running':
+                    self.start_cluster(clustername, username, user_info)
+                return [False, msg]
+        logger.info("[Migrate] prestatus:%s for cluster(%s) user(%s)"%(prestatus, clustername, username))
+        if prestatus == 'running':
+            status, msg = self.start_cluster(clustername, username, user_info)
+            if not status:
+                return [False, msg]
+        return [True, ""]
+
     def is_cluster(self, clustername, username):
         [status, clusters] = self.list_clusters(username)
         if clustername in clusters:
