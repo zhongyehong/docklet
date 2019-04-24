@@ -796,7 +796,7 @@ class VclusterMgr(object):
         prestatus = info['status']
         self.stop_cluster(clustername, username)
         for container in info['containers']:
-            if container['host'] == src_host:
+            if not container['host'] == src_host:
                 continue
             random.shuffle(new_host_list)
             for new_host in new_host_list:
@@ -817,7 +817,9 @@ class VclusterMgr(object):
         return [True, ""]
 
     def migrate_host(self, src_host, new_host_list):
-        vcluster_list = self.get_all_clusterinfo()
+        [status, vcluster_list] = self.get_all_clusterinfo()
+        if not status:
+            return [False, vcluster_list]
         auth_key = env.getenv('AUTH_KEY')
         res = post_to_user("/master/user/groupinfo/", {'auth_key':auth_key})
         groups = json.loads(res['groups'])

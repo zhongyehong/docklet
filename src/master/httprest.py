@@ -442,11 +442,7 @@ def migrate_host(user, beans, form):
 
     if src_host is None or dst_host_list is None:
         return json.dumps({'success':'false', 'message': 'src host or dst host list is null'})
-    logger.info(str(src_host))
-    logger.info(type(dst_host_list))
-    logger.info(str(dst_host_list))
-    #[status, msg] = G_vclustermgr.migrate_host(src_host, dst_host_list)
-    status = True
+    [status, msg] = G_vclustermgr.migrate_host(src_host, dst_host_list)
     if status:
         return json.dumps({'success': 'true', 'action': 'migrate_host'})
     else:
