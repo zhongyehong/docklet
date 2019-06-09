@@ -199,6 +199,8 @@ class ImageMgr():
     
     def get_image_layer(self, lxc):
         layerfile = self.NFS_PREFIX + "/local/volume/." + lxc + ".layer"
+        if not os.path.exists(layerfile):
+            return self.NFS_PREFIX + "/local/imagelayer/empty"
         with open(layerfile, 'r') as f:
             imagelayer = f.readline().strip()
         return imagelayer
@@ -226,7 +228,8 @@ class ImageMgr():
             if self.layer_count[imagelayer] == 0 and not imagelayer.endswith("empty"):
                 del self.layer_count[imagelayer]
                 sys_run("rm -rf %s" % imagelayer)
-            sys_run("rm %s" % (layerfile))
+            if os.path.exists(layerfile):
+                sys_run("rm %s" % (layerfile))
         except Exception as e:
             logger.error(e)
 
