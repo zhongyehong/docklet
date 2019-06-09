@@ -339,8 +339,8 @@ IP=%s
                 onlyglobal.append(container)
         return [both, onlylocal, onlyglobal]
 
-    def create_image(self,username,imagename,containername,description="not thing",imagenum=10):
-        return self.imgmgr.createImage(username,imagename,containername,description,imagenum)
+    def create_image(self, username, imagename, imagelayer, containername, description="not thing", imagenum=10):
+        return self.imgmgr.createImage(username, imagename, imagelayer, containername, description, imagenum)
 
     def update_basefs(self,imagename):
         return self.imgmgr.update_basefs(imagename)

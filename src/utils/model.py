@@ -309,25 +309,27 @@ class Container(db.Model):
     ip = db.Column(db.String(20))
     host = db.Column(db.String(20))
     image = db.Column(db.String(50))
+    imagelayer = db.Column(db.String(50))
     lastsave = db.Column(db.DateTime)
     setting_cpu = db.Column(db.Integer)
     setting_mem = db.Column(db.Integer)
     setting_disk = db.Column(db.Integer)
     vclusterid = db.Column(db.Integer, db.ForeignKey('v_cluster.clusterid'))
 
-    def __init__(self, containername, hostname, ip, host, image, lastsave, setting):
+    def __init__(self, containername, hostname, ip, host, image, imagelayer, lastsave, setting):
         self.containername = containername
         self.hostname = hostname
         self.ip = ip
         self.host = host
         self.image = image
+        self.imagelayer = imagelayer
         self.lastsave = lastsave
         self.setting_cpu = int(setting['cpu'])
         self.setting_mem = int(setting['memory'])
         self.setting_disk = int(setting['disk'])
 
     def __repr__(self):
-        return "{\"containername\":\"%s\", \"hostname\":\"%s\", \"ip\": \"%s\", \"host\":\"%s\", \"image\":\"%s\", \"lastsave\":\"%s\", \"setting\":{\"cpu\":\"%d\",\"memory\":\"%d\",\"disk\":\"%d\"}}" % (self.containername, self.hostname, self.ip, self.host, self.image, self.lastsave.strftime("%Y-%m-%d %H:%M:%S"), self.setting_cpu, self.setting_mem, self.setting_disk)
+        return "{\"containername\":\"%s\", \"hostname\":\"%s\", \"ip\": \"%s\", \"host\":\"%s\", \"image\":\"%s\", \"imagelayer\":\"%s\", \"lastsave\":\"%s\", \"setting\":{\"cpu\":\"%d\",\"memory\":\"%d\",\"disk\":\"%d\"}}" % (self.containername, self.hostname, self.ip, self.host, self.image, self.imagelayer, self.lastsave.strftime("%Y-%m-%d %H:%M:%S"), self.setting_cpu, self.setting_mem, self.setting_disk)
 
 class PortMapping(db.Model):
     __bind_key__ = 'system'

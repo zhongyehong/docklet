@@ -118,6 +118,7 @@ class VclusterMgr(object):
             return [False, "cluster:%s already exists" % clustername]
         if self.imgmgr.get_image_size(image) + 100 > int(setting["disk"]):
             return [False, "the size of disk is not big enough for the image"]
+        imagelayer = self.imgmgr.get_image_layer(username, image)
         clustersize = int(self.defaultsize)
         logger.info ("starting cluster %s with %d containers for %s" % (clustername, int(clustersize), username))
         workers = self.nodemgr.get_base_nodeips()
@@ -173,14 +174,14 @@ class VclusterMgr(object):
             lxc_name = username + "-" + str(clusterid) + "-" + str(i)
             hostname = "host-"+str(i)
             logger.info ("create container with : name-%s, username-%s, clustername-%s, clusterid-%s, hostname-%s, ip-%s, gateway-%s, image-%s" % (lxc_name, username, clustername, str(clusterid), hostname, ips[i], gateway, image_json))
-            [success,message] = oneworker.create_container(lxc_name, proxy_public_ip, username, uid, json.dumps(setting) , clustername, str(clusterid), str(i), hostname, ips[i], gateway, image_json)
+            [success, message] = oneworker.create_container(lxc_name, proxy_public_ip, username, uid, json.dumps(setting) , clustername, str(clusterid), str(i), hostname, ips[i], gateway, image_json)
             if success is False:
                 self.networkmgr.release_userips(username, ips[i])
                 logger.info("container create failed, so vcluster create failed")
                 return [False, message]
             logger.info("container create success")
             hosts = hosts + ips[i].split("/")[0] + "\t" + hostname + "\t" + hostname + "."+clustername + "\n"
-            containers.append(Container(lxc_name,hostname,ips[i],workerip,image['name'],datetime.datetime.now(),setting))
+            containers.append(Container(lxc_name,hostname,ips[i],workerip,image['name'],imagelayer,datetime.datetime.now(),setting))
             #containers.append({ 'containername':lxc_name, 'hostname':hostname, 'ip':ips[i], 'host':workerip, 'image':image['name'], 'lastsave':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'setting': setting })
         hostfile = open(hostpath, 'w')
         hostfile.write(hosts)
@@ -206,6 +207,7 @@ class VclusterMgr(object):
             return [False, "cluster:%s not found" % clustername]
         if self.imgmgr.get_image_size(image) + 100 > int(setting["disk"]):
             return [False, "the size of disk is not big enough for the image"]
+        imagelayer = self.imgmgr.get_image_layer(username, image)
         workers = self.nodemgr.get_base_nodeips()
         if (len(workers) == 0):
             logger.warning("no workers to start containers, scale out failed")
@@ -251,7 +253,7 @@ class VclusterMgr(object):
             return [False, "Fail to write info."]
         vcluster.nextcid = int(clusterinfo['nextcid']) + 1
         vcluster.size = int(clusterinfo['size']) + 1
-        vcluster.containers.append(Container(lxc_name,hostname,ip,workerip,image['name'],datetime.datetime.now(),setting))
+        vcluster.containers.append(Container(lxc_name,hostname,ip,workerip,image['name'],imagelayer,datetime.datetime.now(),setting))
         #{'containername':lxc_name, 'hostname':hostname, 'ip':ip, 'host':workerip, 'image':image['name'], 'lastsave':datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'setting': setting})
         db.session.add(vcluster)
         db.session.commit()
@@ -436,7 +438,7 @@ class VclusterMgr(object):
                 worker = self.nodemgr.ip_to_rpc(container.host)
                 if worker is None:
                     return [False, "The worker can't be found or has been stopped."]
-                res = worker.create_image(username,imagename,containername,description,imagenum)
+                res = worker.create_image(username,imagename,container.imagelayer,containername,description,imagenum)
                 container.lastsave = datetime.datetime.now()
                 container.image = imagename
                 break

@@ -59,7 +59,8 @@ FS_PREFIX=/opt/docklet
 export FS_PREFIX
 
 mkdir -p $FS_PREFIX/global
-mkdir -p $FS_PREFIX/local/
+mkdir -p $FS_PREFIX/local
+mkdir -p $FS_PREFIX/local/imagelayer/empty
 
 echo "directory FS_PREFIX (${FS_PREFIX}) have been created"
 

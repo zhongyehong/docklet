@@ -43,6 +43,8 @@ class ImageMgr():
         self.imgpath = self.NFS_PREFIX + "/global/images/"
         self.srcpath = env.getenv('DOCKLET_LIB') + "/"
         self.imageserver = "192.168.6.249"
+        self.layer_count = {}
+        self.layer_map = {}
 
     def datetime_toString(self,dt):
         return dt.strftime("%Y-%m-%d %H:%M:%S")
@@ -70,8 +72,9 @@ class ImageMgr():
         else:
             return fspath
 
-    def createImage(self,user,image,lxc,description="Not thing", imagenum=10):
+    def createImage(self,user,image, imagelayer, lxc, description="Not thing", imagenum=10):
         fspath = self.NFS_PREFIX + "/local/volume/" + lxc
+        tmppath = self.NFS_PREFIX + "/local/imagetmp/" + lxc
         imgpath = self.imgpath + "private/" + user + "/"
         #tmppath = self.NFS_PREFIX + "/local/tmpimg/"
         #tmpimage = str(random.randint(0,10000000)) + ".tz"
@@ -85,8 +88,12 @@ class ImageMgr():
                 return [False,"image number limit exceeded"]
         #sys_run("mkdir -p %s" % tmppath, True)
         sys_run("mkdir -p %s" % imgpath,True)
+        sys_run("mkdir -p %s" % tmppath,True)
         try:
-            sys_run("tar -cvf %s -C %s ." % (imgpath+image+".tz",self.dealpath(fspath)), True)
+            sys_run("mount -t aufs -o br=%s=rw:%s=ro+wh -o udba=reval none %s/" % (fspath, imagelayer, tmppath),True)
+            sys_run("tar -cvf %s -C %s ." % (imgpath+image+".tz",self.dealpath(tmppath)), True)
+            sys_run("umount %s" % tmppath, True)
+            sys_run("rm -rf %s" % tmppath, True)
         except Exception as e:
             logger.error(e)
         #try:
@@ -100,24 +107,40 @@ class ImageMgr():
         logger.info("image:%s from LXC:%s create success" % (image,lxc))
         return [True, "create image success"]
 
-    def prepareImage(self,user,image,fspath):
+    def get_image_layer(self, user, image):
+        imagename = image['name']
+        imagetype = image['type']
+        imageowner = image['owner']
+        if imagename == "base" and imagetype == "base":
+            return self.NFS_PREFIX + "/local/imagelayer/empty"
+        update_time = self.get_image_timestamp(imageowner, imagename, imagetype)
+        logger.debug(update_time)
+        image_layer = "%s/local/imagelayer/%s_%s_%s/%s" % (self.NFS_PREFIX, imagename, imagetype, imageowner, update_time)
+        return image_layer
+        
+    def prepareImage(self,user,image):
         imagename = image['name']
         imagetype = image['type']
         imageowner = image['owner']
         #tmppath = self.NFS_PREFIX + "/local/tmpimg/"
         #tmpimage = str(random.randint(0,10000000)) + ".tz"
         if imagename == "base" and imagetype == "base":
-            return
+            return self.NFS_PREFIX + "/local/imagelayer/empty"
         if imagetype == "private":
             imgpath = self.imgpath + "private/" + user + "/"
         else:
             imgpath = self.imgpath + "public/" + imageowner + "/"
+        image_layer =  self.get_image_layer(user, image)
+        if os.path.isdir(image_layer):
+            return image_layer
+        else: 
+            os.makedirs(image_layer)
         #try:
         #    sys_run("cp %s %s" % (imgpath+imagename+".tz", tmppath+tmpimage))
         #except Exception as e:
         #    logger.error(e)
         try:
-            sys_run("tar -C %s -xvf %s" % (self.dealpath(fspath),imgpath+imagename+".tz"), True)
+            sys_run("tar -C %s -xvf %s" % (self.dealpath(image_layer),imgpath+imagename+".tz"), True)
             #sys_run("rsync -a --delete --exclude=lost+found/ --exclude=root/nfs/ --exclude=dev/ --exclude=mnt/ --exclude=tmp/ --exclude=media/ --exclude=proc/ --exclude=sys/ %s/ %s/" % (imgpath+imagename,self.dealpath(fspath)),True)
         except Exception as e:
             logger.error(e)
@@ -125,11 +148,12 @@ class ImageMgr():
 
         #self.sys_call("rsync -a --delete --exclude=nfs/ %s/ %s/" % (imgpath+image,self.dealpath(fspath)))
         #self.updatetime(imgpath,image)
-        return
+        return image_layer
 
     def prepareFS(self,user,image,lxc,size="1000",vgname="docklet-group"):
         rootfs = "/var/lib/lxc/%s/rootfs" % lxc
         layer = self.NFS_PREFIX + "/local/volume/" + lxc
+        imagelayer = ""
         #check mountpoint
         Ret = sys_run("mountpoint %s" % rootfs)
         if Ret.returncode == 0:
@@ -161,9 +185,14 @@ class ImageMgr():
             #self.sys_call("mkdir -p %s/overlay %s/work" % (layer,layer))
             #self.sys_call("mount -t overlay overlay -olowerdir=%s/local/basefs,upperdir=%s/overlay,workdir=%s/work %s" % (self.NFS_PREFIX,layer,layer,rootfs))
             #self.prepareImage(user,image,layer+"/overlay")
-            self.prepareImage(user,image,layer)
+            imagelayer = self.prepareImage(user,image)
             logger.info("image has been prepared")
-            sys_run("mount -t aufs -o br=%s=rw:%s/local/packagefs=ro+wh:%s/local/basefs=ro+wh -o udba=reval none %s/" % (layer,self.NFS_PREFIX,self.NFS_PREFIX,rootfs),True)
+            sys_run("mount -t aufs -o br=%s=rw:%s=ro+wh:%s/local/packagefs=ro+wh:%s/local/basefs=ro+wh -o udba=reval none %s/" % (layer,imagelayer,self.NFS_PREFIX,self.NFS_PREFIX,rootfs),True)
+            self.layer_map[lxc] = imagelayer
+            if imagelayer in self.layer_count:
+                self.layer_count[imagelayer] += 1
+            else:
+                self.layer_count[imagelayer] = 1
             sys_run("mkdir -m 777 -p %s/local/temp/%s" % (self.NFS_PREFIX,lxc))
 
         except Exception as e:
@@ -189,6 +218,15 @@ class ImageMgr():
         try:
             sys_run("rm -rf %s %s" % (layer,lxcpath))
             sys_run("rm -rf %s/local/temp/%s" % (self.NFS_PREFIX,lxc))
+            if lxc in self.layer_map:
+                imagelayer = self.layer_map[lxc]
+            else:
+                return True
+            self.layer_count[imagelayer] -= 1
+            del self.layer_map[lxc]
+            if self.layer_count[imagelayer] == 0 and not imagelayer.endswith("empty"):
+                del self.layer_count[imagelayer]
+                sys_run("rm -rf %s" % imagelayer)
         except Exception as e:
             logger.error(e)
 
@@ -202,7 +240,7 @@ class ImageMgr():
             return False
         return True
 
-    def checkFS(self, lxc, vgname="docklet-group"):
+    def checkFS(self, lxc, imagelayer, vgname="docklet-group"):
         rootfs = "/var/lib/lxc/%s/rootfs" % lxc
         layer = self.NFS_PREFIX + "/local/volume/" + lxc
         if not os.path.isdir(layer):
@@ -213,7 +251,12 @@ class ImageMgr():
             sys_run("mount /dev/%s/%s %s" % (vgname,lxc,layer))
         Ret = sys_run("mountpoint %s" % rootfs)
         if Ret.returncode != 0:
-            sys_run("mount -t aufs -o br=%s=rw:%s/local/packagefs=ro+wh:%s/local/basefs=ro+wh -o udba=reval none %s/" % (layer,self.NFS_PREFIX,self.NFS_PREFIX,rootfs))
+            sys_run("mount -t aufs -o br=%s=rw:%s=ro+wh:%s/local/packagefs=ro+wh:%s/local/basefs=ro+wh -o udba=reval none %s/" % (layer, imagelayer, self.NFS_PREFIX,self.NFS_PREFIX,rootfs))
+        self.layer_map[lxc] = imagelayer
+        if imagelayer in self.layer_count:
+            self.layer_count[imagelayer] += 1
+        else:
+            self.layer_count[imagelayer] = 1
         return True
 
 
@@ -366,6 +409,10 @@ class ImageMgr():
         if len(description) > 15:
             description = description[:15] + "......"
         return [time, description]
+    
+    def get_image_timestamp(self, user, imagename, imagetype):
+        image = Image.query.filter_by(imagename=imagename,ownername=user).first()
+        return image.create_time.strftime("%Y%m%d%H%M%S")
 
     def get_image_description(self, user, image):
         '''if image['type'] == "private":
@@ -379,6 +426,7 @@ class ImageMgr():
         if image is None:
             return ""
         return image.description
+
 
     def get_image_size(self, image):
         imagename = image['name']
